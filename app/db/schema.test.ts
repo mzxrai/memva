@@ -37,9 +37,6 @@ describe('Database Schema', () => {
         cwd TEXT NOT NULL,
         project_name TEXT NOT NULL,
         data TEXT NOT NULL,
-        file_path TEXT NOT NULL,
-        line_number INTEGER NOT NULL,
-        synced_at TEXT DEFAULT CURRENT_TIMESTAMP,
         memva_session_id TEXT
       )
     `)
@@ -72,9 +69,6 @@ describe('Database Schema', () => {
       'cwd',
       'project_name',
       'data',
-      'file_path',
-      'line_number',
-      'synced_at',
       'memva_session_id'
     ])
   })
@@ -92,9 +86,7 @@ describe('Database Schema', () => {
       data: {
         type: 'user',
         message: { role: 'user', content: [{ type: 'text', text: 'Hello' }] }
-      },
-      file_path: '~/.claude/projects/test/session.jsonl',
-      line_number: 1
+      }
     }
 
     // Insert using Drizzle
@@ -133,9 +125,7 @@ describe('Database Schema', () => {
             input: { file_path: '/test.ts' }
           }]
         }
-      },
-      file_path: '~/.claude/projects/test/session.jsonl',
-      line_number: 2
+      }
     }
 
     db.insert(schema.events).values(assistantEvent).run()
@@ -169,9 +159,7 @@ describe('Database Schema', () => {
       parent_uuid: null,
       cwd: '/test',
       project_name: 'test',
-      data: { type: 'user' },
-      file_path: 'test.jsonl',
-      line_number: index + 1
+      data: { type: 'user' }
     }))
 
     eventsToInsert.forEach(event => {
@@ -202,9 +190,7 @@ describe('Database Schema', () => {
       data: {
         type: 'user',
         message: { role: 'user', content: [{ type: 'text', text: 'Research task' }] }
-      },
-      file_path: '~/.claude/projects/test/session.jsonl',
-      line_number: 10
+      }
     }
 
     db.insert(schema.events).values(sidechainEvent).run()

@@ -70,9 +70,7 @@ describe('Database initialization', () => {
       parent_uuid: null,
       cwd: '/test',
       project_name: 'test',
-      data: { type: 'user', message: 'test' },
-      file_path: 'test.jsonl',
-      line_number: 1
+      data: { type: 'user', message: 'test' }
     }
     
     // Simulate concurrent inserts

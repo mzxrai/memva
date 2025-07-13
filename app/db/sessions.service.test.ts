@@ -192,10 +192,7 @@ describe('Session Service', () => {
           is_sidechain: false,
           cwd: '/test',
           project_name: 'test',
-          data: { content: 'test' },
-          file_path: '/test.jsonl',
-          line_number: 1,
-          synced_at: new Date().toISOString()
+          data: { content: 'test' }
         }).execute()
       }
 

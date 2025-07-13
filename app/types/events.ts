@@ -101,7 +101,5 @@ export interface EventRow {
   cwd: string
   project_name: string
   data: string // JSON string of ClaudeEvent
-  file_path: string
-  line_number: number
-  synced_at: string
+  memva_session_id?: string
 }

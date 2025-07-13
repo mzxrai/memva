@@ -53,10 +53,7 @@ function initializeSchema() {
       parent_uuid TEXT,
       cwd TEXT NOT NULL,
       project_name TEXT NOT NULL,
-      data TEXT NOT NULL,
-      file_path TEXT NOT NULL,
-      line_number INTEGER NOT NULL,
-      synced_at TEXT DEFAULT CURRENT_TIMESTAMP
+      data TEXT NOT NULL
     )
   `)
   

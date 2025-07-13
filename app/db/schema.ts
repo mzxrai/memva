@@ -21,9 +21,6 @@ export const events = sqliteTable('events', {
   cwd: text('cwd').notNull(),
   project_name: text('project_name').notNull(),
   data: text('data', { mode: 'json' }).notNull(),
-  file_path: text('file_path').notNull(),
-  line_number: integer('line_number').notNull(),
-  synced_at: text('synced_at').default(sql`CURRENT_TIMESTAMP`),
   memva_session_id: text('memva_session_id')
 })
 

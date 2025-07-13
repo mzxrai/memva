@@ -33,10 +33,7 @@ describe('Event-Session Association', () => {
           is_sidechain: false,
           cwd: '/test',
           project_name: 'test',
-          data: { content: 'test' },
-          file_path: '/test.jsonl',
-          line_number: 1,
-          synced_at: new Date().toISOString()
+          data: { content: 'test' }
         }).execute()
       }
 
@@ -71,10 +68,7 @@ describe('Event-Session Association', () => {
         is_sidechain: false,
         cwd: '/test',
         project_name: 'test',
-        data: { content: 'test' },
-        file_path: '/test.jsonl',
-        line_number: 1,
-        synced_at: new Date().toISOString()
+        data: { content: 'test' }
       }).execute()
 
       // Try to associate existing and non-existing events
@@ -109,10 +103,7 @@ describe('Event-Session Association', () => {
           is_sidechain: false,
           cwd: '/test',
           project_name: 'test',
-          data: { content: `Event ${i}` },
-          file_path: '/test.jsonl',
-          line_number: i + 1,
-          synced_at: new Date().toISOString()
+          data: { content: `Event ${i}` }
         }).execute()
       }
 
@@ -142,10 +133,7 @@ describe('Event-Session Association', () => {
           is_sidechain: false,
           cwd: '/test',
           project_name: 'test',
-          data: { content: `Event ${i}` },
-          file_path: '/test.jsonl',
-          line_number: i + 1,
-          synced_at: new Date().toISOString()
+          data: { content: `Event ${i}` }
         }).execute()
       }
 
@@ -175,10 +163,7 @@ describe('Event-Session Association', () => {
           is_sidechain: false,
           cwd: '/test',
           project_name: 'test',
-          data: { content: 'Main event' },
-          file_path: '/test.jsonl',
-          line_number: 1,
-          synced_at: new Date().toISOString()
+          data: { content: 'Main event' }
         },
         {
           uuid: uuidv4(),
@@ -189,10 +174,7 @@ describe('Event-Session Association', () => {
           is_sidechain: true,
           cwd: '/test',
           project_name: 'test',
-          data: { content: 'Sidechain event' },
-          file_path: '/test.jsonl',
-          line_number: 2,
-          synced_at: new Date().toISOString()
+          data: { content: 'Sidechain event' }
         }
       ]).execute()
 
@@ -224,10 +206,7 @@ describe('Event-Session Association', () => {
           is_sidechain: false,
           cwd: '/test',
           project_name: 'test',
-          data: { content: 'test' },
-          file_path: '/test.jsonl',
-          line_number: i + 1,
-          synced_at: new Date().toISOString()
+          data: { content: 'test' }
         }).execute()
       }
 
