@@ -29,7 +29,20 @@ export function getDatabase(dbPath: string = './memva.db') {
 function initializeSchema() {
   if (!sqlite) return
   
-  // Create events table
+  // Create sessions table
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      title TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      status TEXT NOT NULL,
+      project_path TEXT NOT NULL,
+      metadata TEXT
+    )
+  `)
+  
+  // Create events table (without memva_session_id for compatibility)
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS events (
       uuid TEXT PRIMARY KEY,
@@ -47,14 +60,33 @@ function initializeSchema() {
     )
   `)
   
-  // Create indexes for efficient queries
+  // Run migrations to add new columns
+  runMigrations()
+  
+  // Create indexes for efficient queries (after migrations)
   sqlite.exec(`
     CREATE INDEX IF NOT EXISTS idx_session_id ON events(session_id);
     CREATE INDEX IF NOT EXISTS idx_timestamp ON events(timestamp);
     CREATE INDEX IF NOT EXISTS idx_project_name ON events(project_name);
     CREATE INDEX IF NOT EXISTS idx_event_type ON events(event_type);
     CREATE INDEX IF NOT EXISTS idx_parent_uuid ON events(parent_uuid);
+    CREATE INDEX IF NOT EXISTS idx_memva_session_id ON events(memva_session_id);
+    CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
+    CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at);
   `)
+}
+
+function runMigrations() {
+  if (!sqlite) return
+  
+  // Check if memva_session_id column exists
+  const columns = sqlite.prepare(`PRAGMA table_info(events)`).all()
+  const hasMemvaSessionId = columns.some((col: any) => col.name === 'memva_session_id')
+  
+  if (!hasMemvaSessionId) {
+    console.log('Migrating: Adding memva_session_id column to events table')
+    sqlite.exec(`ALTER TABLE events ADD COLUMN memva_session_id TEXT`)
+  }
 }
 
 export function closeDatabase() {
@@ -64,3 +96,6 @@ export function closeDatabase() {
     db = null
   }
 }
+
+// Export a getter for the database instance
+export { getDatabase as getDb }

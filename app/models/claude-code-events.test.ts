@@ -114,7 +114,7 @@ describe('Claude Code Event Types', () => {
       role: 'user',
       content: [
         {
-          type: 'text' | 'tool_result' | 'image',
+          type: 'text', // Can be 'text' | 'tool_result' | 'image'
           text: 'string?',           // For text
           tool_use_id: 'string?',    // For tool_result
           content: 'string | array?' // For tool_result
@@ -130,7 +130,7 @@ describe('Claude Code Event Types', () => {
       model: 'string',
       content: [
         {
-          type: 'text' | 'tool_use' | 'thinking',
+          type: 'text', // Can be 'text' | 'tool_use' | 'thinking'
           text: 'string?',      // For text/thinking
           id: 'string?',        // For tool_use
           name: 'string?',      // For tool_use

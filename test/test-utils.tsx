@@ -1,6 +1,6 @@
-import { render, RenderOptions } from '@testing-library/react'
+import { render, type RenderOptions } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
-import { ReactElement } from 'react'
+import type { ReactElement } from 'react'
 
 interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   initialEntries?: string[]

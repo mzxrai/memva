@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import logoDark from "./logo-dark.svg";
 import logoLight from "./logo-light.svg";
 
@@ -25,6 +26,28 @@ export function Welcome() {
               What&apos;s next?
             </p>
             <ul>
+              <li>
+                <Link
+                  to="/events"
+                  className="group flex items-center gap-3 self-stretch p-3 leading-normal text-blue-700 hover:underline dark:text-blue-500"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="20"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    className="stroke-gray-600 group-hover:stroke-current dark:stroke-gray-300"
+                  >
+                    <path
+                      d="M3 3h14v14H3V3zm2 2v10h10V5H5zm2 2h6v2H7V7zm0 4h6v2H7v-2z"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  View Claude Code Events
+                </Link>
+              </li>
               {resources.map(({ href, text, icon }) => (
                 <li key={href}>
                   <a

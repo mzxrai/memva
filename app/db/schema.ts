@@ -1,6 +1,16 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
 
+export const sessions = sqliteTable('sessions', {
+  id: text('id').primaryKey(),
+  title: text('title'),
+  created_at: text('created_at').notNull(),
+  updated_at: text('updated_at').notNull(),
+  status: text('status').notNull(),
+  project_path: text('project_path').notNull(),
+  metadata: text('metadata', { mode: 'json' })
+})
+
 export const events = sqliteTable('events', {
   uuid: text('uuid').primaryKey(),
   session_id: text('session_id').notNull(),
@@ -13,5 +23,11 @@ export const events = sqliteTable('events', {
   data: text('data', { mode: 'json' }).notNull(),
   file_path: text('file_path').notNull(),
   line_number: integer('line_number').notNull(),
-  synced_at: text('synced_at').default(sql`CURRENT_TIMESTAMP`)
+  synced_at: text('synced_at').default(sql`CURRENT_TIMESTAMP`),
+  memva_session_id: text('memva_session_id')
 })
+
+export type Session = typeof sessions.$inferSelect
+export type NewSession = typeof sessions.$inferInsert
+export type Event = typeof events.$inferSelect
+export type NewEvent = typeof events.$inferInsert

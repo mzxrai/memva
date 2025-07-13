@@ -9,17 +9,21 @@
     "typecheck": "react-router typegen && tsc",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "import:events": "tsx scripts/import-events.ts",
+    "import:events:dry": "tsx scripts/import-events.ts --dry-run --verbose"
   },
   "dependencies": {
     "@react-router/node": "^7.5.3",
     "@react-router/serve": "^7.5.3",
+    "@types/uuid": "^10.0.0",
     "better-sqlite3": "^12.2.0",
     "drizzle-orm": "^0.44.2",
     "isbot": "^5.1.27",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-router": "^7.5.3"
+    "react-router": "^7.5.3",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@react-router/dev": "^7.5.3",
@@ -38,6 +42,7 @@
     "happy-dom": "^18.0.1",
     "msw": "^2.10.4",
     "tailwindcss": "^4.1.4",
+    "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "vite": "^6.3.3",
     "vite-tsconfig-paths": "^5.1.4",

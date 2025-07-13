@@ -1,4 +1,27 @@
 # Development Guidelines for Claude
+ 
+## Basic World Information/Grounding
+
+- It is currently July of 2025.
+
+## App Description
+
+This app's goal is to help users manage multiple "Claude Code" (the CLI coding agent) sessions in parallel effectively, with minimal fuss and maximum power.
+
+To start with, we will build this in a local-only fashion; in other words, it will be a self-contained app that runs on a user's computer and integrates directly with the user's Claude Code.
+
+### Technologies
+
+- We will be using React 19 and React Router v7 (the next evolution of Remix) in "framework mode".
+- We will use Tailwind CSS exclusively.
+- We will write proper modern TypeScript.
+- The use of popular, well-supported third-party TypeScript libraries is encouraged for non-trivial functionality. Always run a web search to locate the latest stable version of a given library before adding it to `package.json`.
+
+## Important processes
+
+- IMPORTANT: we have an MCP server called "docs" that you must *always* use when starting new feature development. Use "docs" to pull the latest library documentation down so that the code you write will have the highest chance of working on the first try.
+- Use the Playwright MCP server to verify functionality works as expected in the Chrome browser. If it does not work as expected, continue to iterate until it does.
+- Do not start webservers or other long-running processes yourself as that will hang the chat. Instead, inform me what command to run, and I will run it in a separate tab for you. Logs for the main webserver will be sent to `dev.log` for you to review.
 
 ## Core Philosophy
 
@@ -36,15 +59,6 @@ I follow TDD with behavior-driven testing and functional programming principles.
 
 - **Jest/Vitest** for testing, **React Testing Library** for components, **MSW** for API mocking
 - All test code follows same TypeScript strict mode rules as production
-
-```
-src/
-  features/
-    payment/
-      payment-processor.ts
-      payment-validator.ts
-      payment-processor.test.ts  // validator covered by testing business behavior
-```
 
 ### Test Data Pattern
 

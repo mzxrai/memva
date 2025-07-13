@@ -15,6 +15,18 @@ describe('Database Schema', () => {
     
     // Create tables using raw SQL for now (will use migrations later)
     sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY,
+        title TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        status TEXT NOT NULL,
+        project_path TEXT NOT NULL,
+        metadata TEXT
+      )
+    `)
+    
+    sqlite.exec(`
       CREATE TABLE IF NOT EXISTS events (
         uuid TEXT PRIMARY KEY,
         session_id TEXT NOT NULL,
@@ -27,7 +39,8 @@ describe('Database Schema', () => {
         data TEXT NOT NULL,
         file_path TEXT NOT NULL,
         line_number INTEGER NOT NULL,
-        synced_at TEXT DEFAULT CURRENT_TIMESTAMP
+        synced_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        memva_session_id TEXT
       )
     `)
     
@@ -61,7 +74,8 @@ describe('Database Schema', () => {
       'data',
       'file_path',
       'line_number',
-      'synced_at'
+      'synced_at',
+      'memva_session_id'
     ])
   })
 
