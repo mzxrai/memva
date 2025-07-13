@@ -2,24 +2,25 @@ import { db, sessions, events, type Session, type NewSession } from './index'
 import { eq, desc, and, sql } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 
-type CreateSessionInput = {
+export type CreateSessionInput = {
   title?: string
   project_path: string
+  status?: 'active' | 'archived'
   metadata?: any
 }
 
-type UpdateSessionInput = {
+export type UpdateSessionInput = {
   title?: string
   status?: 'active' | 'archived'
   metadata?: any
 }
 
-type ListSessionsOptions = {
+export type ListSessionsOptions = {
   status?: 'active' | 'archived'
   limit?: number
 }
 
-type SessionWithStats = Session & {
+export type SessionWithStats = Session & {
   event_count: number
   duration_minutes: number
   event_types: Record<string, number>

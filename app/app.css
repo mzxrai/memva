@@ -13,8 +13,8 @@ body {
   color-scheme: dark;
 }
 
-/* Custom focus styles */
-*:focus-visible {
+/* Custom focus styles - excluding form inputs */
+*:focus-visible:not(input):not(textarea):not(select) {
   @apply outline-none ring-2 ring-zinc-500 ring-offset-2 ring-offset-zinc-950;
 }
 

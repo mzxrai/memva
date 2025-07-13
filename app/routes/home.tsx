@@ -1,9 +1,10 @@
 import type { Route } from "./+types/home";
-import { Link, useLoaderData } from "react-router";
-import { listSessions, getSessionWithStats } from "../db/sessions.service";
+import { Link, useLoaderData, Form, redirect } from "react-router";
+import { listSessions, getSessionWithStats, createSession, type SessionWithStats } from "../db/sessions.service";
 import { formatDistanceToNow } from "date-fns";
 import { RiFolder3Line, RiTimeLine, RiPulseLine, RiArchiveLine } from "react-icons/ri";
 import clsx from "clsx";
+import { useState } from "react";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -28,8 +29,36 @@ export async function loader({ params }: Route.LoaderArgs) {
   return { sessions: sessionsWithStats };
 }
 
+export async function action({ request }: Route.ActionArgs) {
+  const formData = await request.formData();
+  const title = formData.get('title') as string;
+  
+  if (!title?.trim()) {
+    return { error: 'Title is required' };
+  }
+  
+  const session = await createSession({
+    title: title.trim(),
+    project_path: '/Users/mbm-premva/dev/memva', // Auto-assigned for now
+    status: 'active'
+  });
+  
+  return redirect(`/sessions/${session.id}`);
+}
+
+function isSessionWithStats(session: any): session is SessionWithStats {
+  return typeof session.event_count === 'number';
+}
+
 export default function Home() {
   const { sessions } = useLoaderData<typeof loader>();
+  const [sessionTitle, setSessionTitle] = useState("");
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    if (!sessionTitle.trim()) {
+      e.preventDefault();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-zinc-950">
@@ -38,6 +67,30 @@ export default function Home() {
         <div className="mb-8">
           <h1 className="text-3xl font-semibold text-zinc-100 mb-2">Sessions</h1>
           <p className="text-zinc-400">Manage your Claude Code sessions</p>
+        </div>
+
+        {/* New Session Bar */}
+        <div className="mb-8">
+          <Form 
+            method="post" 
+            onSubmit={handleSubmit}
+            className="flex gap-3 p-4 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-xl"
+          >
+            <input
+              type="text"
+              name="title"
+              value={sessionTitle}
+              onChange={(e) => setSessionTitle(e.target.value)}
+              placeholder="Start a new Claude Code session: implement auth, fix bug in API, refactor database..."
+              className="flex-1 px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200"
+            />
+            <button
+              type="submit"
+              className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium rounded-lg transition-colors focus:outline-none focus:bg-zinc-700"
+            >
+              Start
+            </button>
+          </Form>
         </div>
 
         {/* Sessions Grid */}
@@ -56,12 +109,9 @@ export default function Home() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {sessions.map((session) => (
-              <div
+              <Link
                 key={session.id}
-                onClick={() => {
-                  // TODO: Create a proper session detail page that uses memva_session_id
-                  // For now, clicking does nothing
-                }}
+                to={`/sessions/${session.id}`}
                 className={clsx(
                   "group relative block p-6",
                   "bg-zinc-900/50 backdrop-blur-sm",
@@ -114,7 +164,7 @@ export default function Home() {
                 </div>
 
                 {/* Event Stats */}
-                {'event_count' in session && (
+                {isSessionWithStats(session) && (
                   <div className="space-y-3">
                     {/* Event Count and Duration */}
                     <div className="flex items-center justify-between text-sm">
@@ -150,7 +200,7 @@ export default function Home() {
 
                 {/* Hover Gradient */}
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-zinc-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-              </div>
+              </Link>
             ))}
           </div>
         )}
