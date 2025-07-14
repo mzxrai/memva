@@ -2,7 +2,7 @@ import type { Route } from "./+types/home";
 import { Link, useLoaderData, Form, redirect } from "react-router";
 import { listSessions, getSessionWithStats, createSession, type SessionWithStats } from "../db/sessions.service";
 import { formatDistanceToNow } from "date-fns";
-import { RiFolder3Line, RiTimeLine, RiPulseLine, RiArchiveLine } from "react-icons/ri";
+import { RiFolder3Line, RiTimeLine, RiPulseLine, RiArchiveLine, RiPlayFill } from "react-icons/ri";
 import clsx from "clsx";
 import { useState } from "react";
 
@@ -83,13 +83,14 @@ export default function Home() {
               name="title"
               value={sessionTitle}
               onChange={(e) => setSessionTitle(e.target.value)}
-              placeholder="Start a new Claude Code session"
+              placeholder="Start a new Claude Code session: ask, brainstorm, build"
               className="flex-1 px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200"
             />
             <button
               type="submit"
-              className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium rounded-lg transition-colors focus:outline-none focus:bg-zinc-700"
+              className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium rounded-lg transition-colors focus:outline-none focus:bg-zinc-700 flex items-center gap-2"
             >
+              <RiPlayFill className="w-5 h-5" />
               Start
             </button>
           </Form>
