@@ -73,6 +73,8 @@ export default function SessionDetail() {
     if (!prompt.trim() || isLoading) return;
 
     const userPrompt = prompt.trim();
+    console.log(`[Client] Submitting prompt: "${userPrompt}" for session ${session.id}`);
+    
     setPrompt("");
     setIsLoading(true);
 
@@ -94,6 +96,12 @@ export default function SessionDetail() {
           setIsLoading(false);
           return;
         }
+        
+        // Ignore heartbeat messages
+        if (message.type === 'heartbeat') {
+          return;
+        }
+        
         console.log('[SessionDetail] New message received:', {
           type: message.type,
           uuid: message.uuid,
@@ -115,9 +123,13 @@ export default function SessionDetail() {
   };
 
   const handleStop = () => {
+    console.log('[Client] Stop button clicked');
     if (abortControllerRef.current) {
+      console.log('[Client] Aborting fetch request');
+      // This will abort the fetch, triggering the cancel() method on the server
       abortControllerRef.current.abort();
       setIsLoading(false);
+      console.log('[Client] Fetch aborted, loading state set to false');
     }
   };
 

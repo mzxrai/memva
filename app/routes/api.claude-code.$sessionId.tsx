@@ -3,6 +3,8 @@ import { getSession, getLatestClaudeSessionId, updateClaudeSessionId } from "../
 import { streamClaudeCodeResponse } from "../services/claude-code.server"
 
 export async function action({ request, params }: Route.ActionArgs) {
+  console.log(`[API] Action called for session ${params.sessionId}`)
+  
   if (request.method !== "POST") {
     return new Response("Method not allowed", { status: 405 })
   }
@@ -14,6 +16,8 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   const formData = await request.formData()
   const prompt = formData.get("prompt") as string
+  
+  console.log(`[API] Received prompt: "${prompt}" for session ${params.sessionId}`)
 
   if (!prompt?.trim()) {
     return new Response("Prompt is required", { status: 400 })
@@ -35,11 +39,47 @@ export async function action({ request, params }: Route.ActionArgs) {
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder()
+      let isStreamClosed = false
+      
+      // Monitor if the stream is still writable
+      const checkStreamClosed = () => {
+        if (controller.desiredSize === null) {
+          console.log(`[API Stream] Stream closed for session ${params.sessionId}`)
+          isStreamClosed = true
+          // Abort Claude Code when stream is closed
+          if (!abortController.signal.aborted) {
+            console.log(`[API Stream] Aborting Claude Code due to stream closure`)
+            abortController.abort()
+          }
+          return true
+        }
+        return false
+      }
 
       const sendMessage = (message: any) => {
-        const data = `data: ${JSON.stringify(message)}\n\n`
-        controller.enqueue(encoder.encode(data))
+        if (checkStreamClosed()) {
+          console.log(`[API Stream] Attempted to send message to closed stream`)
+          return
+        }
+        
+        try {
+          const data = `data: ${JSON.stringify(message)}\n\n`
+          controller.enqueue(encoder.encode(data))
+        } catch (error) {
+          console.log(`[API Stream] Error sending message:`, error)
+          isStreamClosed = true
+          abortController.abort()
+        }
       }
+      
+      // Set up periodic heartbeat to detect disconnection
+      const heartbeatInterval = setInterval(() => {
+        if (!isStreamClosed && !abortController.signal.aborted) {
+          sendMessage({ type: "heartbeat", timestamp: new Date().toISOString() })
+        } else {
+          clearInterval(heartbeatInterval)
+        }
+      }, 5000) // Send heartbeat every 5 seconds
 
       try {
         const result = await streamClaudeCodeResponse({
@@ -63,6 +103,8 @@ export async function action({ request, params }: Route.ActionArgs) {
             })
           }
         })
+        
+        clearInterval(heartbeatInterval)
 
         // Store the new Claude session ID if we got one
         if (result.lastSessionId) {
@@ -86,7 +128,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     },
     cancel() {
       // Called when the client disconnects
+      console.log(`[API Cancel] Client disconnected for session ${params.sessionId}`)
+      console.log(`[API Cancel] Calling abortController.abort()`)
       abortController.abort()
+      console.log(`[API Cancel] AbortController aborted, signal.aborted = ${abortController.signal.aborted}`)
     }
   })
 

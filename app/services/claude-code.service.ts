@@ -65,6 +65,13 @@ export function sendPromptToClaudeCode({
       }
     }
   }).catch(error => {
+    // Check if this is a user-initiated abort
+    if (error.name === 'AbortError') {
+      console.log('[Client] Fetch aborted by user')
+      // Don't call onError for user-initiated aborts
+      return
+    }
+    
     if (onError) {
       onError(error)
     } else {
