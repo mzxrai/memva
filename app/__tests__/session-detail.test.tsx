@@ -378,8 +378,8 @@ describe('Session Detail Page', () => {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
         loader: async ({ params }) => {
-          const session = await getSession(params.sessionId)
-          const events = await getEventsForSession(params.sessionId)
+          const session = await getSession(params.sessionId!)
+          const events = await getEventsForSession(params.sessionId!)
           return { session, events }
         }
       }

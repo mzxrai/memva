@@ -5,7 +5,9 @@ import {
   updateSession, 
   getSession, 
   listSessions,
-  getSessionWithStats 
+  getSessionWithStats,
+  getLatestClaudeSessionId,
+  updateClaudeSessionId
 } from './sessions.service'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -219,6 +221,101 @@ describe('Session Service', () => {
       expect(withStats!.event_count).toBe(0)
       expect(withStats!.duration_minutes).toBe(0)
       expect(withStats!.event_types).toEqual({})
+    })
+  })
+
+  describe('getLatestClaudeSessionId', () => {
+    it('should retrieve the latest Claude session ID from events', async () => {
+      const session = await createSession({
+        title: 'Claude Session Test',
+        project_path: '/test'
+      })
+
+      // Create events with different Claude session IDs
+      const eventData = [
+        { 
+          uuid: uuidv4(),
+          session_id: 'claude-session-1',
+          event_type: 'user',
+          timestamp: '2024-01-01T10:00:00Z'
+        },
+        { 
+          uuid: uuidv4(),
+          session_id: 'claude-session-2',
+          event_type: 'assistant',
+          timestamp: '2024-01-01T10:05:00Z'
+        },
+        { 
+          uuid: uuidv4(),
+          session_id: 'claude-session-3',
+          event_type: 'result',
+          timestamp: '2024-01-01T10:10:00Z'
+        }
+      ]
+
+      for (const data of eventData) {
+        await db.insert(events).values({
+          ...data,
+          memva_session_id: session.id,
+          is_sidechain: false,
+          cwd: '/test',
+          project_name: 'test',
+          data: { content: 'test' }
+        }).execute()
+      }
+
+      const latestSessionId = await getLatestClaudeSessionId(session.id)
+      expect(latestSessionId).toBe('claude-session-3')
+    })
+
+    it('should return null if no events exist for session', async () => {
+      const session = await createSession({
+        title: 'No Events Session',
+        project_path: '/test'
+      })
+
+      const latestSessionId = await getLatestClaudeSessionId(session.id)
+      expect(latestSessionId).toBeNull()
+    })
+  })
+
+  describe('updateClaudeSessionId', () => {
+    it('should store Claude session ID in session metadata', async () => {
+      const session = await createSession({
+        title: 'Update Claude Session Test',
+        project_path: '/test',
+        metadata: { existing: 'data' }
+      })
+
+      await updateClaudeSessionId(session.id, 'new-claude-session-id')
+
+      const updated = await getSession(session.id)
+      expect(updated).toBeTruthy()
+      expect(updated!.metadata).toEqual({
+        existing: 'data',
+        claude_session_id: 'new-claude-session-id'
+      })
+    })
+
+    it('should create metadata if it does not exist', async () => {
+      const session = await createSession({
+        title: 'No Metadata Session',
+        project_path: '/test'
+      })
+
+      await updateClaudeSessionId(session.id, 'claude-session-123')
+
+      const updated = await getSession(session.id)
+      expect(updated).toBeTruthy()
+      expect(updated!.metadata).toEqual({
+        claude_session_id: 'claude-session-123'
+      })
+    })
+
+    it('should throw error if session not found', async () => {
+      await expect(
+        updateClaudeSessionId('non-existent-session', 'claude-session-id')
+      ).rejects.toThrow('Session not found')
     })
   })
 })

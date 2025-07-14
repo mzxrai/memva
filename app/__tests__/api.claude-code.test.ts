@@ -4,7 +4,9 @@ import type { Route } from '../routes/+types/api.claude-code.$sessionId'
 
 // Mock dependencies
 vi.mock('../db/sessions.service', () => ({
-  getSession: vi.fn()
+  getSession: vi.fn(),
+  getLatestClaudeSessionId: vi.fn(),
+  updateClaudeSessionId: vi.fn()
 }))
 
 vi.mock('../services/claude-code.server', () => ({
@@ -38,7 +40,7 @@ describe('Claude Code API Route', () => {
     vi.mocked(getSession).mockResolvedValue(mockSession)
     
     // Mock streaming to capture the call
-    vi.mocked(streamClaudeCodeResponse).mockResolvedValue(undefined)
+    vi.mocked(streamClaudeCodeResponse).mockResolvedValue({ lastSessionId: 'claude-session-123' })
     
     const formData = new FormData()
     formData.append('prompt', 'Test prompt')
@@ -61,7 +63,6 @@ describe('Claude Code API Route', () => {
         prompt: 'Test prompt',
         projectPath: '/test/project',
         memvaSessionId: 'memva-session-123',
-        sessionId: expect.any(String), // Claude session ID will be generated
         onMessage: expect.any(Function),
         abortController: expect.any(AbortController)
       })
@@ -71,8 +72,8 @@ describe('Claude Code API Route', () => {
     expect(response.headers.get('Content-Type')).toBe('text/event-stream')
   })
 
-  it('should generate unique Claude session ID', async () => {
-    const { getSession } = await import('../db/sessions.service')
+  it('should return lastSessionId from streaming service', async () => {
+    const { getSession, updateClaudeSessionId } = await import('../db/sessions.service')
     const { streamClaudeCodeResponse } = await import('../services/claude-code.server')
     
     const mockSession = {
@@ -86,7 +87,7 @@ describe('Claude Code API Route', () => {
     }
     
     vi.mocked(getSession).mockResolvedValue(mockSession)
-    vi.mocked(streamClaudeCodeResponse).mockResolvedValue(undefined)
+    vi.mocked(streamClaudeCodeResponse).mockResolvedValue({ lastSessionId: 'claude-session-123' })
     
     const formData = new FormData()
     formData.append('prompt', 'Test prompt')
@@ -100,10 +101,8 @@ describe('Claude Code API Route', () => {
     
     await action({ request, params } as Route.ActionArgs)
     
-    const sessionId = vi.mocked(streamClaudeCodeResponse).mock.calls[0][0].sessionId
-    
-    // Should be a valid UUID
-    expect(sessionId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
+    // Should store the Claude session ID returned from streaming
+    expect(updateClaudeSessionId).toHaveBeenCalledWith('memva-session-123', 'claude-session-123')
   })
 
   it('should return 404 if session not found', async () => {
@@ -193,7 +192,7 @@ describe('Claude Code API Route', () => {
       uuid: `event-${Date.now()}`,
       session_id: 'claude-session-123',
       event_type: message.type,
-      timestamp: message.timestamp || new Date().toISOString(),
+      timestamp: new Date().toISOString(),
       is_sidechain: false,
       parent_uuid: null,
       cwd: '/test/project',
@@ -212,11 +211,27 @@ describe('Claude Code API Route', () => {
       
       // Simulate streaming messages
       setTimeout(() => {
-        onMessage({ type: 'assistant', content: 'Test response', timestamp: '2025-07-14T10:00:01Z' })
-        onMessage({ type: 'result', content: '', timestamp: '2025-07-14T10:00:02Z' })
+        onMessage({ 
+          type: 'assistant', 
+          message: { role: 'assistant', content: 'Test response' },
+          parent_tool_use_id: null,
+          session_id: 'test-session'
+        })
+        onMessage({ 
+          type: 'result',
+          subtype: 'success',
+          duration_ms: 100,
+          duration_api_ms: 80,
+          is_error: false,
+          num_turns: 1,
+          result: 'Success',
+          session_id: 'test-session',
+          total_cost_usd: 0.001,
+          usage: { input_tokens: 10, output_tokens: 5, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
+        })
       }, 0)
       
-      return Promise.resolve()
+      return Promise.resolve({ lastSessionId: 'claude-session-123' })
     })
     
     const formData = new FormData()
@@ -242,10 +257,89 @@ describe('Claude Code API Route', () => {
         prompt: 'Test prompt',
         projectPath: '/test/project',
         memvaSessionId: 'memva-session-123',
-        sessionId: expect.any(String),
         onMessage: expect.any(Function),
         abortController: expect.any(AbortController)
       })
     )
+  })
+
+  it('should use stored Claude session ID for resumption', async () => {
+    const { getSession } = await import('../db/sessions.service')
+    const { streamClaudeCodeResponse } = await import('../services/claude-code.server')
+    const { getLatestClaudeSessionId } = await import('../db/sessions.service')
+    
+    const mockSession = {
+      id: 'memva-session-123',
+      title: 'Test Session',
+      project_path: '/test/project',
+      status: 'active',
+      created_at: '2025-07-14T10:00:00Z',
+      updated_at: '2025-07-14T10:00:00Z',
+      metadata: null
+    }
+    
+    vi.mocked(getSession).mockResolvedValue(mockSession)
+    vi.mocked(getLatestClaudeSessionId).mockResolvedValue('previous-claude-session-id')
+    vi.mocked(streamClaudeCodeResponse).mockResolvedValue({ lastSessionId: 'new-claude-session-id' })
+    
+    const formData = new FormData()
+    formData.append('prompt', 'Continue our conversation')
+    
+    const request = new Request('http://localhost/api/claude-code/memva-session-123', {
+      method: 'POST',
+      body: formData
+    })
+    
+    const params = { sessionId: 'memva-session-123' }
+    
+    await action({ request, params } as Route.ActionArgs)
+    
+    // Should retrieve stored Claude session ID
+    expect(getLatestClaudeSessionId).toHaveBeenCalledWith('memva-session-123')
+    
+    // Should pass it as resumeSessionId
+    expect(streamClaudeCodeResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: 'Continue our conversation',
+        projectPath: '/test/project',
+        memvaSessionId: 'memva-session-123',
+        resumeSessionId: 'previous-claude-session-id'
+      })
+    )
+  })
+
+  it('should store new Claude session ID after streaming', async () => {
+    const { getSession } = await import('../db/sessions.service')
+    const { streamClaudeCodeResponse } = await import('../services/claude-code.server')
+    const { updateClaudeSessionId } = await import('../db/sessions.service')
+    
+    const mockSession = {
+      id: 'memva-session-123',
+      title: 'Test Session',
+      project_path: '/test/project',
+      status: 'active',
+      created_at: '2025-07-14T10:00:00Z',
+      updated_at: '2025-07-14T10:00:00Z',
+      metadata: null
+    }
+    
+    vi.mocked(getSession).mockResolvedValue(mockSession)
+    vi.mocked(streamClaudeCodeResponse).mockResolvedValue({ lastSessionId: 'new-claude-session-id' })
+    vi.mocked(updateClaudeSessionId).mockResolvedValue(undefined)
+    
+    const formData = new FormData()
+    formData.append('prompt', 'Test prompt')
+    
+    const request = new Request('http://localhost/api/claude-code/memva-session-123', {
+      method: 'POST',
+      body: formData
+    })
+    
+    const params = { sessionId: 'memva-session-123' }
+    
+    await action({ request, params } as Route.ActionArgs)
+    
+    // Should store the new Claude session ID
+    expect(updateClaudeSessionId).toHaveBeenCalledWith('memva-session-123', 'new-claude-session-id')
   })
 })

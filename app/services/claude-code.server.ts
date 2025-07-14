@@ -7,9 +7,9 @@ interface StreamClaudeCodeOptions {
   onMessage: (message: SDKMessage) => void
   onError?: (error: Error) => void
   abortController?: AbortController
-  sessionId?: string
   memvaSessionId?: string
   onStoredEvent?: (event: any) => void
+  resumeSessionId?: string
 }
 
 export async function streamClaudeCodeResponse({
@@ -18,29 +18,43 @@ export async function streamClaudeCodeResponse({
   onMessage,
   onError,
   abortController,
-  sessionId,
   memvaSessionId,
-  onStoredEvent
-}: StreamClaudeCodeOptions): Promise<void> {
+  onStoredEvent,
+  resumeSessionId
+}: StreamClaudeCodeOptions): Promise<{ lastSessionId?: string }> {
   const controller = abortController || new AbortController()
   let lastEventUuid: string | null = null
+  let lastSessionId: string | undefined
 
   try {
+    const options: any = {
+      maxTurns: 10,
+      cwd: projectPath
+    }
+    
+    if (resumeSessionId) {
+      console.log('[Claude Code] Attempting to resume session:', resumeSessionId)
+      options.resume = resumeSessionId
+    }
+
+    console.log('[Claude Code] Query options:', JSON.stringify(options, null, 2))
+
     const messages = query({
       prompt,
       abortController: controller,
-      options: {
-        maxTurns: 10,
-        cwd: projectPath
-      }
+      options
     })
 
     for await (const message of messages) {
-      // Store event if we have both sessionId and memvaSessionId
-      if (sessionId && memvaSessionId) {
+      // Track session ID from each message
+      if ('session_id' in message) {
+        lastSessionId = message.session_id
+      }
+
+      // Store event if we have memvaSessionId
+      if (memvaSessionId) {
         const event = createEventFromMessage({
           message,
-          sessionId,
           memvaSessionId,
           projectPath,
           parentUuid: lastEventUuid
@@ -64,4 +78,6 @@ export async function streamClaudeCodeResponse({
       throw error
     }
   }
+
+  return { lastSessionId }
 }

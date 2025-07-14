@@ -22,17 +22,16 @@ describe('Events Service', () => {
     it('should convert user SDKMessage to NewEvent', () => {
       const message: SDKMessage = {
         type: 'user',
-        content: 'Help me implement a feature',
-        timestamp: '2025-07-14T10:00:00.000Z'
+        message: { content: 'Help me implement a feature', role: 'user' },
+        parent_tool_use_id: null,
+        session_id: 'claude-session-123'
       }
 
-      const sessionId = 'claude-session-123'
       const memvaSessionId = 'memva-session-456'
       const projectPath = '/Users/test/project'
 
       const event = createEventFromMessage({
         message,
-        sessionId,
         memvaSessionId,
         projectPath,
         parentUuid: null
@@ -40,18 +39,13 @@ describe('Events Service', () => {
 
       expect(event).toMatchObject({
         event_type: 'user',
-        session_id: sessionId,
+        session_id: 'claude-session-123',
         memva_session_id: memvaSessionId,
-        timestamp: message.timestamp,
         cwd: projectPath,
         project_name: 'project',
         is_sidechain: false,
         parent_uuid: null,
-        data: {
-          type: 'user',
-          content: 'Help me implement a feature',
-          timestamp: '2025-07-14T10:00:00.000Z'
-        }
+        data: message
       })
       expect(event.uuid).toBeDefined()
       expect(event.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
@@ -60,18 +54,17 @@ describe('Events Service', () => {
     it('should convert assistant SDKMessage to NewEvent', () => {
       const message: SDKMessage = {
         type: 'assistant',
-        content: 'I can help you with that',
-        timestamp: '2025-07-14T10:00:01.000Z'
+        message: { content: 'I can help you with that', role: 'assistant' },
+        parent_tool_use_id: null,
+        session_id: 'claude-session-456'
       }
 
-      const sessionId = 'claude-session-123'
-      const memvaSessionId = 'memva-session-456'
+      const memvaSessionId = 'memva-session-789'
       const projectPath = '/Users/test/project'
       const parentUuid = 'parent-uuid-789'
 
       const event = createEventFromMessage({
         message,
-        sessionId,
         memvaSessionId,
         projectPath,
         parentUuid
@@ -79,9 +72,8 @@ describe('Events Service', () => {
 
       expect(event).toMatchObject({
         event_type: 'assistant',
-        session_id: sessionId,
+        session_id: 'claude-session-456',
         memva_session_id: memvaSessionId,
-        timestamp: message.timestamp,
         cwd: projectPath,
         project_name: 'project',
         is_sidechain: false,
@@ -90,43 +82,58 @@ describe('Events Service', () => {
       })
     })
 
-    it('should handle thinking messages', () => {
+    it('should handle result messages', () => {
       const message: SDKMessage = {
-        type: 'thinking',
-        content: 'Analyzing the request...',
-        timestamp: '2025-07-14T10:00:02.000Z'
+        type: 'result',
+        subtype: 'success',
+        duration_ms: 1000,
+        duration_api_ms: 900,
+        is_error: false,
+        num_turns: 1,
+        result: 'Done',
+        session_id: 'claude-session-result',
+        total_cost_usd: 0.01,
+        usage: {
+          input_tokens: 100,
+          cache_creation_input_tokens: 0,
+          cache_read_input_tokens: 0,
+          output_tokens: 50
+        }
       }
 
       const event = createEventFromMessage({
         message,
-        sessionId: 'claude-session-123',
         memvaSessionId: 'memva-session-456',
         projectPath: '/Users/test/project',
         parentUuid: 'parent-uuid-789'
       })
 
-      expect(event.event_type).toBe('thinking')
+      expect(event.event_type).toBe('result')
+      expect(event.session_id).toBe('claude-session-result')
     })
 
-    it('should handle tool_use messages', () => {
+    it('should handle system messages', () => {
       const message: SDKMessage = {
-        type: 'tool_use',
-        content: JSON.stringify({
-          name: 'Read',
-          input: { file_path: '/path/to/file.ts' }
-        }),
-        timestamp: '2025-07-14T10:00:03.000Z'
+        type: 'system',
+        subtype: 'init',
+        apiKeySource: 'user',
+        cwd: '/Users/test/project',
+        session_id: 'claude-session-system',
+        tools: ['Read', 'Write'],
+        mcp_servers: [],
+        model: 'claude-3',
+        permissionMode: 'default'
       }
 
       const event = createEventFromMessage({
         message,
-        sessionId: 'claude-session-123',
         memvaSessionId: 'memva-session-456',
         projectPath: '/Users/test/project',
-        parentUuid: 'parent-uuid-789'
+        parentUuid: null
       })
 
-      expect(event.event_type).toBe('tool_use')
+      expect(event.event_type).toBe('system')
+      expect(event.session_id).toBe('claude-session-system')
     })
 
     it('should extract project name from path', () => {
@@ -139,9 +146,15 @@ describe('Events Service', () => {
       ]
 
       for (const { path, expected } of testCases) {
+        const message: SDKMessage = {
+          type: 'user',
+          message: { content: 'test', role: 'user' },
+          parent_tool_use_id: null,
+          session_id: 'test-session'
+        }
+
         const event = createEventFromMessage({
-          message: { type: 'user', content: 'test', timestamp: '2025-07-14T10:00:00.000Z' },
-          sessionId: 'session-123',
+          message,
           memvaSessionId: 'memva-456',
           projectPath: path,
           parentUuid: null

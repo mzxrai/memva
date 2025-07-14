@@ -1,7 +1,6 @@
 import type { Route } from "./+types/api.claude-code.$sessionId"
-import { getSession } from "../db/sessions.service"
+import { getSession, getLatestClaudeSessionId, updateClaudeSessionId } from "../db/sessions.service"
 import { streamClaudeCodeResponse } from "../services/claude-code.server"
-import { v4 as uuidv4 } from 'uuid'
 
 export async function action({ request, params }: Route.ActionArgs) {
   if (request.method !== "POST") {
@@ -28,7 +27,10 @@ export async function action({ request, params }: Route.ActionArgs) {
   })
 
   const abortController = new AbortController()
-  const claudeSessionId = uuidv4() // Generate unique Claude session ID
+  
+  // Get existing Claude session ID for resumption
+  const resumeSessionId = await getLatestClaudeSessionId(params.sessionId)
+  console.log('[API] Retrieved Claude session ID for resumption:', resumeSessionId)
   
   const stream = new ReadableStream({
     async start(controller) {
@@ -40,7 +42,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       }
 
       try {
-        await streamClaudeCodeResponse({
+        const result = await streamClaudeCodeResponse({
           prompt: prompt.trim(),
           projectPath: session.project_path,
           onMessage: () => {
@@ -50,8 +52,8 @@ export async function action({ request, params }: Route.ActionArgs) {
             sendMessage({ type: "error", content: error.message, timestamp: new Date().toISOString() })
           },
           abortController,
-          sessionId: claudeSessionId,
           memvaSessionId: params.sessionId,
+          resumeSessionId: resumeSessionId || undefined,
           onStoredEvent: (event) => {
             // Send the stored event which includes the database UUID
             sendMessage({
@@ -61,6 +63,14 @@ export async function action({ request, params }: Route.ActionArgs) {
             })
           }
         })
+
+        // Store the new Claude session ID if we got one
+        if (result.lastSessionId) {
+          console.log('[API] Storing new Claude session ID:', result.lastSessionId)
+          await updateClaudeSessionId(params.sessionId, result.lastSessionId)
+        } else {
+          console.log('[API] No session ID returned from Claude Code')
+        }
 
         // The Claude Code SDK sends a final message with type "result"
         // We don't need to send an additional done message

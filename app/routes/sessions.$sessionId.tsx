@@ -17,14 +17,12 @@ export default function SessionDetail() {
   
   // Initialize messages with historical events
   const initialMessages = events.map(event => ({
-    type: event.event_type,
-    content: event.data.content || event.data,
-    timestamp: event.timestamp,
+    ...(typeof event.data === 'object' ? event.data : {}),
     uuid: event.uuid,
-    memva_session_id: event.memva_session_id
+    memva_session_id: event.memva_session_id || undefined
   }))
   
-  const [messages, setMessages] = useState<SDKMessage[]>(initialMessages);
+  const [messages, setMessages] = useState<any[]>(initialMessages);
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);

@@ -4,7 +4,6 @@ import type { SDKMessage } from '@anthropic-ai/claude-code'
 
 interface CreateEventOptions {
   message: SDKMessage
-  sessionId: string
   memvaSessionId: string
   projectPath: string
   parentUuid: string | null
@@ -12,7 +11,6 @@ interface CreateEventOptions {
 
 export function createEventFromMessage({
   message,
-  sessionId,
   memvaSessionId,
   projectPath,
   parentUuid
@@ -22,9 +20,9 @@ export function createEventFromMessage({
 
   return {
     uuid: uuidv4(),
-    session_id: sessionId,
+    session_id: 'session_id' in message ? message.session_id : '',
     event_type: message.type,
-    timestamp: message.timestamp || new Date().toISOString(),
+    timestamp: new Date().toISOString(),
     is_sidechain: false,
     parent_uuid: parentUuid,
     cwd: projectPath,

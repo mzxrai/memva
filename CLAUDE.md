@@ -16,6 +16,7 @@ To start with, we will build this in a local-only fashion; in other words, it wi
 - We will use Tailwind CSS exclusively.
 - We will write proper modern TypeScript.
 - The use of popular, well-supported third-party TypeScript libraries is encouraged for non-trivial functionality. Always run a web search to locate the latest stable version of a given library before adding it to `package.json`.
+- We use Drizzle ORM to interact with our sqlite database.
 
 ### Design aesthetic
 

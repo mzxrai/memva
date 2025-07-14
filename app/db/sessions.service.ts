@@ -134,3 +134,38 @@ export async function getSessionWithStats(id: string): Promise<SessionWithStats 
     event_types
   }
 }
+
+export async function getLatestClaudeSessionId(memvaSessionId: string): Promise<string | null> {
+  const result = await db
+    .select({ session_id: events.session_id })
+    .from(events)
+    .where(eq(events.memva_session_id, memvaSessionId))
+    .orderBy(desc(events.timestamp))
+    .limit(1)
+    .execute()
+  
+  return result[0]?.session_id || null
+}
+
+export async function updateClaudeSessionId(memvaSessionId: string, claudeSessionId: string): Promise<void> {
+  // First get the existing session to ensure it exists
+  const existingSession = await getSession(memvaSessionId)
+  if (!existingSession) {
+    throw new Error('Session not found')
+  }
+  
+  // Update the metadata with the Claude session ID
+  const updatedMetadata = {
+    ...(existingSession.metadata || {}),
+    claude_session_id: claudeSessionId
+  }
+  
+  await db
+    .update(sessions)
+    .set({ 
+      metadata: updatedMetadata,
+      updated_at: new Date().toISOString()
+    })
+    .where(eq(sessions.id, memvaSessionId))
+    .execute()
+}
