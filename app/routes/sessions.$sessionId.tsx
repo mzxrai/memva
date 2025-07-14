@@ -40,8 +40,15 @@ export default function SessionDetail() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesListRef = useRef<HTMLDivElement>(null);
   const previousMessageCountRef = useRef(0);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [contentOverflows, setContentOverflows] = useState(false);
   const isInitialHistoryLoad = initialMessages.length > 0; // Has existing history
+
+  // Intelligent auto-scroll state
+  const [autoScrollDisabled, setAutoScrollDisabled] = useState(false);
+  const [isProgrammaticScroll, setIsProgrammaticScroll] = useState(false);
+  const lastScrollTop = useRef(0);
+  const SCROLL_THRESHOLD = 50; // Only disable auto-scroll if user scrolls up more than 50px
 
   // Check if content overflows container
   const checkContentOverflow = useCallback(() => {
@@ -62,31 +69,44 @@ export default function SessionDetail() {
     return () => clearTimeout(timeoutId);
   }, [messages, checkContentOverflow]);
 
-  // Auto-scroll logic
+  // Auto-scroll logic (respects user intent to review history)
   useEffect(() => {
     const container = messagesContainerRef.current;
-    if (!container) return;
+    // RESPECT THE USER: Don't auto-scroll if they've indicated they want to review history
+    if (!container || autoScrollDisabled) return;
 
     const currentMessageCount = messages.length;
     const previousCount = previousMessageCountRef.current;
     const hasNewMessages = currentMessageCount > previousCount;
 
+    const performScroll = (behavior: 'auto' | 'smooth' = 'auto') => {
+      // Mark this as programmatic scroll to avoid triggering user scroll detection
+      setIsProgrammaticScroll(true);
+      
+      if (behavior === 'smooth') {
+        container.scrollTo({ 
+          top: container.scrollHeight, 
+          behavior: 'smooth' 
+        });
+      } else {
+        container.scrollTop = container.scrollHeight;
+      }
+      
+      // Reset programmatic scroll flag after a short delay
+      setTimeout(() => setIsProgrammaticScroll(false), 100);
+    };
+
     if (previousCount === 0 && currentMessageCount > 0 && isInitialHistoryLoad) {
       // Loading existing history: ALWAYS scroll to bottom to show newest message
-      setTimeout(() => {
-        container.scrollTop = container.scrollHeight;
-      }, 0);
+      setTimeout(() => performScroll('auto'), 0);
     } else if (hasNewMessages && previousCount > 0) {
       // New messages streaming in: scroll to show them
-      container.scrollTo({ 
-        top: container.scrollHeight, 
-        behavior: 'smooth' 
-      });
+      performScroll('smooth');
     }
     // For fresh sessions (no initial history), first message naturally appears at top via justify-start
 
     previousMessageCountRef.current = currentMessageCount;
-  }, [messages, isInitialHistoryLoad, contentOverflows]);
+  }, [messages, isInitialHistoryLoad, contentOverflows, autoScrollDisabled]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -99,6 +119,42 @@ export default function SessionDetail() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isLoading]);
 
+  // Auto-focus input when streaming completes
+  useEffect(() => {
+    if (!isLoading && inputRef.current) {
+      // Small delay to ensure DOM updates are complete
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isLoading]);
+
+  // Detect user scrolling up during streaming to disable auto-scroll
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const currentScrollTop = container.scrollTop;
+      const scrollDistance = lastScrollTop.current - currentScrollTop;
+      const isScrollingUp = scrollDistance > 0;
+      
+      // Only disable auto-scroll if:
+      // 1. We're currently streaming messages
+      // 2. User scrolled UP more than threshold
+      // 3. This isn't a programmatic scroll we triggered
+      if (isLoading && isScrollingUp && scrollDistance > SCROLL_THRESHOLD && !isProgrammaticScroll) {
+        console.log('👤 User scrolled up during streaming - disabling auto-scroll');
+        setAutoScrollDisabled(true);
+      }
+      
+      lastScrollTop.current = currentScrollTop;
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [isLoading, isProgrammaticScroll, SCROLL_THRESHOLD]);
+
   // Track if we've already auto-started to prevent duplicates
   const hasAutoStartedRef = useRef(false);
 
@@ -107,6 +163,12 @@ export default function SessionDetail() {
     // New session from homepage: no events + has title + not already started
     if (events.length === 0 && session?.title && !hasAutoStartedRef.current) {
       console.log('🚀 Auto-starting conversation with session title:', session.title);
+      
+      // Reset auto-scroll for auto-started session
+      if (autoScrollDisabled) {
+        console.log('🔄 Auto-start triggered - resetting auto-scroll');
+        setAutoScrollDisabled(false);
+      }
       
       hasAutoStartedRef.current = true;
       setIsLoading(true);
@@ -163,6 +225,12 @@ export default function SessionDetail() {
 
     const userPrompt = prompt.trim();
     console.log(`[Client] Submitting prompt: "${userPrompt}" for session ${session.id}`);
+    
+    // Reset auto-scroll for new prompt session
+    if (autoScrollDisabled) {
+      console.log('🔄 New prompt submitted - resetting auto-scroll');
+      setAutoScrollDisabled(false);
+    }
     
     setPrompt("");
     setIsLoading(true);
@@ -271,6 +339,7 @@ export default function SessionDetail() {
           <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 p-4">
             <form onSubmit={handleSubmit} className="flex gap-3">
               <input
+                ref={inputRef}
                 type="text"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}

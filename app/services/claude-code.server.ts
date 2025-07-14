@@ -42,7 +42,7 @@ export async function streamClaudeCodeResponse({
 
   try {
     const options: any = {
-      maxTurns: 10,
+      maxTurns: 100,
       cwd: projectPath
     }
     

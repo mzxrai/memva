@@ -552,4 +552,5 @@ describe('Session Detail Page', () => {
       expect(screen.getByText(/send/i)).toBeInTheDocument()
     }, { timeout: 500 })
   })
+
 })
