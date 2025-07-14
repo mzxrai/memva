@@ -89,7 +89,7 @@ describe('EventRenderer', () => {
 
     render(<EventRenderer event={unknownEvent} />)
 
-    expect(screen.getByText('Raw Event Data')).toBeInTheDocument()
-    expect(screen.getByText(/"someData": "test data"/)).toBeInTheDocument()
+    expect(screen.getByText('Unknown Event')).toBeInTheDocument()
+    expect(screen.getByText('This event type is not recognized. Click "View Raw" to see the full event data.')).toBeInTheDocument()
   })
 })

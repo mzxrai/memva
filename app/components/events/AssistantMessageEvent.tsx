@@ -1,6 +1,13 @@
 import { type ReactNode } from 'react'
+import { RiSparklingLine, RiBrainLine } from 'react-icons/ri'
 import { BaseEventWrapper } from './BaseEventWrapper'
+import { MessageContainer } from './MessageContainer'
+import { MessageHeader } from './MessageHeader'
+import { ToolCallDisplay } from './ToolCallDisplay'
+import { CodeBlock } from './CodeBlock'
+import { colors, typography, radius, iconSize } from '../../constants/design'
 import type { AnyEvent, AssistantMessageContent } from '../../types/events'
+import clsx from 'clsx'
 
 interface AssistantMessageEventProps {
   event: AnyEvent
@@ -10,31 +17,43 @@ function renderContent(content: AssistantMessageContent): ReactNode {
   switch (content.type) {
     case 'text':
       return (
-        <div className="text-zinc-100 leading-relaxed whitespace-pre-wrap">
+        <div className={clsx(
+          typography.font.mono,
+          typography.size.sm,
+          colors.text.primary,
+          'leading-relaxed whitespace-pre-wrap'
+        )}>
           {content.text}
         </div>
       )
     
     case 'tool_use':
-      return (
-        <div className="bg-zinc-800 border border-zinc-700 rounded p-3 mt-2">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs text-zinc-400">Tool:</span>
-            <span className="text-sm font-mono text-amber-400">{content.name}</span>
-          </div>
-          <pre className="text-xs text-zinc-300 font-mono overflow-x-auto">
-            {JSON.stringify(content.input, null, 2)}
-          </pre>
-        </div>
-      )
+      return <ToolCallDisplay toolCall={content} />
     
     case 'thinking':
       return (
-        <details className="bg-zinc-900/50 border border-zinc-700 rounded p-3 mt-2">
-          <summary className="text-sm text-zinc-400 cursor-pointer">
-            🤔 Thinking...
+        <details className={clsx(
+          colors.background.tertiary,
+          colors.border.subtle,
+          'border',
+          radius.lg,
+          'p-3 mt-2'
+        )}>
+          <summary className={clsx(
+            'flex items-center gap-2',
+            typography.size.sm,
+            colors.text.secondary,
+            'cursor-pointer select-none'
+          )}>
+            <RiBrainLine className={clsx(iconSize.sm, colors.text.tertiary)} />
+            <span>Thinking process</span>
           </summary>
-          <div className="mt-2 text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap">
+          <div className={clsx(
+            'mt-3',
+            typography.size.sm,
+            colors.text.secondary,
+            'leading-relaxed whitespace-pre-wrap'
+          )}>
             {content.text}
           </div>
         </details>
@@ -42,9 +61,11 @@ function renderContent(content: AssistantMessageContent): ReactNode {
     
     default:
       return (
-        <div className="text-zinc-400 text-sm">
-          Unknown content type: {JSON.stringify(content)}
-        </div>
+        <CodeBlock 
+          code={JSON.stringify(content, null, 2)}
+          language="json"
+          className="text-xs"
+        />
       )
   }
 }
@@ -74,12 +95,10 @@ export function AssistantMessageEvent({ event }: AssistantMessageEventProps) {
       timestamp={event.timestamp}
       uuid={event.uuid}
       eventType="assistant"
+      rawEvent={event}
     >
-      <div className="bg-purple-950/30 border border-purple-900/50 rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-2 h-2 rounded-full bg-purple-400"></div>
-          <span className="text-sm font-medium text-purple-200">Claude</span>
-        </div>
+      <MessageContainer>
+        <MessageHeader icon={RiSparklingLine} title="Claude" />
         
         {messageContent.length > 0 ? (
           <div className="space-y-2">
@@ -90,11 +109,11 @@ export function AssistantMessageEvent({ event }: AssistantMessageEventProps) {
             ))}
           </div>
         ) : (
-          <div className="text-zinc-400 text-sm">
+          <div className={clsx(colors.text.tertiary, typography.size.sm)}>
             No content available
           </div>
         )}
-      </div>
+      </MessageContainer>
     </BaseEventWrapper>
   )
 }

@@ -25,10 +25,11 @@ describe('Assistant Message Tool Rendering', () => {
 
     render(<EventRenderer event={assistantEventWithTool} />)
 
-    expect(screen.getByText('Tool:')).toBeInTheDocument()
+    // Tool name is displayed
     expect(screen.getByText('Read')).toBeInTheDocument()
-    expect(screen.getByText(/"file_path": "\/Users\/test\/file.ts"/)).toBeInTheDocument()
-    expect(screen.getByText(/"limit": 100/)).toBeInTheDocument()
+    // Primary parameter (file path) is displayed
+    expect(screen.getByText('/Users/test/file.ts')).toBeInTheDocument()
+    // Parameters are in collapsed state by default, so JSON isn't visible
   })
 
   it('should render thinking content as collapsible details', () => {
@@ -48,7 +49,8 @@ describe('Assistant Message Tool Rendering', () => {
 
     render(<EventRenderer event={assistantEventWithThinking} />)
 
-    expect(screen.getByText('🤔 Thinking...')).toBeInTheDocument()
+    // Look for "Thinking process" text instead of emoji
+    expect(screen.getByText('Thinking process')).toBeInTheDocument()
     expect(screen.getByText('Let me think about this problem step by step...')).toBeInTheDocument()
   })
 
@@ -78,9 +80,10 @@ describe('Assistant Message Tool Rendering', () => {
     render(<EventRenderer event={assistantEventMixed} />)
 
     expect(screen.getByText('I need to read the file first.')).toBeInTheDocument()
-    expect(screen.getByText('Tool:')).toBeInTheDocument()
+    // Tool name is displayed
     expect(screen.getByText('Read')).toBeInTheDocument()
-    expect(screen.getByText(/"file_path": "\/Users\/test\/config.json"/)).toBeInTheDocument()
+    // Primary parameter (file path) is displayed
+    expect(screen.getByText('/Users/test/config.json')).toBeInTheDocument()
   })
 
   it('should handle assistant events with simple content structure', () => {

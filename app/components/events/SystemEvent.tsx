@@ -1,15 +1,28 @@
 import { BaseEventWrapper } from './BaseEventWrapper'
+import { MessageContainer } from './MessageContainer'
+import { MessageHeader } from './MessageHeader'
 import type { AnyEvent } from '../../types/events'
+import { RiSettingsLine } from 'react-icons/ri'
+import { colors, typography } from '../../constants/design'
+import clsx from 'clsx'
 
 interface SystemEventProps {
   event: AnyEvent
 }
 
 export function SystemEvent({ event }: SystemEventProps) {
+  // Check if this is an init subtype - if so, don't render
+  if ('subtype' in event && event.subtype === 'init') {
+    return null
+  }
+
   // Extract content from various possible structures
   let content = ''
   
-  if ('content' in event && typeof event.content === 'string') {
+  // Check if this is a success subtype - show the result
+  if ('subtype' in event && event.subtype === 'success' && 'result' in event) {
+    content = typeof event.result === 'string' ? event.result : JSON.stringify(event.result)
+  } else if ('content' in event && typeof event.content === 'string') {
     content = event.content
   } else if ('data' in event && typeof event.data === 'object' && event.data && 'content' in event.data) {
     const data = event.data as Record<string, unknown>
@@ -25,18 +38,19 @@ export function SystemEvent({ event }: SystemEventProps) {
       timestamp={event.timestamp}
       uuid={event.uuid}
       eventType={event.type as string || 'system'}
+      rawEvent={event}
     >
-      <div className="bg-zinc-800/50 border border-zinc-700/50 rounded-lg p-3">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-1.5 h-1.5 rounded-full bg-zinc-500"></div>
-          <span className="text-xs font-medium text-zinc-400 uppercase tracking-wide">
-            System
-          </span>
-        </div>
-        <div className="text-zinc-300 text-sm leading-relaxed">
+      <MessageContainer>
+        <MessageHeader icon={RiSettingsLine} title="System" />
+        <div className={clsx(
+          typography.font.mono,
+          typography.size.sm,
+          colors.text.primary,
+          'leading-relaxed'
+        )}>
           {content}
         </div>
-      </div>
+      </MessageContainer>
     </BaseEventWrapper>
   )
 }

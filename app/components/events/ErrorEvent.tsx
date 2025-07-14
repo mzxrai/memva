@@ -1,5 +1,10 @@
 import { BaseEventWrapper } from './BaseEventWrapper'
+import { MessageContainer } from './MessageContainer'
+import { MessageHeader } from './MessageHeader'
+import { RiErrorWarningLine, RiStopCircleLine } from 'react-icons/ri'
+import { typography } from '../../constants/design'
 import type { AnyEvent } from '../../types/events'
+import clsx from 'clsx'
 
 interface ErrorEventProps {
   event: AnyEvent
@@ -32,28 +37,29 @@ export function ErrorEvent({ event }: ErrorEventProps) {
       timestamp={event.timestamp}
       uuid={event.uuid}
       eventType={errorType}
+      rawEvent={event}
     >
-      <div className={`border rounded-lg p-3 ${
+      <MessageContainer className={clsx(
         isUserCancelled 
           ? 'bg-orange-950/30 border-orange-900/50' 
           : 'bg-red-950/30 border-red-900/50'
-      }`}>
-        <div className="flex items-center gap-2 mb-2">
-          <div className={`w-1.5 h-1.5 rounded-full ${
-            isUserCancelled ? 'bg-orange-400' : 'bg-red-400'
-          }`}></div>
-          <span className={`text-xs font-medium uppercase tracking-wide ${
-            isUserCancelled ? 'text-orange-200' : 'text-red-200'
-          }`}>
-            {isUserCancelled ? 'Cancelled' : 'Error'}
-          </span>
-        </div>
-        <div className={`text-sm leading-relaxed ${
+      )}>
+        <MessageHeader 
+          icon={isUserCancelled ? RiStopCircleLine : RiErrorWarningLine} 
+          title={isUserCancelled ? 'Cancelled' : 'Error'}
+          className={clsx(
+            isUserCancelled ? '[&_svg]:text-orange-400 [&_span]:text-orange-400' : '[&_svg]:text-red-400 [&_span]:text-red-400'
+          )}
+        />
+        <div className={clsx(
+          typography.font.mono,
+          typography.size.sm,
+          'leading-relaxed',
           isUserCancelled ? 'text-orange-100' : 'text-red-100'
-        }`}>
+        )}>
           {content}
         </div>
-      </div>
+      </MessageContainer>
     </BaseEventWrapper>
   )
 }

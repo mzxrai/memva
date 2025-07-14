@@ -340,8 +340,8 @@ export default function SessionDetail() {
           <div 
             ref={messagesListRef}
             className={contentOverflows 
-              ? "min-h-full flex flex-col justify-end pb-32"     // Overflow: bottom-anchored (newest at bottom)
-              : "min-h-full flex flex-col justify-start pb-32"   // Fits: top-anchored (start from top)
+              ? "min-h-full flex flex-col justify-end pt-6 pb-32"     // Overflow: bottom-anchored (newest at bottom)
+              : "min-h-full flex flex-col justify-start pt-6 pb-32"   // Fits: top-anchored (start from top)
             }>
             {messages.map((message, index) => (
               <EventRenderer
@@ -354,13 +354,13 @@ export default function SessionDetail() {
       </div>
 
       {/* Progressive blur gradient overlay */}
-      <div className="fixed bottom-0 left-0 right-0 h-48 pointer-events-none z-20">
+      <div className="fixed bottom-0 left-0 right-0 h-40 pointer-events-none z-20">
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent"></div>
         <div className="absolute inset-0 backdrop-blur-gradient"></div>
       </div>
 
       {/* Floating input form */}
-      <div className="fixed bottom-0 left-0 right-0 px-4 pb-8 z-30">
+      <div className="fixed bottom-0 left-0 right-0 px-4 pb-7 z-30">
         <div className="container mx-auto max-w-7xl">
           <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 p-4">
             <form onSubmit={handleSubmit} className="flex gap-3">

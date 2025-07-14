@@ -1,5 +1,11 @@
+import { RiUser3Line } from 'react-icons/ri'
 import { BaseEventWrapper } from './BaseEventWrapper'
+import { MessageContainer } from './MessageContainer'
+import { MessageHeader } from './MessageHeader'
+import { CodeBlock } from './CodeBlock'
+import { colors, typography } from '../../constants/design'
 import type { AnyEvent } from '../../types/events'
+import clsx from 'clsx'
 
 interface UserMessageEventProps {
   event: AnyEvent
@@ -17,16 +23,27 @@ export function UserMessageEvent({ event }: UserMessageEventProps) {
       timestamp={event.timestamp}
       uuid={event.uuid}
       eventType="user"
+      rawEvent={event}
     >
-      <div className="bg-blue-950/30 border border-blue-900/50 rounded-lg p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-          <span className="text-sm font-medium text-blue-200">You</span>
+      <MessageContainer>
+        <MessageHeader icon={RiUser3Line} title="You" />
+        <div className={clsx(
+          typography.font.mono,
+          typography.size.sm,
+          colors.text.primary,
+          'leading-relaxed'
+        )}>
+          {typeof content === 'string' ? (
+            content
+          ) : (
+            <CodeBlock 
+              code={JSON.stringify(content, null, 2)}
+              language="json"
+              className="text-xs"
+            />
+          )}
         </div>
-        <div className="text-zinc-100 leading-relaxed">
-          {typeof content === 'string' ? content : JSON.stringify(content)}
-        </div>
-      </div>
+      </MessageContainer>
     </BaseEventWrapper>
   )
 }
