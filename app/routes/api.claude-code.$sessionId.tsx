@@ -1,6 +1,7 @@
 import type { Route } from "./+types/api.claude-code.$sessionId"
 import { getSession } from "../db/sessions.service"
 import { streamClaudeCodeResponse } from "../services/claude-code.server"
+import { v4 as uuidv4 } from 'uuid'
 
 export async function action({ request, params }: Route.ActionArgs) {
   if (request.method !== "POST") {
@@ -27,6 +28,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   })
 
   const abortController = new AbortController()
+  const claudeSessionId = uuidv4() // Generate unique Claude session ID
   
   const stream = new ReadableStream({
     async start(controller) {
@@ -45,7 +47,9 @@ export async function action({ request, params }: Route.ActionArgs) {
           onError: (error) => {
             sendMessage({ type: "error", content: error.message, timestamp: new Date().toISOString() })
           },
-          abortController
+          abortController,
+          sessionId: claudeSessionId,
+          memvaSessionId: params.sessionId
         })
 
         // The Claude Code SDK sends a final message with type "result"
