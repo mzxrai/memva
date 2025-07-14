@@ -4,10 +4,8 @@ import type { Route } from '../routes/+types/api.claude-code.$sessionId'
 import { createSession } from '../db/sessions.service'
 import { getEventsForSession } from '../db/event-session.service'
 import { db, sessions, events } from '../db'
-import { eq, asc } from 'drizzle-orm'
 
 // We need to modify the Claude Code mock to support cancellation testing
-let activeAbortController: AbortController | null = null
 let shouldContinueGenerating = true
 
 // Override the existing mock for these tests
@@ -15,7 +13,6 @@ vi.mock('@anthropic-ai/claude-code', () => ({
   query: vi.fn().mockImplementation(({ options }) => {
     // Based on the GitHub issue, abortController is passed in options
     const abortController = options?.abortController || new AbortController()
-    activeAbortController = abortController
     shouldContinueGenerating = true
     
     return (async function* () {
@@ -65,7 +62,6 @@ describe('Stop Functionality', () => {
     await db.delete(sessions).execute()
     
     // Reset mock state
-    activeAbortController = null
     shouldContinueGenerating = true
   })
 
@@ -204,7 +200,7 @@ describe('Stop Functionality', () => {
           try {
             const data = JSON.parse(line.slice(6))
             messages.push(data)
-          } catch (e) {
+          } catch {
             // Ignore parse errors
           }
         }

@@ -39,7 +39,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       type: 'user',
       content: prompt.trim(),
       session_id: existingClaudeSessionId || ''  // Use existing session ID if resuming
-    } as any,
+    },
     memvaSessionId: params.sessionId,
     projectPath: session.project_path,
     parentUuid: null,
@@ -74,19 +74,15 @@ export async function action({ request, params }: Route.ActionArgs) {
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder()
-      let isStreamClosed = false
+      // Track stream state through controller.desiredSize
       const lastParentUuid = userEvent.uuid
       
       // Simple check if stream is closed
       const checkStreamClosed = () => {
-        if (controller.desiredSize === null) {
-          isStreamClosed = true
-          return true
-        }
-        return false
+        return controller.desiredSize === null
       }
 
-      const sendMessage = (message: any) => {
+      const sendMessage = (message: Record<string, unknown>) => {
         if (checkStreamClosed()) {
           return
         }
@@ -96,7 +92,6 @@ export async function action({ request, params }: Route.ActionArgs) {
           controller.enqueue(encoder.encode(data))
         } catch (error) {
           console.log(`[API Stream] Error sending message:`, error)
-          isStreamClosed = true
           // Abort Claude Code if we can't send messages
           if (!abortController.signal.aborted) {
             abortController.abort()
@@ -136,8 +131,9 @@ export async function action({ request, params }: Route.ActionArgs) {
             }
             
             // Send the stored event which includes the database UUID
+            const eventData = typeof event.data === 'object' && event.data !== null ? event.data : {}
             sendMessage({
-              ...event.data,
+              ...eventData,
               uuid: event.uuid,
               memva_session_id: event.memva_session_id
             })

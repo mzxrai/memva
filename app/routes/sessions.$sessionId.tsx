@@ -2,8 +2,8 @@ import type { Route } from "./+types/sessions.$sessionId";
 import { useLoaderData } from "react-router";
 import { getSession } from "../db/sessions.service";
 import { getEventsForSession } from "../db/event-session.service";
-import { sendPromptToClaudeCode, type SDKMessage } from "../services/claude-code.service";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { sendPromptToClaudeCode } from "../services/claude-code.service";
+import { useState, useRef, useEffect, useCallback, type FormEvent } from "react";
 import { RiSendPlaneFill, RiStopCircleLine } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
 
@@ -47,7 +47,7 @@ export default function SessionDetail() {
     })
   }
   
-  const [messages, setMessages] = useState<any[]>(initialMessages);
+  const [messages, setMessages] = useState<Record<string, unknown>[]>(initialMessages);
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -249,7 +249,7 @@ export default function SessionDetail() {
     );
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     if (!prompt.trim() || isLoading) return;

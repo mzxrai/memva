@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { existsSync, unlinkSync } from 'fs'
-import { getDatabase, closeDatabase, resetDatabase } from './database'
+import { getDatabase, resetDatabase } from './database'
 
 describe('Database initialization', () => {
   const testDbPath = './test-memva.db'

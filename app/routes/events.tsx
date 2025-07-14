@@ -1,10 +1,9 @@
-import type { Route } from "./+types/events"
 import { Link, useLoaderData } from "react-router"
 import { getDatabase } from "../db/database"
 import { events } from "../db/schema"
 import { desc } from "drizzle-orm"
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader() {
   const db = getDatabase()
   
   const recentEvents = db

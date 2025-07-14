@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { useLoaderData } from 'react-router'
+import type { ReactNode } from 'react'
 import SessionEvents, { loader } from './events.$sessionId'
 import { getDatabase } from '../db/database'
 import { events } from '../db/schema'
@@ -8,7 +9,7 @@ import { eq, asc } from 'drizzle-orm'
 
 vi.mock('../db/database')
 vi.mock('react-router', () => ({
-  Link: ({ children, to }: { children: React.ReactNode; to: string }) => <a href={to}>{children}</a>,
+  Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
   useLoaderData: vi.fn()
 }))
 

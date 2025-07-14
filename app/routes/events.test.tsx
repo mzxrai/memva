@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { useLoaderData } from 'react-router'
+import type { ReactNode } from 'react'
 import Events, { loader } from './events'
 import { getDatabase } from '../db/database'
 import { events } from '../db/schema'
@@ -8,7 +9,7 @@ import { desc } from 'drizzle-orm'
 
 vi.mock('../db/database')
 vi.mock('react-router', () => ({
-  Link: ({ children, to }: { children: React.ReactNode; to: string }) => <a href={to}>{children}</a>,
+  Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
   useLoaderData: vi.fn()
 }))
 
@@ -39,7 +40,7 @@ describe('Events route', () => {
 
     vi.mocked(getDatabase).mockReturnValue(mockDb as unknown as ReturnType<typeof getDatabase>)
 
-    const result = await loader({} as unknown as Parameters<typeof loader>[0])
+    const result = await loader()
     
     expect(mockDb.select).toHaveBeenCalled()
     expect(mockDb.from).toHaveBeenCalledWith(events)

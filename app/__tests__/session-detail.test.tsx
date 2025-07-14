@@ -212,7 +212,7 @@ describe('Session Detail Page', () => {
           timestamp: '2025-07-13T10:00:01Z' 
         })
         onMessage({ 
-          type: 'tool_use', 
+          type: 'system', 
           content: 'file_read',
           timestamp: '2025-07-13T10:00:02Z' 
         })
@@ -278,7 +278,7 @@ describe('Session Detail Page', () => {
       // Simulate multiple messages being sent over time
       const messages = [
         { 
-          type: 'thinking' as const, 
+          type: 'system' as const, 
           content: 'Processing...', 
           timestamp: '2025-07-13T10:00:01Z' 
         },
@@ -413,8 +413,12 @@ describe('Session Detail Page', () => {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
         loader: async ({ params }) => {
-          const session = await getSession(params.sessionId!)
-          const events = await getEventsForSession(params.sessionId!)
+          const sessionId = params.sessionId
+          if (!sessionId) {
+            throw new Error('Session ID is required')
+          }
+          const session = await getSession(sessionId)
+          const events = await getEventsForSession(sessionId)
           return { session, events }
         }
       }
@@ -454,7 +458,7 @@ describe('Session Detail Page', () => {
         // Server sends user message first
         onMessage({ type: 'user', content: prompt, timestamp: '2025-07-13T10:00:00Z' })
         onMessage({ 
-          type: 'thinking', 
+          type: 'system', 
           content: 'Processing...', 
           timestamp: '2025-07-13T10:00:01Z' 
         })

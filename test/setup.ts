@@ -20,7 +20,7 @@ afterAll(async () => {
     await db.delete(events).execute()
     await db.delete(sessions).execute()
     console.log('[Test Cleanup] Test database cleared successfully')
-  } catch (error) {
+  } catch {
     // Database might already be closed by individual tests, which is fine
     console.log('[Test Cleanup] Database already closed or unavailable (this is normal)')
   } finally {

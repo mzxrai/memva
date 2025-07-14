@@ -2,7 +2,7 @@
 
 ## Your Process
 
-- You should always work in a loop: research, plan, implement, test, lint. Repeat until user's request is complete, all tests pass, and linting is clean. Then commit.
+- You should always work in a loop: research, plan, implement, test, lint, typecheck. Repeat until user's request is complete, all tests pass, and linting / typechecking is clean. Then commit.
  
 ## Basic World Information/Grounding
 

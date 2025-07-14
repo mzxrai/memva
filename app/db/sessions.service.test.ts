@@ -70,10 +70,12 @@ describe('Session Service', () => {
       })
 
       expect(updated).not.toBeNull()
-      expect(updated!.title).toBe('Updated')
-      expect(updated!.status).toBe('archived')
-      expect(updated!.updated_at).not.toBe(now)
-      expect(updated!.created_at).toBe(now)
+      if (updated) {
+        expect(updated.title).toBe('Updated')
+        expect(updated.status).toBe('archived')
+        expect(updated.updated_at).not.toBe(now)
+        expect(updated.created_at).toBe(now)
+      }
     })
 
     it('should return null for non-existent session', async () => {
@@ -201,12 +203,14 @@ describe('Session Service', () => {
       const withStats = await getSessionWithStats(session.id)
 
       expect(withStats).toBeTruthy()
-      expect(withStats!.event_count).toBe(3)
-      expect(withStats!.duration_minutes).toBe(10) // 10 minutes between first and last
-      expect(withStats!.event_types).toEqual({
-        user: 2,
-        assistant: 1
-      })
+      if (withStats) {
+        expect(withStats.event_count).toBe(3)
+        expect(withStats.duration_minutes).toBe(10) // 10 minutes between first and last
+        expect(withStats.event_types).toEqual({
+          user: 2,
+          assistant: 1
+        })
+      }
     })
 
     it('should handle session with no events', async () => {
@@ -218,9 +222,11 @@ describe('Session Service', () => {
       const withStats = await getSessionWithStats(session.id)
 
       expect(withStats).toBeTruthy()
-      expect(withStats!.event_count).toBe(0)
-      expect(withStats!.duration_minutes).toBe(0)
-      expect(withStats!.event_types).toEqual({})
+      if (withStats) {
+        expect(withStats.event_count).toBe(0)
+        expect(withStats.duration_minutes).toBe(0)
+        expect(withStats.event_types).toEqual({})
+      }
     })
   })
 
@@ -291,10 +297,12 @@ describe('Session Service', () => {
 
       const updated = await getSession(session.id)
       expect(updated).toBeTruthy()
-      expect(updated!.metadata).toEqual({
-        existing: 'data',
-        claude_session_id: 'new-claude-session-id'
-      })
+      if (updated) {
+        expect(updated.metadata).toEqual({
+          existing: 'data',
+          claude_session_id: 'new-claude-session-id'
+        })
+      }
     })
 
     it('should create metadata if it does not exist', async () => {
@@ -307,9 +315,11 @@ describe('Session Service', () => {
 
       const updated = await getSession(session.id)
       expect(updated).toBeTruthy()
-      expect(updated!.metadata).toEqual({
-        claude_session_id: 'claude-session-123'
-      })
+      if (updated) {
+        expect(updated.metadata).toEqual({
+          claude_session_id: 'claude-session-123'
+        })
+      }
     })
 
     it('should throw error if session not found', async () => {

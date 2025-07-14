@@ -6,6 +6,10 @@ type ExtendedMessage = SDKMessage | {
   type: 'user_cancelled'
   content: string
   session_id: string
+} | {
+  type: 'user'
+  content: string
+  session_id: string
 }
 
 interface CreateEventOptions {

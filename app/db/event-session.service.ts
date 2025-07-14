@@ -1,5 +1,5 @@
 import { db, events, type Event } from './index'
-import { eq, and, asc, desc, inArray } from 'drizzle-orm'
+import { eq, and, desc, inArray } from 'drizzle-orm'
 
 type GetEventsOptions = {
   eventType?: string

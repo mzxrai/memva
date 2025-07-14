@@ -97,7 +97,9 @@ function runMigrations() {
   
   // Check if memva_session_id column exists
   const columns = sqlite.prepare(`PRAGMA table_info(events)`).all()
-  const hasMemvaSessionId = columns.some((col: any) => col.name === 'memva_session_id')
+  const hasMemvaSessionId = columns.some((col: unknown) => 
+    typeof col === 'object' && col !== null && 'name' in col && (col as { name: string }).name === 'memva_session_id'
+  )
   
   if (!hasMemvaSessionId) {
     console.log('Migrating: Adding memva_session_id column to events table')

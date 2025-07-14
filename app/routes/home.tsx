@@ -4,16 +4,16 @@ import { listSessions, getSessionWithStats, createSession, type SessionWithStats
 import { formatDistanceToNow } from "date-fns";
 import { RiFolder3Line, RiTimeLine, RiPulseLine, RiArchiveLine, RiPlayFill } from "react-icons/ri";
 import clsx from "clsx";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 
-export function meta({}: Route.MetaArgs) {
+export function meta(): Array<{ title?: string; name?: string; content?: string }> {
   return [
     { title: "Memva - Session Manager" },
     { name: "description", content: "Manage your Claude Code sessions efficiently" },
   ];
 }
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader() {
   const sessions = await listSessions();
   console.log(`Loaded ${sessions.length} sessions from database`);
   
@@ -49,15 +49,15 @@ export async function action({ request }: Route.ActionArgs) {
   return redirect(`/sessions/${session.id}`);
 }
 
-function isSessionWithStats(session: any): session is SessionWithStats {
-  return typeof session.event_count === 'number';
+function isSessionWithStats(session: SessionWithStats | { id: string }): session is SessionWithStats {
+  return 'event_count' in session && typeof session.event_count === 'number';
 }
 
 export default function Home() {
   const { sessions } = useLoaderData<typeof loader>();
   const [sessionTitle, setSessionTitle] = useState("");
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     if (!sessionTitle.trim()) {
       e.preventDefault();
     }

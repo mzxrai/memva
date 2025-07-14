@@ -8,7 +8,7 @@ interface StreamClaudeCodeOptions {
   onError?: (error: Error) => void
   abortController?: AbortController
   memvaSessionId?: string
-  onStoredEvent?: (event: any) => void
+  onStoredEvent?: (event: Record<string, unknown>) => void
   resumeSessionId?: string
   initialParentUuid?: string
 }
@@ -41,7 +41,7 @@ export async function streamClaudeCodeResponse({
   })
 
   try {
-    const options: any = {
+    const options: Record<string, unknown> = {
       maxTurns: 100,
       cwd: projectPath
     }

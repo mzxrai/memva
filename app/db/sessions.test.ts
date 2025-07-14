@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { db, sessions, type Session, type NewSession } from './index'
+import { db, sessions, type NewSession } from './index'
 import { eq } from 'drizzle-orm'
 
 describe('Sessions table operations', () => {

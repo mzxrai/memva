@@ -1,12 +1,8 @@
-import { describe, it, expect, beforeEach, beforeAll, afterEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { createRoutesStub } from 'react-router'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { db, sessions, events } from '../db'
 import { eq } from 'drizzle-orm'
 import { action as homeAction } from '../routes/home'
 import { loader as sessionLoader } from '../routes/sessions.$sessionId'
-import SessionDetail from '../routes/sessions.$sessionId'
-import Home from '../routes/home'
 import type { Route as HomeRoute } from '../routes/+types/home'
 import type { Route as SessionRoute } from '../routes/+types/sessions.$sessionId'
 
@@ -47,12 +43,14 @@ describe('Homepage Initial Prompt Behavior', () => {
       expect(sessionId).toBeTruthy()
       
       // Verify session was created in database with correct title
-      const sessionData = await db.select().from(sessions)
-        .where(eq(sessions.id, sessionId!))
-        .execute()
-      
-      expect(sessionData).toHaveLength(1)
-      expect(sessionData[0]?.title).toBe(userInput)
+      if (sessionId) {
+        const sessionData = await db.select().from(sessions)
+          .where(eq(sessions.id, sessionId))
+          .execute()
+        
+        expect(sessionData).toHaveLength(1)
+        expect(sessionData[0]?.title).toBe(userInput)
+      }
     }
   })
 
@@ -79,13 +77,15 @@ describe('Homepage Initial Prompt Behavior', () => {
     expect(sessionId).toBeTruthy()
     
     // Load the session detail page data
-    const sessionLoaderData = await sessionLoader({
-      params: { sessionId: sessionId! }
-    } as SessionRoute.LoaderArgs)
-    
-    // Should load session with correct title and empty events (new session)
-    expect(sessionLoaderData.session).toBeTruthy()
-    expect(sessionLoaderData.session?.title).toBe(userInput)
-    expect(sessionLoaderData.events).toHaveLength(0) // New session, no events yet
+    if (sessionId) {
+      const sessionLoaderData = await sessionLoader({
+        params: { sessionId }
+      } as SessionRoute.LoaderArgs)
+      
+      // Should load session with correct title and empty events (new session)
+      expect(sessionLoaderData.session).toBeTruthy()
+      expect(sessionLoaderData.session?.title).toBe(userInput)
+      expect(sessionLoaderData.events).toHaveLength(0) // New session, no events yet
+    }
   })
 })

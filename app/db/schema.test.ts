@@ -150,7 +150,7 @@ describe('Database Schema', () => {
       { uuid: 'e3', timestamp: '2025-07-13T20:00:02.000Z' }
     ]
 
-    const eventsToInsert = eventData.map((event, index) => ({
+    const eventsToInsert = eventData.map((event) => ({
       uuid: event.uuid,
       session_id: sessionId,
       event_type: 'user' as const,
