@@ -2,8 +2,14 @@ import { v4 as uuidv4 } from 'uuid'
 import { db, events, type NewEvent } from '../db'
 import type { SDKMessage } from '@anthropic-ai/claude-code'
 
+type ExtendedMessage = SDKMessage | {
+  type: 'user_cancelled'
+  content: string
+  session_id: string
+}
+
 interface CreateEventOptions {
-  message: SDKMessage
+  message: ExtendedMessage
   memvaSessionId: string
   projectPath: string
   parentUuid: string | null

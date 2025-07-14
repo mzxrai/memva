@@ -29,6 +29,7 @@ export async function streamClaudeCodeResponse({
   let lastSessionId: string | undefined
   let isAborted = false
   let cancellationEventStored = false
+  let messageCount = 0
   
   console.log(`[Claude Code] Starting stream for session ${memvaSessionId}`)
   
@@ -60,7 +61,6 @@ export async function streamClaudeCodeResponse({
       }
     })
 
-    let messageCount = 0
     for await (const message of messages) {
       // Check if we've been aborted BEFORE processing
       if (isAborted || controller.signal.aborted) {
@@ -190,8 +190,8 @@ export async function streamClaudeCodeResponse({
   } catch (error) {
     console.log(`[Claude Code] Error caught:`, error)
     console.log(`[Claude Code] Error details:`, {
-      name: error?.name,
-      message: error?.message,
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
       aborted: controller.signal.aborted
     })
     

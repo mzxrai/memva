@@ -45,7 +45,7 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: async () => ({ session: mockSession })
+        loader: async () => ({ session: mockSession, events: [] })
       }
     ])
 
@@ -80,7 +80,7 @@ describe('Session Detail Page', () => {
   it('should display prompt input form', async () => {
     const mockSession: Session = {
       id: 'test-session-id',
-      title: 'Test Session',
+      title: null, // Prevent auto-start for tests
       created_at: '2025-07-13T10:00:00Z',
       updated_at: '2025-07-13T10:00:00Z',
       status: 'active',
@@ -95,7 +95,7 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: async () => ({ session: mockSession })
+        loader: async () => ({ session: mockSession, events: [] })
       }
     ])
 
@@ -110,13 +110,29 @@ describe('Session Detail Page', () => {
   it('should send prompt to Claude Code and display messages', async () => {
     const mockSession: Session = {
       id: 'test-session-id',
-      title: 'Test Session',
+      title: 'Test Session', // This test needs title for display
       created_at: '2025-07-13T10:00:00Z',
       updated_at: '2025-07-13T10:00:00Z',
       status: 'active',
       project_path: '/Users/mbm-premva/dev/memva',
       metadata: null
     }
+
+    // Create mock events to prevent auto-start (session already has conversation history)
+    const mockEvents = [
+      {
+        uuid: 'existing-event-1',
+        session_id: 'mock-session-id',
+        memva_session_id: 'test-session-id',
+        event_type: 'user' as const,
+        timestamp: '2025-07-13T09:59:00Z',
+        is_sidechain: false,
+        parent_uuid: null,
+        cwd: '/Users/mbm-premva/dev/memva',
+        project_name: 'memva',
+        data: { type: 'user', content: 'Previous message', timestamp: '2025-07-13T09:59:00Z' }
+      }
+    ]
 
     const { getSession } = await import('../db/sessions.service')
     const { sendPromptToClaudeCode } = await import('../services/claude-code.service')
@@ -138,7 +154,7 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: async () => ({ session: mockSession })
+        loader: async () => ({ session: mockSession, events: mockEvents })
       }
     ])
 
@@ -172,7 +188,7 @@ describe('Session Detail Page', () => {
   it('should display streaming messages in real-time', async () => {
     const mockSession: Session = {
       id: 'test-session-id',
-      title: 'Test Session',
+      title: null, // Prevent auto-start for tests
       created_at: '2025-07-13T10:00:00Z',
       updated_at: '2025-07-13T10:00:00Z',
       status: 'active',
@@ -201,7 +217,7 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: async () => ({ session: mockSession })
+        loader: async () => ({ session: mockSession, events: [] })
       }
     ])
 
@@ -229,7 +245,7 @@ describe('Session Detail Page', () => {
   it('should show stop button while loading and allow aborting', async () => {
     const mockSession: Session = {
       id: 'test-session-id',
-      title: 'Test Session',
+      title: null, // Prevent auto-start for tests
       created_at: '2025-07-13T10:00:00Z',
       updated_at: '2025-07-13T10:00:00Z',
       status: 'active',
@@ -253,10 +269,10 @@ describe('Session Detail Page', () => {
       
       // Simulate multiple messages being sent over time
       const messages = [
-        { type: 'thinking', content: 'Processing...', timestamp: '2025-07-13T10:00:01Z' },
-        { type: 'assistant', content: 'Starting analysis...', timestamp: '2025-07-13T10:00:02Z' },
-        { type: 'tool_use', content: 'Reading files...', timestamp: '2025-07-13T10:00:03Z' },
-        { type: 'assistant', content: 'This should not appear if aborted', timestamp: '2025-07-13T10:00:04Z' }
+        { type: 'thinking' as const, content: 'Processing...', timestamp: '2025-07-13T10:00:01Z' },
+        { type: 'assistant' as const, content: 'Starting analysis...', timestamp: '2025-07-13T10:00:02Z' },
+        { type: 'tool_use' as const, content: 'Reading files...', timestamp: '2025-07-13T10:00:03Z' },
+        { type: 'assistant' as const, content: 'This should not appear if aborted', timestamp: '2025-07-13T10:00:04Z' }
       ]
       
       let messageIndex = 0
@@ -279,7 +295,7 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: async () => ({ session: mockSession })
+        loader: async () => ({ session: mockSession, events: [] })
       }
     ])
 
@@ -337,7 +353,7 @@ describe('Session Detail Page', () => {
   it('should load and display historical events on mount', async () => {
     const mockSession: Session = {
       id: 'test-session-id',
-      title: 'Test Session',
+      title: null, // Prevent auto-start for tests
       created_at: '2025-07-13T10:00:00Z',
       updated_at: '2025-07-13T10:00:00Z',
       status: 'active',
@@ -407,7 +423,7 @@ describe('Session Detail Page', () => {
   it('should disable input and send button during processing', async () => {
     const mockSession: Session = {
       id: 'test-session-id',
-      title: 'Test Session',
+      title: null, // Prevent auto-start for tests
       created_at: '2025-07-13T10:00:00Z',
       updated_at: '2025-07-13T10:00:00Z',
       status: 'active',
@@ -433,7 +449,7 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: async () => ({ session: mockSession })
+        loader: async () => ({ session: mockSession, events: [] })
       }
     ])
 
@@ -464,7 +480,7 @@ describe('Session Detail Page', () => {
   it('should keep input area visible when messages overflow', async () => {
     const mockSession: Session = {
       id: 'test-session-id',
-      title: 'Test Session',
+      title: null, // Prevent auto-start for tests
       created_at: '2025-07-13T10:00:00Z',
       updated_at: '2025-07-13T10:00:00Z',
       status: 'active',
@@ -502,7 +518,7 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: async () => ({ session: mockSession })
+        loader: async () => ({ session: mockSession, events: [] })
       }
     ])
 

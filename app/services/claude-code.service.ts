@@ -1,5 +1,5 @@
 export type SDKMessage = {
-  type: string
+  type: 'user' | 'assistant' | 'system' | 'result' | 'thinking' | 'tool_use' | 'user_cancelled'
   content: string
   timestamp?: string
   uuid?: string

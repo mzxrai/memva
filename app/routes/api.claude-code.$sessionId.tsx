@@ -106,7 +106,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       
       // Send the user message immediately
       sendMessage({
-        ...userEvent.data,
+        ...(typeof userEvent.data === 'object' && userEvent.data !== null ? userEvent.data : {}),
         uuid: userEvent.uuid,
         memva_session_id: userEvent.memva_session_id
       })

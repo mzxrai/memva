@@ -56,6 +56,52 @@ export default function SessionDetail() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isLoading]);
 
+  // Track if we've already auto-started to prevent duplicates
+  const hasAutoStartedRef = useRef(false);
+
+  // Auto-start conversation for new sessions from homepage
+  useEffect(() => {
+    // New session from homepage: no events + has title + not already started
+    if (events.length === 0 && session?.title && !hasAutoStartedRef.current) {
+      console.log('🚀 Auto-starting conversation with session title:', session.title);
+      
+      hasAutoStartedRef.current = true;
+      setIsLoading(true);
+      abortControllerRef.current = new AbortController();
+      
+      // Call Claude Code directly with session title (no form simulation needed)
+      sendPromptToClaudeCode({
+        prompt: session.title,
+        sessionId: session.id,
+        onMessage: (message) => {
+          console.log('[SessionDetail] New message received:', {
+            type: message.type,
+            uuid: message.uuid,
+            timestamp: message.timestamp || new Date().toISOString()
+          });
+          
+          // Add the message to the UI
+          setMessages(prev => [...prev, message]);
+          
+          // Stop loading when we get the result message
+          if (message.type === 'result') {
+            setIsLoading(false);
+          }
+        },
+        onError: (error) => {
+          console.error('Error sending prompt to Claude Code:', error);
+          setMessages(prev => [...prev, {
+            type: 'error',
+            content: `Error: ${error.message}`,
+            timestamp: new Date().toISOString()
+          }]);
+          setIsLoading(false);
+        },
+        signal: abortControllerRef.current.signal
+      });
+    }
+  }, [events.length, session?.title]);
+
   if (!session) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -85,11 +131,6 @@ export default function SessionDetail() {
       prompt: userPrompt,
       sessionId: session.id,
       onMessage: (message) => {
-        // Ignore heartbeat messages
-        if (message.type === 'heartbeat') {
-          return;
-        }
-        
         console.log('[SessionDetail] New message received:', {
           type: message.type,
           uuid: message.uuid,
@@ -153,8 +194,8 @@ export default function SessionDetail() {
                   <p className="text-zinc-500">No messages yet. Start by asking Claude Code something!</p>
                 </div>
               ) : (
-                messages.map((message) => (
-                  <div key={message.uuid || `${message.type}-${message.timestamp}`} className="mb-4">
+                messages.map((message, index) => (
+                  <div key={message.uuid || `${message.type}-${message.timestamp}-${index}`} className="mb-4">
                     <pre className="bg-zinc-800 p-4 rounded-lg text-zinc-100 font-mono text-xs overflow-x-auto">
                       {JSON.stringify(message, null, 2)}
                     </pre>

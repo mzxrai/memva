@@ -1,5 +1,6 @@
 import { setupServer } from 'msw/node'
 import { http, HttpResponse } from 'msw'
+import { beforeAll, afterEach, afterAll } from 'vitest'
 
 // Mock the Claude Code SDK module
 import { vi } from 'vitest'
