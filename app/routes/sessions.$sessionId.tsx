@@ -3,7 +3,7 @@ import { useLoaderData } from "react-router";
 import { getSession } from "../db/sessions.service";
 import { getEventsForSession } from "../db/event-session.service";
 import { sendPromptToClaudeCode, type SDKMessage } from "../services/claude-code.service";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { RiSendPlaneFill, RiStopCircleLine } from "react-icons/ri";
 
 export async function loader({ params }: Route.LoaderArgs) {
@@ -15,12 +15,12 @@ export async function loader({ params }: Route.LoaderArgs) {
 export default function SessionDetail() {
   const { session, events = [] } = useLoaderData<typeof loader>();
   
-  // Initialize messages with historical events
+  // Initialize messages with historical events (reverse to show oldest-to-newest in DOM for proper chat order)
   const initialMessages = events.map(event => ({
     ...(typeof event.data === 'object' ? event.data : {}),
     uuid: event.uuid,
     memva_session_id: event.memva_session_id || undefined
-  }))
+  })).reverse()
   
   // Debug logging for event ordering
   if (events.length > 0) {
@@ -34,16 +34,59 @@ export default function SessionDetail() {
   const [messages, setMessages] = useState<any[]>(initialMessages);
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  // Refs for chat behavior
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const messagesListRef = useRef<HTMLDivElement>(null);
+  const previousMessageCountRef = useRef(0);
+  const [contentOverflows, setContentOverflows] = useState(false);
+  const isInitialHistoryLoad = initialMessages.length > 0; // Has existing history
 
+  // Check if content overflows container
+  const checkContentOverflow = useCallback(() => {
+    const container = messagesContainerRef.current;
+    const messagesList = messagesListRef.current;
+    
+    if (container && messagesList) {
+      const containerHeight = container.clientHeight;
+      const contentHeight = messagesList.scrollHeight;
+      setContentOverflows(contentHeight > containerHeight);
+    }
+  }, []);
+
+  // Check overflow when messages change
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    // Use timeout to ensure DOM has updated
+    const timeoutId = setTimeout(checkContentOverflow, 0);
+    return () => clearTimeout(timeoutId);
+  }, [messages, checkContentOverflow]);
+
+  // Auto-scroll logic
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const currentMessageCount = messages.length;
+    const previousCount = previousMessageCountRef.current;
+    const hasNewMessages = currentMessageCount > previousCount;
+
+    if (previousCount === 0 && currentMessageCount > 0 && isInitialHistoryLoad) {
+      // Loading existing history: ALWAYS scroll to bottom to show newest message
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+      }, 0);
+    } else if (hasNewMessages && previousCount > 0) {
+      // New messages streaming in: scroll to show them
+      container.scrollTo({ 
+        top: container.scrollHeight, 
+        behavior: 'smooth' 
+      });
+    }
+    // For fresh sessions (no initial history), first message naturally appears at top via justify-start
+
+    previousMessageCountRef.current = currentMessageCount;
+  }, [messages, isInitialHistoryLoad, contentOverflows]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -80,7 +123,7 @@ export default function SessionDetail() {
             timestamp: message.timestamp || new Date().toISOString()
           });
           
-          // Add the message to the UI
+          // Add the message to the end (newest at bottom)
           setMessages(prev => [...prev, message]);
           
           // Stop loading when we get the result message
@@ -137,7 +180,7 @@ export default function SessionDetail() {
           timestamp: message.timestamp || new Date().toISOString()
         });
         
-        // Add the message to the UI
+        // Add the message to the end (newest at bottom)
         setMessages(prev => [...prev, message]);
         
         // Stop loading when we get the result message
@@ -184,28 +227,36 @@ export default function SessionDetail() {
         </div>
       </div>
 
-      {/* Scrollable messages area */}
-      <div className="flex-1 relative overflow-y-auto">
-        <div className="px-4 pt-6 pb-40">
-          <div className="container mx-auto max-w-7xl">
-            <div className="space-y-4">
-              {messages.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-zinc-500">No messages yet. Start by asking Claude Code something!</p>
-                </div>
-              ) : (
-                messages.map((message, index) => (
-                  <div key={message.uuid || `${message.type}-${message.timestamp}-${index}`} className="mb-4">
+      {/* Messages Area */}
+      <div 
+        ref={messagesContainerRef}
+        className="flex-1 overflow-y-auto"
+        style={{ height: '100%' }}
+      >
+        {messages.length === 0 ? (
+          <div className="h-full flex items-center justify-center">
+            <p className="text-zinc-500">No messages yet. Start by asking Claude Code something!</p>
+          </div>
+        ) : (
+          <div 
+            ref={messagesListRef}
+            className={contentOverflows 
+              ? "min-h-full flex flex-col justify-end pb-32"     // Overflow: bottom-anchored (newest at bottom)
+              : "min-h-full flex flex-col justify-start pb-32"   // Fits: top-anchored (start from top)
+            }>
+            {messages.map((message) => (
+              <div key={message.uuid || JSON.stringify(message)} className="px-4">
+                <div className="container mx-auto max-w-7xl">
+                  <div className="mb-4">
                     <pre className="bg-zinc-800 p-4 rounded-lg text-zinc-100 font-mono text-xs overflow-x-auto">
                       {JSON.stringify(message, null, 2)}
                     </pre>
                   </div>
-                ))
-              )}
-              <div ref={messagesEndRef} />
-            </div>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
       </div>
 
       {/* Progressive blur gradient overlay */}

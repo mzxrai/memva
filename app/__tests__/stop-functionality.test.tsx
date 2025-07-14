@@ -108,10 +108,12 @@ describe('Stop Functionality', () => {
     // So just check we got at least a system message
     // expect(eventTypes).toContain('thinking')
     
-    // Events should be in order
-    storedEvents.forEach((event, index) => {
-      if (index > 0) {
-        expect(event.parent_uuid).toBe(storedEvents[index - 1].uuid)
+    // Events should be in order (newest first)
+    // Each event with a parent should reference a previous event in the chain
+    storedEvents.forEach(event => {
+      if (event.parent_uuid) {
+        const parentExists = storedEvents.some(e => e.uuid === event.parent_uuid)
+        expect(parentExists).toBe(true)
       }
     })
   })

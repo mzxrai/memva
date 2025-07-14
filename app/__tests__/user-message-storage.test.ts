@@ -127,21 +127,23 @@ describe('User Message Storage', () => {
     // Should have at least 3 events: user, system, result
     expect(storedEvents.length).toBeGreaterThanOrEqual(3)
     
-    // First event should be the user message
-    expect(storedEvents[0].event_type).toBe('user')
-    expect(storedEvents[0].data).toMatchObject({
+    // Find the user event (since events are newest-first, user event will be oldest)
+    const userEvent = storedEvents.find(e => e.event_type === 'user')
+    expect(userEvent).toBeTruthy()
+    expect(userEvent!.data).toMatchObject({
       type: 'user',
       content: userPrompt
     })
     
-    // Second should be system
-    expect(storedEvents[1].event_type).toBe('system')
+    // Find the system event 
+    const systemEvent = storedEvents.find(e => e.event_type === 'system')
+    expect(systemEvent).toBeTruthy()
     
     // User message should not have a parent
-    expect(storedEvents[0].parent_uuid).toBeNull()
+    expect(userEvent!.parent_uuid).toBeNull()
     
     // System message should have user message as parent
-    expect(storedEvents[1].parent_uuid).toBe(storedEvents[0].uuid)
+    expect(systemEvent!.parent_uuid).toBe(userEvent!.uuid)
   })
 
   it('should handle empty or whitespace-only prompts', async () => {

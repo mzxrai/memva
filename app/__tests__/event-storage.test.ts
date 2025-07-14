@@ -83,11 +83,11 @@ describe('Event Storage Behavior', () => {
     
     const storedEvents = await getEventsForSession(session.id)
     
-    // Events should be ordered by timestamp
+    // Events should be ordered by timestamp (newest first)
     for (let i = 1; i < storedEvents.length; i++) {
       const prevTimestamp = new Date(storedEvents[i - 1].timestamp).getTime()
       const currTimestamp = new Date(storedEvents[i].timestamp).getTime()
-      expect(currTimestamp).toBeGreaterThanOrEqual(prevTimestamp)
+      expect(currTimestamp).toBeLessThanOrEqual(prevTimestamp)
     }
     
     // Events should have parent relationships (except the first one)

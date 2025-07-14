@@ -1,5 +1,5 @@
 import { db, events, type Event } from './index'
-import { eq, and, asc, inArray } from 'drizzle-orm'
+import { eq, and, asc, desc, inArray } from 'drizzle-orm'
 
 type GetEventsOptions = {
   eventType?: string
@@ -47,12 +47,12 @@ export async function getEventsForSession(
     conditions.push(eq(events.is_sidechain, false))
   }
   
-  // Execute query with all conditions
+  // Execute query with all conditions - newest first
   return db
     .select()
     .from(events)
     .where(and(...conditions))
-    .orderBy(asc(events.timestamp))
+    .orderBy(desc(events.timestamp))
     .execute()
 }
 

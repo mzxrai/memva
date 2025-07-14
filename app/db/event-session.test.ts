@@ -110,10 +110,10 @@ describe('Event-Session Association', () => {
       const sessionEvents = await getEventsForSession(session.id)
 
       expect(sessionEvents).toHaveLength(3)
-      // Should be ordered by timestamp
-      expect(sessionEvents[0].timestamp).toBe('2024-01-01T10:00:00Z')
+      // Should be ordered by timestamp (newest first)
+      expect(sessionEvents[0].timestamp).toBe('2024-01-01T10:05:00Z')
       expect(sessionEvents[1].timestamp).toBe('2024-01-01T10:02:00Z')
-      expect(sessionEvents[2].timestamp).toBe('2024-01-01T10:05:00Z')
+      expect(sessionEvents[2].timestamp).toBe('2024-01-01T10:00:00Z')
     })
 
     it('should filter by event type', async () => {

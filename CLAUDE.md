@@ -1,4 +1,8 @@
 # Development Guidelines for Claude
+
+## Your Process
+
+- You should always work in a loop: research, plan, implement, test, lint. Repeat until user's request is complete, all tests pass, and linting is clean. Then commit.
  
 ## Basic World Information/Grounding
 
