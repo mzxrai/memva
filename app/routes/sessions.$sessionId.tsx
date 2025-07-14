@@ -26,6 +26,17 @@ export default function SessionDetail() {
     scrollToBottom();
   }, [messages]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isLoading) {
+        handleStop();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLoading]);
+
   if (!session) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -148,6 +159,7 @@ export default function SessionDetail() {
                   type="button"
                   onClick={handleStop}
                   className="px-6 py-3.5 bg-red-900/90 hover:bg-red-800/90 text-zinc-100 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:bg-red-800/90 flex items-center gap-2 shadow-lg"
+                  title="Press Escape to stop"
                 >
                   <RiStopCircleLine className="w-5 h-5" />
                   Stop
