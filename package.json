@@ -12,6 +12,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@anthropic-ai/claude-code": "^1.0.51",
     "@react-router/node": "^7.5.3",
     "@react-router/serve": "^7.5.3",
     "@types/uuid": "^10.0.0",

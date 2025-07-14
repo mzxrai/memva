@@ -17,6 +17,12 @@ To start with, we will build this in a local-only fashion; in other words, it wi
 - We will write proper modern TypeScript.
 - The use of popular, well-supported third-party TypeScript libraries is encouraged for non-trivial functionality. Always run a web search to locate the latest stable version of a given library before adding it to `package.json`.
 
+### Design aesthetic
+
+- Design aesthetic: Linear-inspired, modern black/white minimal with thoughtful use of: color, elegant iconography (no emojis unless explicitly requested by the user)
+- Inter is our primary variable-width sans font
+- JetBrains Mono is our primary monospace font
+
 ## Important processes
 
 - IMPORTANT: we have an MCP server called "docs" that you must *always* use when starting new feature development. Use "docs" to pull the latest library documentation down so that the code you write will have the highest chance of working on the first try.

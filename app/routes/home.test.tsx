@@ -1,12 +1,26 @@
-import { render, screen } from '../../test/test-utils'
-import { describe, it, expect } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { createRoutesStub } from 'react-router'
 import Home from './home'
 
+// Mock the database service
+vi.mock('../db/sessions.service', () => ({
+  listSessionsWithStats: vi.fn().mockResolvedValue([])
+}))
+
 describe('Home Route', () => {
-  it('should render welcome component', () => {
-    render(<Home />)
+  it('should render home page with session creation input', async () => {
+    const Stub = createRoutesStub([
+      {
+        path: '/',
+        Component: Home,
+        loader: async () => ({ sessions: [] })
+      }
+    ])
     
-    expect(screen.getByText("What's next?")).toBeInTheDocument()
-    expect(screen.getByText('React Router Docs')).toBeInTheDocument()
+    render(<Stub />)
+    
+    expect(await screen.findByText('Sessions')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/start a new claude code session/i)).toBeInTheDocument()
   })
 })
