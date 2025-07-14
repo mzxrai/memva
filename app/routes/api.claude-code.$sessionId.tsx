@@ -75,7 +75,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     async start(controller) {
       const encoder = new TextEncoder()
       let isStreamClosed = false
-      let lastParentUuid = userEvent.uuid
+      const lastParentUuid = userEvent.uuid
       
       // Simple check if stream is closed
       const checkStreamClosed = () => {

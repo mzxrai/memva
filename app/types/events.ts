@@ -88,13 +88,50 @@ export interface SummaryEvent {
   leafUuid: string
 }
 
-export type ClaudeEvent = UserEvent | AssistantEvent | SummaryEvent
+// Additional event types used in the system
+export interface SystemEvent {
+  type: 'system'
+  content: string
+  session_id?: string
+  timestamp?: string
+  uuid?: string
+}
+
+export interface ErrorEvent {
+  type: 'error' | 'user_cancelled'
+  content: string
+  session_id?: string
+  timestamp?: string
+  uuid?: string
+}
+
+export interface ResultEvent {
+  type: 'result'
+  content: string
+  session_id?: string
+  timestamp?: string
+  uuid?: string
+}
+
+export type ClaudeEvent = UserEvent | AssistantEvent | SummaryEvent | SystemEvent | ErrorEvent | ResultEvent
+
+// Union type for any event that might be passed to our components
+// Using a flexible type to handle various event shapes from different sources
+export type AnyEvent = Record<string, unknown> & {
+  type?: string
+  event_type?: string
+  uuid?: string
+  timestamp?: string
+  content?: unknown
+  message?: unknown
+  data?: unknown
+}
 
 // Database row type
 export interface EventRow {
   uuid: string
   session_id: string
-  event_type: 'user' | 'assistant' | 'summary'
+  event_type: 'user' | 'assistant' | 'summary' | 'system' | 'error' | 'user_cancelled' | 'result'
   timestamp: string
   is_sidechain: boolean
   parent_uuid: string | null

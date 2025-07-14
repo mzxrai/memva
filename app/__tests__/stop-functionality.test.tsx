@@ -189,7 +189,7 @@ describe('Stop Functionality', () => {
     if (!reader) throw new Error('No response body')
     
     const decoder = new TextDecoder()
-    let messages = []
+    const messages = []
     
     // Read a few messages
     for (let i = 0; i < 3; i++) {

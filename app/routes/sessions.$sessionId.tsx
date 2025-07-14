@@ -3,8 +3,9 @@ import { useLoaderData } from "react-router";
 import { getSession } from "../db/sessions.service";
 import { getEventsForSession } from "../db/event-session.service";
 import { sendPromptToClaudeCode, type SDKMessage } from "../services/claude-code.service";
-import { useState, useRef, useEffect, useCallback, memo } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { RiSendPlaneFill, RiStopCircleLine } from "react-icons/ri";
+import { EventRenderer } from "../components/events/EventRenderer";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const session = await getSession(params.sessionId);
@@ -12,30 +13,15 @@ export async function loader({ params }: Route.LoaderArgs) {
   return { session, events };
 }
 
-// Memoized message component to prevent re-renders and preserve text selection
-const MessageItem = memo(({ message }: { message: any }) => {
-  return (
-    <div className="px-4">
-      <div className="container mx-auto max-w-7xl">
-        <div className="mb-4">
-          <pre className="bg-zinc-800 p-4 rounded-lg text-zinc-100 font-mono text-xs overflow-x-auto">
-            {JSON.stringify(message, null, 2)}
-          </pre>
-        </div>
-      </div>
-    </div>
-  );
-});
-
-MessageItem.displayName = 'MessageItem';
+// The EventRenderer component is already memoized and handles all event types
 
 // Helper function to generate stable keys for message components
-const getMessageKey = (message: any, index: number): string => {
-  if (message.uuid) {
+const getMessageKey = (message: Record<string, unknown>, index: number): string => {
+  if (message.uuid && typeof message.uuid === 'string') {
     return message.uuid;
   }
   // Fallback to stable identifier based on content and timestamp
-  if (message.timestamp && message.type) {
+  if (message.timestamp && message.type && typeof message.timestamp === 'string' && typeof message.type === 'string') {
     return `${message.type}-${message.timestamp}-${index}`;
   }
   // Last resort fallback
@@ -203,7 +189,10 @@ export default function SessionDetail() {
   // Auto-start conversation for new sessions from homepage
   useEffect(() => {
     // New session from homepage: explicitly marked for auto-start + not already started + no existing events
-    if (session?.metadata?.should_auto_start && !hasAutoStartedRef.current && events.length === 0) {
+    if (!session) return
+    
+    const metadata = (session.metadata as unknown) as { should_auto_start?: boolean } | null
+    if (metadata?.should_auto_start && !hasAutoStartedRef.current && events.length === 0) {
       console.log('🚀 Auto-starting conversation with session title:', session.title);
       
       // Reset auto-scroll for auto-started session
@@ -218,7 +207,7 @@ export default function SessionDetail() {
       
       // Call Claude Code directly with session title (no form simulation needed)
       sendPromptToClaudeCode({
-        prompt: session.title,
+        prompt: session.title || 'Untitled Session',
         sessionId: session.id,
         onMessage: (message) => {
           console.log('[SessionDetail] New message received:', {
@@ -247,7 +236,7 @@ export default function SessionDetail() {
         signal: abortControllerRef.current.signal
       });
     }
-  }, [session?.metadata?.should_auto_start, events.length]);
+  }, [session?.metadata, events.length]);
 
   if (!session) {
     return (
@@ -355,9 +344,9 @@ export default function SessionDetail() {
               : "min-h-full flex flex-col justify-start pb-32"   // Fits: top-anchored (start from top)
             }>
             {messages.map((message, index) => (
-              <MessageItem
+              <EventRenderer
                 key={getMessageKey(message, index)}
-                message={message}
+                event={message}
               />
             ))}
           </div>

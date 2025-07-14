@@ -172,8 +172,8 @@ describe('Session Detail Page', () => {
     fireEvent.click(sendButton)
 
     await waitFor(() => {
-      expect(screen.getByText(/"content": "Test prompt"/)).toBeInTheDocument()
-      expect(screen.getByText(/"content": "Test response"/)).toBeInTheDocument()
+      expect(screen.getByText("Test prompt")).toBeInTheDocument()
+      expect(screen.getByText("Test response")).toBeInTheDocument()
     })
 
     expect(sendPromptToClaudeCode).toHaveBeenCalledWith({
@@ -206,8 +206,16 @@ describe('Session Detail Page', () => {
       setTimeout(() => {
         // Server now sends user message first
         onMessage({ type: 'user', content: prompt, timestamp: '2025-07-13T10:00:00Z' })
-        onMessage({ type: 'thinking', content: 'Analyzing the request...', timestamp: '2025-07-13T10:00:01Z' })
-        onMessage({ type: 'tool_use', content: '{"name": "file_read", "input": {"path": "app.tsx"}}', timestamp: '2025-07-13T10:00:02Z' })
+        onMessage({ 
+          type: 'assistant', 
+          content: 'Analyzing the request...',
+          timestamp: '2025-07-13T10:00:01Z' 
+        })
+        onMessage({ 
+          type: 'tool_use', 
+          content: 'file_read',
+          timestamp: '2025-07-13T10:00:02Z' 
+        })
         onMessage({ type: 'assistant', content: 'I can help you with that feature', timestamp: '2025-07-13T10:00:03Z' })
         onMessage({ type: 'result', content: '', timestamp: '2025-07-13T10:00:04Z' })
       }, 0)
@@ -235,10 +243,10 @@ describe('Session Detail Page', () => {
     fireEvent.click(sendButton)
 
     await waitFor(() => {
-      expect(screen.getByText(/"content": "Help me implement a feature"/)).toBeInTheDocument()
-      expect(screen.getByText(/"content": "Analyzing the request..."/)).toBeInTheDocument()
+      expect(screen.getByText("Help me implement a feature")).toBeInTheDocument()
+      expect(screen.getByText("Analyzing the request...")).toBeInTheDocument()
       expect(screen.getByText(/file_read/)).toBeInTheDocument()
-      expect(screen.getByText(/"content": "I can help you with that feature"/)).toBeInTheDocument()
+      expect(screen.getByText("I can help you with that feature")).toBeInTheDocument()
     })
   })
 
@@ -269,9 +277,13 @@ describe('Session Detail Page', () => {
       
       // Simulate multiple messages being sent over time
       const messages = [
-        { type: 'thinking' as const, content: 'Processing...', timestamp: '2025-07-13T10:00:01Z' },
+        { 
+          type: 'thinking' as const, 
+          content: 'Processing...', 
+          timestamp: '2025-07-13T10:00:01Z' 
+        },
         { type: 'assistant' as const, content: 'Starting analysis...', timestamp: '2025-07-13T10:00:02Z' },
-        { type: 'tool_use' as const, content: 'Reading files...', timestamp: '2025-07-13T10:00:03Z' },
+        { type: 'system' as const, content: 'Reading files...', timestamp: '2025-07-13T10:00:03Z' },
         { type: 'assistant' as const, content: 'This should not appear if aborted', timestamp: '2025-07-13T10:00:04Z' }
       ]
       
@@ -319,7 +331,7 @@ describe('Session Detail Page', () => {
 
     // Wait for at least one message to appear
     await waitFor(() => {
-      expect(screen.getByText(/"content": "Processing..."/)).toBeInTheDocument()
+      expect(screen.getByText("Processing...")).toBeInTheDocument()
     })
 
     // Click stop button
@@ -331,11 +343,11 @@ describe('Session Detail Page', () => {
 
     // Wait for error message to appear
     await waitFor(() => {
-      expect(screen.getByText(/"content": "Error: BodyStreamBuffer was aborted"/)).toBeInTheDocument()
+      expect(screen.getByText("Error: BodyStreamBuffer was aborted")).toBeInTheDocument()
     })
 
     // Verify that later messages did NOT appear
-    expect(screen.queryByText(/"content": "This should not appear if aborted"/)).not.toBeInTheDocument()
+    expect(screen.queryByText("This should not appear if aborted")).not.toBeInTheDocument()
 
     // Send button should reappear (but still disabled because input is empty)
     await waitFor(() => {
@@ -347,7 +359,7 @@ describe('Session Detail Page', () => {
 
     // Wait a bit more to ensure no more messages arrive
     await new Promise(resolve => setTimeout(resolve, 200))
-    expect(screen.queryByText(/"content": "This should not appear if aborted"/)).not.toBeInTheDocument()
+    expect(screen.queryByText("This should not appear if aborted")).not.toBeInTheDocument()
   })
 
   it('should load and display historical events on mount', async () => {
@@ -412,8 +424,8 @@ describe('Session Detail Page', () => {
 
     await waitFor(() => {
       // Should display historical events
-      expect(screen.getByText(/"content": "Previous question"/)).toBeInTheDocument()
-      expect(screen.getByText(/"content": "Previous answer"/)).toBeInTheDocument()
+      expect(screen.getByText("Previous question")).toBeInTheDocument()
+      expect(screen.getByText("Previous answer")).toBeInTheDocument()
     })
 
     // Should have called getEventsForSession
@@ -441,7 +453,11 @@ describe('Session Detail Page', () => {
       setTimeout(() => {
         // Server sends user message first
         onMessage({ type: 'user', content: prompt, timestamp: '2025-07-13T10:00:00Z' })
-        onMessage({ type: 'thinking', content: 'Processing...', timestamp: '2025-07-13T10:00:01Z' })
+        onMessage({ 
+          type: 'thinking', 
+          content: 'Processing...', 
+          timestamp: '2025-07-13T10:00:01Z' 
+        })
       }, 50)
     })
 
