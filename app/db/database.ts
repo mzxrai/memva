@@ -5,13 +5,32 @@ import * as schema from './schema'
 let db: ReturnType<typeof drizzle> | null = null
 let sqlite: Database.Database | null = null
 
-export function getDatabase(dbPath: string = './memva.db') {
+function getDatabasePath(): string {
+  // Use test database when running tests
+  if (process.env.VITEST) {
+    return './memva-test.db'
+  }
+  
+  // Use production database in production
+  if (process.env.NODE_ENV === 'production') {
+    return './memva-prod.db'
+  }
+  
+  // Default to development database
+  return './memva-dev.db'
+}
+
+export function getDatabase(dbPath?: string) {
   if (db) {
     return db
   }
 
+  // Use environment-based path if no explicit path provided
+  const finalDbPath = dbPath || getDatabasePath()
+  console.log(`[Database] Using database: ${finalDbPath}`)
+
   // Create SQLite connection
-  sqlite = new Database(dbPath)
+  sqlite = new Database(finalDbPath)
   
   // Enable foreign keys and WAL mode for better concurrent access
   sqlite.pragma('foreign_keys = ON')
@@ -92,6 +111,11 @@ export function closeDatabase() {
     sqlite = null
     db = null
   }
+}
+
+// Force database reset for testing
+export function resetDatabase() {
+  closeDatabase()
 }
 
 // Export a getter for the database instance

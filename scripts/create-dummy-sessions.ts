@@ -14,6 +14,7 @@ async function createDummySessions() {
     metadata: {
       framework: 'React',
       description: 'Adding dark mode support to the application'
+      // Note: No should_auto_start flag - this is a dummy session, not from homepage
     }
   })
   console.log('Created session 1:', session1.id)
@@ -41,6 +42,7 @@ async function createDummySessions() {
     metadata: {
       issue_number: '#1234',
       priority: 'high'
+      // Note: No should_auto_start flag - this is a dummy session, not from homepage
     }
   })
   console.log('Created session 2:', session2.id)
@@ -90,6 +92,7 @@ async function createDummySessions() {
     metadata: {
       database: 'PostgreSQL',
       migration_version: 'v2.0'
+      // Note: No should_auto_start flag - this is a dummy session, not from homepage
     }
   })
   console.log('Created session 4:', session4.id)
@@ -110,13 +113,14 @@ async function createDummySessions() {
     }).execute()
   }
 
-  // Session 5: Empty session (no events)
+  // Session 5: Empty session (no events) - this was causing the auto-resume bug!
   const session5 = await createSession({
     title: 'Planning New Feature',
     project_path: '/Users/dev/projects/mobile-app',
     metadata: {
       platform: 'React Native',
       target: 'iOS and Android'
+      // Note: No should_auto_start flag - this is a dummy session, not from homepage
     }
   })
   console.log('Created session 5:', session5.id)
@@ -128,6 +132,7 @@ async function createDummySessions() {
     metadata: {
       completed: true,
       lines_refactored: 1500
+      // Note: No should_auto_start flag - this is a dummy session, not from homepage
     }
   })
   

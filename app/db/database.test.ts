@@ -1,19 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { existsSync, unlinkSync } from 'fs'
-import { getDatabase, closeDatabase } from './database'
+import { getDatabase, closeDatabase, resetDatabase } from './database'
 
 describe('Database initialization', () => {
   const testDbPath = './test-memva.db'
 
   beforeEach(() => {
-    // Clean up any existing test database
+    // Reset database singleton and clean up any existing test database
+    resetDatabase()
     if (existsSync(testDbPath)) {
       unlinkSync(testDbPath)
     }
   })
 
   afterEach(() => {
-    closeDatabase()
+    resetDatabase()
     if (existsSync(testDbPath)) {
       unlinkSync(testDbPath)
     }

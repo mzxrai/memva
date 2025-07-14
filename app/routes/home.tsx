@@ -40,7 +40,10 @@ export async function action({ request }: Route.ActionArgs) {
   const session = await createSession({
     title: title.trim(),
     project_path: '/Users/mbm-premva/dev/memva', // Auto-assigned for now
-    status: 'active'
+    status: 'active',
+    metadata: {
+      should_auto_start: true
+    }
   });
   
   return redirect(`/sessions/${session.id}`);
