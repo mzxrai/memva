@@ -3,7 +3,7 @@ import { useLoaderData } from "react-router";
 import { getSession } from "../db/sessions.service";
 import { getEventsForSession } from "../db/event-session.service";
 import { sendPromptToClaudeCode, type SDKMessage } from "../services/claude-code.service";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, memo } from "react";
 import { RiSendPlaneFill, RiStopCircleLine } from "react-icons/ri";
 
 export async function loader({ params }: Route.LoaderArgs) {
@@ -11,6 +11,36 @@ export async function loader({ params }: Route.LoaderArgs) {
   const events = await getEventsForSession(params.sessionId);
   return { session, events };
 }
+
+// Memoized message component to prevent re-renders and preserve text selection
+const MessageItem = memo(({ message }: { message: any }) => {
+  return (
+    <div className="px-4">
+      <div className="container mx-auto max-w-7xl">
+        <div className="mb-4">
+          <pre className="bg-zinc-800 p-4 rounded-lg text-zinc-100 font-mono text-xs overflow-x-auto">
+            {JSON.stringify(message, null, 2)}
+          </pre>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+MessageItem.displayName = 'MessageItem';
+
+// Helper function to generate stable keys for message components
+const getMessageKey = (message: any, index: number): string => {
+  if (message.uuid) {
+    return message.uuid;
+  }
+  // Fallback to stable identifier based on content and timestamp
+  if (message.timestamp && message.type) {
+    return `${message.type}-${message.timestamp}-${index}`;
+  }
+  // Last resort fallback
+  return `message-${index}-${JSON.stringify(message).slice(0, 50)}`;
+};
 
 export default function SessionDetail() {
   const { session, events = [] } = useLoaderData<typeof loader>();
@@ -52,6 +82,9 @@ export default function SessionDetail() {
 
   // Check if content overflows container
   const checkContentOverflow = useCallback(() => {
+    // Don't change layout while user might be selecting text during streaming
+    if (isLoading) return;
+    
     const container = messagesContainerRef.current;
     const messagesList = messagesListRef.current;
     
@@ -60,7 +93,7 @@ export default function SessionDetail() {
       const contentHeight = messagesList.scrollHeight;
       setContentOverflows(contentHeight > containerHeight);
     }
-  }, []);
+  }, [isLoading]);
 
   // Check overflow when messages change
   useEffect(() => {
@@ -119,15 +152,24 @@ export default function SessionDetail() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isLoading]);
 
-  // Auto-focus input when streaming completes
+  // Helper function to check if user has active text selection
+  const hasActiveTextSelection = useCallback(() => {
+    const selection = window.getSelection();
+    return selection && selection.toString().length > 0;
+  }, []);
+
+  // Auto-focus input when streaming completes (but preserve text selection)
   useEffect(() => {
     if (!isLoading && inputRef.current) {
       // Small delay to ensure DOM updates are complete
       setTimeout(() => {
-        inputRef.current?.focus();
+        // Only auto-focus if user doesn't have text selected
+        if (!hasActiveTextSelection()) {
+          inputRef.current?.focus();
+        }
       }, 100);
     }
-  }, [isLoading]);
+  }, [isLoading, hasActiveTextSelection]);
 
   // Detect user scrolling up during streaming to disable auto-scroll
   useEffect(() => {
@@ -312,16 +354,11 @@ export default function SessionDetail() {
               ? "min-h-full flex flex-col justify-end pb-32"     // Overflow: bottom-anchored (newest at bottom)
               : "min-h-full flex flex-col justify-start pb-32"   // Fits: top-anchored (start from top)
             }>
-            {messages.map((message) => (
-              <div key={message.uuid || JSON.stringify(message)} className="px-4">
-                <div className="container mx-auto max-w-7xl">
-                  <div className="mb-4">
-                    <pre className="bg-zinc-800 p-4 rounded-lg text-zinc-100 font-mono text-xs overflow-x-auto">
-                      {JSON.stringify(message, null, 2)}
-                    </pre>
-                  </div>
-                </div>
-              </div>
+            {messages.map((message, index) => (
+              <MessageItem
+                key={getMessageKey(message, index)}
+                message={message}
+              />
             ))}
           </div>
         )}
