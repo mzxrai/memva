@@ -111,14 +111,6 @@ export async function action({ request, params }: Route.ActionArgs) {
         memva_session_id: userEvent.memva_session_id
       })
       
-      // Set up periodic heartbeat to detect disconnection
-      const heartbeatInterval = setInterval(() => {
-        if (!isStreamClosed && !abortController.signal.aborted) {
-          sendMessage({ type: "heartbeat", timestamp: new Date().toISOString() })
-        } else {
-          clearInterval(heartbeatInterval)
-        }
-      }, 5000) // Send heartbeat every 5 seconds
 
       try {
         const result = await streamClaudeCodeResponse({
@@ -152,8 +144,6 @@ export async function action({ request, params }: Route.ActionArgs) {
           }
         })
         
-        clearInterval(heartbeatInterval)
-
         // Store the new Claude session ID if we got one
         if (result.lastSessionId) {
           console.log('[API] Storing new Claude session ID:', result.lastSessionId)
