@@ -1,18 +1,28 @@
 import type { Route } from "./+types/sessions.$sessionId";
 import { useLoaderData } from "react-router";
 import { getSession } from "../db/sessions.service";
+import { getEventsForSession } from "../db/event-session.service";
 import { sendPromptToClaudeCode, type SDKMessage } from "../services/claude-code.service";
 import { useState, useRef, useEffect } from "react";
 import { RiSendPlaneFill, RiStopCircleLine } from "react-icons/ri";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const session = await getSession(params.sessionId);
-  return { session };
+  const events = await getEventsForSession(params.sessionId);
+  return { session, events };
 }
 
 export default function SessionDetail() {
-  const { session } = useLoaderData<typeof loader>();
-  const [messages, setMessages] = useState<SDKMessage[]>([]);
+  const { session, events = [] } = useLoaderData<typeof loader>();
+  
+  // Initialize messages with historical events
+  const initialMessages = events.map(event => ({
+    type: event.event_type,
+    content: event.data.content || JSON.stringify(event.data),
+    timestamp: event.timestamp
+  }))
+  
+  const [messages, setMessages] = useState<SDKMessage[]>(initialMessages);
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);

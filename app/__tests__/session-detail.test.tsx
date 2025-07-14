@@ -12,6 +12,11 @@ vi.mock('../db/sessions.service', () => ({
   createSession: vi.fn()
 }))
 
+// Mock the event service
+vi.mock('../db/event-session.service', () => ({
+  getEventsForSession: vi.fn()
+}))
+
 // Mock the Claude Code service
 vi.mock('../services/claude-code.service', () => ({
   sendPromptToClaudeCode: vi.fn(),
@@ -320,6 +325,76 @@ describe('Session Detail Page', () => {
     // Wait a bit more to ensure no more messages arrive
     await new Promise(resolve => setTimeout(resolve, 200))
     expect(screen.queryByText(/"content": "This should not appear if aborted"/)).not.toBeInTheDocument()
+  })
+
+  it('should load and display historical events on mount', async () => {
+    const mockSession: Session = {
+      id: 'test-session-id',
+      title: 'Test Session',
+      created_at: '2025-07-13T10:00:00Z',
+      updated_at: '2025-07-13T10:00:00Z',
+      status: 'active',
+      project_path: '/Users/mbm-premva/dev/memva',
+      metadata: null
+    }
+
+    const { getSession } = await import('../db/sessions.service')
+    const { getEventsForSession } = await import('../db/event-session.service')
+    
+    vi.mocked(getSession).mockResolvedValue(mockSession)
+    
+    // Mock historical events
+    const mockEvents = [
+      {
+        uuid: 'event-1',
+        session_id: 'claude-session-123',
+        event_type: 'user',
+        timestamp: '2025-07-13T10:00:00Z',
+        is_sidechain: false,
+        parent_uuid: null,
+        cwd: '/Users/mbm-premva/dev/memva',
+        project_name: 'memva',
+        data: { type: 'user', content: 'Previous question', timestamp: '2025-07-13T10:00:00Z' },
+        memva_session_id: 'test-session-id'
+      },
+      {
+        uuid: 'event-2',
+        session_id: 'claude-session-123',
+        event_type: 'assistant',
+        timestamp: '2025-07-13T10:00:01Z',
+        is_sidechain: false,
+        parent_uuid: 'event-1',
+        cwd: '/Users/mbm-premva/dev/memva',
+        project_name: 'memva',
+        data: { type: 'assistant', content: 'Previous answer', timestamp: '2025-07-13T10:00:01Z' },
+        memva_session_id: 'test-session-id'
+      }
+    ]
+    
+    vi.mocked(getEventsForSession).mockResolvedValue(mockEvents)
+
+    const Stub = createRoutesStub([
+      {
+        path: '/sessions/:sessionId',
+        Component: SessionDetail,
+        loader: async ({ params }) => {
+          const session = await getSession(params.sessionId)
+          const events = await getEventsForSession(params.sessionId)
+          return { session, events }
+        }
+      }
+    ])
+
+    render(<Stub initialEntries={['/sessions/test-session-id']} />)
+
+    await waitFor(() => {
+      // Should display historical events
+      expect(screen.getByText(/"content": "Previous question"/)).toBeInTheDocument()
+      expect(screen.getByText(/"content": "Previous answer"/)).toBeInTheDocument()
+    })
+
+    // Should have called getEventsForSession
+    expect(getEventsForSession).toHaveBeenCalledWith('test-session-id')
   })
 
   it('should disable input and send button during processing', async () => {
