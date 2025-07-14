@@ -124,9 +124,11 @@ describe('Session Detail Page', () => {
     vi.mocked(getSession).mockResolvedValue(mockSession)
     
     // Mock Claude Code to simulate streaming messages
-    vi.mocked(sendPromptToClaudeCode).mockImplementation(({ onMessage }) => {
+    vi.mocked(sendPromptToClaudeCode).mockImplementation(({ prompt, onMessage }) => {
       // Simulate async streaming
       setTimeout(() => {
+        // Server now sends user message first
+        onMessage({ type: 'user', content: prompt, timestamp: '2025-07-13T10:00:00Z' })
         onMessage({ type: 'assistant', content: 'Test response', timestamp: '2025-07-13T10:00:01Z' })
         onMessage({ type: 'result', content: '', timestamp: '2025-07-13T10:00:02Z' })
       }, 0)
@@ -184,8 +186,10 @@ describe('Session Detail Page', () => {
     vi.mocked(getSession).mockResolvedValue(mockSession)
     
     // Mock Claude Code to simulate streaming with different message types
-    vi.mocked(sendPromptToClaudeCode).mockImplementation(({ onMessage }) => {
+    vi.mocked(sendPromptToClaudeCode).mockImplementation(({ prompt, onMessage }) => {
       setTimeout(() => {
+        // Server now sends user message first
+        onMessage({ type: 'user', content: prompt, timestamp: '2025-07-13T10:00:00Z' })
         onMessage({ type: 'thinking', content: 'Analyzing the request...', timestamp: '2025-07-13T10:00:01Z' })
         onMessage({ type: 'tool_use', content: '{"name": "file_read", "input": {"path": "app.tsx"}}', timestamp: '2025-07-13T10:00:02Z' })
         onMessage({ type: 'assistant', content: 'I can help you with that feature', timestamp: '2025-07-13T10:00:03Z' })
@@ -241,8 +245,11 @@ describe('Session Detail Page', () => {
     let capturedSignal: AbortSignal | undefined
     
     // Mock Claude Code to capture the abort signal and simulate ongoing messages
-    vi.mocked(sendPromptToClaudeCode).mockImplementation(({ signal, onMessage, onError }) => {
+    vi.mocked(sendPromptToClaudeCode).mockImplementation(({ prompt, signal, onMessage, onError }) => {
       capturedSignal = signal
+      
+      // Server sends user message first
+      onMessage({ type: 'user', content: prompt, timestamp: '2025-07-13T10:00:00Z' })
       
       // Simulate multiple messages being sent over time
       const messages = [
@@ -414,8 +421,10 @@ describe('Session Detail Page', () => {
     vi.mocked(getSession).mockResolvedValue(mockSession)
     
     // Mock Claude Code to simulate processing
-    vi.mocked(sendPromptToClaudeCode).mockImplementation(({ onMessage }) => {
+    vi.mocked(sendPromptToClaudeCode).mockImplementation(({ prompt, onMessage }) => {
       setTimeout(() => {
+        // Server sends user message first
+        onMessage({ type: 'user', content: prompt, timestamp: '2025-07-13T10:00:00Z' })
         onMessage({ type: 'thinking', content: 'Processing...', timestamp: '2025-07-13T10:00:01Z' })
       }, 50)
     })
@@ -469,7 +478,10 @@ describe('Session Detail Page', () => {
     vi.mocked(getSession).mockResolvedValue(mockSession)
     
     // Mock Claude Code to send many messages
-    vi.mocked(sendPromptToClaudeCode).mockImplementation(({ onMessage }) => {
+    vi.mocked(sendPromptToClaudeCode).mockImplementation(({ prompt, onMessage }) => {
+      // Server sends user message first
+      onMessage({ type: 'user', content: prompt, timestamp: '2025-07-13T10:00:00Z' })
+      
       // Send many messages to cause overflow
       for (let i = 0; i < 20; i++) {
         setTimeout(() => {

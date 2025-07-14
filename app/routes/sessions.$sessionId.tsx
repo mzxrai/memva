@@ -78,13 +78,6 @@ export default function SessionDetail() {
     setPrompt("");
     setIsLoading(true);
 
-    // Add user message immediately
-    setMessages(prev => [...prev, {
-      type: 'user',
-      content: userPrompt,
-      timestamp: new Date().toISOString()
-    }]);
-
     // Create new abort controller for this request
     abortControllerRef.current = new AbortController();
 
@@ -92,11 +85,6 @@ export default function SessionDetail() {
       prompt: userPrompt,
       sessionId: session.id,
       onMessage: (message) => {
-        if (message.type === 'result') {
-          setIsLoading(false);
-          return;
-        }
-        
         // Ignore heartbeat messages
         if (message.type === 'heartbeat') {
           return;
@@ -107,7 +95,14 @@ export default function SessionDetail() {
           uuid: message.uuid,
           timestamp: message.timestamp || new Date().toISOString()
         });
+        
+        // Add the message to the UI
         setMessages(prev => [...prev, message]);
+        
+        // Stop loading when we get the result message
+        if (message.type === 'result') {
+          setIsLoading(false);
+        }
       },
       onError: (error) => {
         console.error('Error sending prompt to Claude Code:', error);
@@ -123,7 +118,8 @@ export default function SessionDetail() {
   };
 
   const handleStop = () => {
-    console.log('[Client] Stop button clicked');
+    const stopClickTime = new Date().toISOString();
+    console.log(`[Client] Stop button clicked at ${stopClickTime}`);
     if (abortControllerRef.current) {
       console.log('[Client] Aborting fetch request');
       // This will abort the fetch, triggering the cancel() method on the server

@@ -50,7 +50,10 @@ describe('Event Storage Behavior', () => {
     // All events should have required fields
     storedEvents.forEach(event => {
       expect(event.uuid).toBeTruthy()
-      expect(event.session_id).toBeTruthy()
+      // User events from our API don't have session_id until Claude responds
+      if (event.event_type !== 'user' || event.parent_uuid !== null) {
+        expect(event.session_id).toBeTruthy()
+      }
       expect(event.memva_session_id).toBe(session.id)
       expect(event.timestamp).toBeTruthy()
       expect(event.cwd).toBe('/test/project')

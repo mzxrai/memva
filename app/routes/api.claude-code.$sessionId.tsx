@@ -1,12 +1,19 @@
 import type { Route } from "./+types/api.claude-code.$sessionId"
 import { getSession, getLatestClaudeSessionId, updateClaudeSessionId } from "../db/sessions.service"
 import { streamClaudeCodeResponse } from "../services/claude-code.server"
+import { createEventFromMessage, storeEvent } from "../services/events.service"
 
 export async function action({ request, params }: Route.ActionArgs) {
   console.log(`[API] Action called for session ${params.sessionId}`)
   
   if (request.method !== "POST") {
     return new Response("Method not allowed", { status: 405 })
+  }
+  
+  // Check if request was already aborted
+  if (request.signal.aborted) {
+    console.log(`[API] Request already aborted on arrival`)
+    return new Response("Request aborted", { status: 499 })
   }
 
   const session = await getSession(params.sessionId)
@@ -23,6 +30,25 @@ export async function action({ request, params }: Route.ActionArgs) {
     return new Response("Prompt is required", { status: 400 })
   }
 
+  // Get the latest Claude session ID if we're resuming
+  const existingClaudeSessionId = await getLatestClaudeSessionId(params.sessionId)
+  
+  // Store user prompt as an event
+  const userEvent = createEventFromMessage({
+    message: {
+      type: 'user',
+      content: prompt.trim(),
+      session_id: existingClaudeSessionId || ''  // Use existing session ID if resuming
+    } as any,
+    memvaSessionId: params.sessionId,
+    projectPath: session.project_path,
+    parentUuid: null,
+    timestamp: new Date().toISOString()
+  })
+  
+  await storeEvent(userEvent)
+  console.log(`[API] Stored user prompt as event with UUID: ${userEvent.uuid}`)
+
   const headers = new Headers({
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
@@ -32,48 +58,36 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   const abortController = new AbortController()
   
-  // Get existing Claude session ID for resumption
-  const resumeSessionId = await getLatestClaudeSessionId(params.sessionId)
+  // Forward the request abort signal to our controller
+  request.signal.addEventListener('abort', () => {
+    const abortTime = new Date().toISOString()
+    console.log(`[API] Request signal aborted at ${abortTime}`)
+    if (!abortController.signal.aborted) {
+      abortController.abort()
+    }
+  })
+  
+  // Use the existing Claude session ID we already retrieved
+  const resumeSessionId = existingClaudeSessionId
   console.log('[API] Retrieved Claude session ID for resumption:', resumeSessionId)
   
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder()
       let isStreamClosed = false
+      let lastParentUuid = userEvent.uuid
       
-      // Monitor if the stream is still writable
+      // Simple check if stream is closed
       const checkStreamClosed = () => {
-        // Check if stream is closed
         if (controller.desiredSize === null) {
-          console.log(`[API Stream] Stream closed for session ${params.sessionId}`)
           isStreamClosed = true
-          // Abort Claude Code when stream is closed
-          if (!abortController.signal.aborted) {
-            console.log(`[API Stream] Aborting Claude Code due to stream closure`)
-            abortController.abort()
-          }
           return true
         }
-        
-        // Check if client has stopped consuming (buffer is filling up)
-        if (controller.desiredSize !== null && controller.desiredSize < 0) {
-          console.log(`[API Stream] Client appears disconnected (desiredSize=${controller.desiredSize})`)
-          isStreamClosed = true
-          if (!abortController.signal.aborted) {
-            console.log(`[API Stream] Aborting Claude Code due to client disconnect`)
-            abortController.abort()
-          }
-          return true
-        }
-        
         return false
       }
 
       const sendMessage = (message: any) => {
-        console.log(`[API Stream] Sending message, desiredSize=${controller.desiredSize}, closed=${isStreamClosed}`)
-        
         if (checkStreamClosed()) {
-          console.log(`[API Stream] Attempted to send message to closed stream`)
           return
         }
         
@@ -83,9 +97,19 @@ export async function action({ request, params }: Route.ActionArgs) {
         } catch (error) {
           console.log(`[API Stream] Error sending message:`, error)
           isStreamClosed = true
-          abortController.abort()
+          // Abort Claude Code if we can't send messages
+          if (!abortController.signal.aborted) {
+            abortController.abort()
+          }
         }
       }
+      
+      // Send the user message immediately
+      sendMessage({
+        ...userEvent.data,
+        uuid: userEvent.uuid,
+        memva_session_id: userEvent.memva_session_id
+      })
       
       // Set up periodic heartbeat to detect disconnection
       const heartbeatInterval = setInterval(() => {
@@ -109,7 +133,16 @@ export async function action({ request, params }: Route.ActionArgs) {
           abortController,
           memvaSessionId: params.sessionId,
           resumeSessionId: resumeSessionId || undefined,
+          initialParentUuid: lastParentUuid,
           onStoredEvent: (event) => {
+            console.log(`[API] onStoredEvent called for type=${event.event_type}, aborted=${abortController.signal.aborted}`)
+            
+            // Don't send if aborted
+            if (abortController.signal.aborted) {
+              console.log(`[API] Skipping send due to abort`)
+              return
+            }
+            
             // Send the stored event which includes the database UUID
             sendMessage({
               ...event.data,
@@ -143,7 +176,8 @@ export async function action({ request, params }: Route.ActionArgs) {
     },
     cancel() {
       // Called when the client disconnects
-      console.log(`[API Cancel] Client disconnected for session ${params.sessionId}`)
+      const cancelTime = new Date().toISOString()
+      console.log(`[API Cancel] Client disconnected for session ${params.sessionId} at ${cancelTime}`)
       console.log(`[API Cancel] Calling abortController.abort()`)
       abortController.abort()
       console.log(`[API Cancel] AbortController aborted, signal.aborted = ${abortController.signal.aborted}`)
