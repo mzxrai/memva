@@ -117,7 +117,7 @@ export const CodeBlock = memo(({ code, language, showLineNumbers = true, classNa
       {/* Language indicator */}
       {language && (
         <div className={clsx(
-          'absolute top-2 right-2 z-10',
+          'absolute top-2 right-4 z-10',
           'px-2 py-1',
           colors.background.tertiary,
           colors.border.subtle,
@@ -141,7 +141,7 @@ export const CodeBlock = memo(({ code, language, showLineNumbers = true, classNa
           aria-label="Copy code"
           className={clsx(
             'absolute top-2 z-20',
-            language ? 'right-16' : 'right-2',
+            language ? 'right-16' : 'right-4',
             'p-2',
             colors.background.secondary,
             colors.border.default,
