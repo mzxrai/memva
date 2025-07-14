@@ -304,4 +304,51 @@ describe('Claude Code Server Service', () => {
     expect(storeEvent).not.toHaveBeenCalled()
     expect(onMessage).toHaveBeenCalledTimes(1)
   })
+
+  it('should pass stored event to onStoredEvent callback', async () => {
+    const { query } = await import('@anthropic-ai/claude-code')
+    const { createEventFromMessage, storeEvent } = await import('../services/events.service')
+    
+    const mockMessage = { type: 'assistant', content: 'Test', timestamp: '2025-07-14T10:00:01Z' }
+    
+    vi.mocked(query).mockReturnValue({
+      [Symbol.asyncIterator]: async function* () {
+        yield mockMessage
+      }
+    } as any)
+
+    const mockEvent = {
+      uuid: 'event-123',
+      session_id: 'session-123',
+      event_type: 'assistant',
+      timestamp: '2025-07-14T10:00:01Z',
+      is_sidechain: false,
+      parent_uuid: null,
+      cwd: '/test/path',
+      project_name: 'path',
+      data: mockMessage,
+      memva_session_id: 'memva-session-456'
+    }
+    
+    vi.mocked(createEventFromMessage).mockReturnValue(mockEvent)
+    vi.mocked(storeEvent).mockResolvedValue(undefined)
+
+    const onMessage = vi.fn()
+    const onStoredEvent = vi.fn()
+
+    await streamClaudeCodeResponse({
+      prompt: 'Test prompt',
+      projectPath: '/test/path',
+      onMessage,
+      sessionId: 'session-123',
+      memvaSessionId: 'memva-session-456',
+      onStoredEvent
+    })
+
+    // Should call onMessage with original message
+    expect(onMessage).toHaveBeenCalledWith(mockMessage)
+    
+    // Should call onStoredEvent with the stored event
+    expect(onStoredEvent).toHaveBeenCalledWith(mockEvent)
+  })
 })

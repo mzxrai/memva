@@ -6,8 +6,10 @@ import Home, { loader as homeLoader } from '../routes/home'
 
 // Mock the database service
 vi.mock('../db/sessions.service', () => ({
+  listSessionsWithStats: vi.fn().mockResolvedValue([]),
   listSessions: vi.fn().mockResolvedValue([]),
-  getSessionWithStats: vi.fn().mockResolvedValue(null)
+  getSessionWithStats: vi.fn().mockResolvedValue(null),
+  createSession: vi.fn().mockResolvedValue({ id: 'new-session-id' })
 }))
 
 describe('Session Creation', () => {

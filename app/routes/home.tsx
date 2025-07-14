@@ -80,7 +80,7 @@ export default function Home() {
               name="title"
               value={sessionTitle}
               onChange={(e) => setSessionTitle(e.target.value)}
-              placeholder=""
+              placeholder="Start a new Claude Code session"
               className="flex-1 px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200"
             />
             <button

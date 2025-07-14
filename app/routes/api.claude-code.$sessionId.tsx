@@ -43,13 +43,23 @@ export async function action({ request, params }: Route.ActionArgs) {
         await streamClaudeCodeResponse({
           prompt: prompt.trim(),
           projectPath: session.project_path,
-          onMessage: sendMessage,
+          onMessage: () => {
+            // Don't send the raw message, wait for onStoredEvent
+          },
           onError: (error) => {
             sendMessage({ type: "error", content: error.message, timestamp: new Date().toISOString() })
           },
           abortController,
           sessionId: claudeSessionId,
-          memvaSessionId: params.sessionId
+          memvaSessionId: params.sessionId,
+          onStoredEvent: (event) => {
+            // Send the stored event which includes the database UUID
+            sendMessage({
+              ...event.data,
+              uuid: event.uuid,
+              memva_session_id: event.memva_session_id
+            })
+          }
         })
 
         // The Claude Code SDK sends a final message with type "result"

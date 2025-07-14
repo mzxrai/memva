@@ -2,6 +2,8 @@ export type SDKMessage = {
   type: string
   content: string
   timestamp?: string
+  uuid?: string
+  memva_session_id?: string
 }
 
 export interface SendPromptOptions {

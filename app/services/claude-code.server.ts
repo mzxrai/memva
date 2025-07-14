@@ -9,6 +9,7 @@ interface StreamClaudeCodeOptions {
   abortController?: AbortController
   sessionId?: string
   memvaSessionId?: string
+  onStoredEvent?: (event: any) => void
 }
 
 export async function streamClaudeCodeResponse({
@@ -18,7 +19,8 @@ export async function streamClaudeCodeResponse({
   onError,
   abortController,
   sessionId,
-  memvaSessionId
+  memvaSessionId,
+  onStoredEvent
 }: StreamClaudeCodeOptions): Promise<void> {
   const controller = abortController || new AbortController()
   let lastEventUuid: string | null = null
@@ -46,6 +48,11 @@ export async function streamClaudeCodeResponse({
         
         await storeEvent(event)
         lastEventUuid = event.uuid
+        
+        // Call onStoredEvent if provided
+        if (onStoredEvent) {
+          onStoredEvent(event)
+        }
       }
 
       onMessage(message)

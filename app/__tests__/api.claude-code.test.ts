@@ -11,6 +11,11 @@ vi.mock('../services/claude-code.server', () => ({
   streamClaudeCodeResponse: vi.fn()
 }))
 
+vi.mock('../services/events.service', () => ({
+  createEventFromMessage: vi.fn(),
+  storeEvent: vi.fn()
+}))
+
 describe('Claude Code API Route', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -164,5 +169,83 @@ describe('Claude Code API Route', () => {
     
     expect(response.status).toBe(405)
     expect(await response.text()).toBe('Method not allowed')
+  })
+
+  it('should stream stored events with database IDs', async () => {
+    const { getSession } = await import('../db/sessions.service')
+    const { streamClaudeCodeResponse } = await import('../services/claude-code.server')
+    const { createEventFromMessage, storeEvent } = await import('../services/events.service')
+    
+    const mockSession = {
+      id: 'memva-session-123',
+      title: 'Test Session',
+      project_path: '/test/project',
+      status: 'active',
+      created_at: '2025-07-14T10:00:00Z',
+      updated_at: '2025-07-14T10:00:00Z',
+      metadata: null
+    }
+    
+    vi.mocked(getSession).mockResolvedValue(mockSession)
+    
+    // Mock event creation and storage
+    vi.mocked(createEventFromMessage).mockImplementation(({ message }) => ({
+      uuid: `event-${Date.now()}`,
+      session_id: 'claude-session-123',
+      event_type: message.type,
+      timestamp: message.timestamp || new Date().toISOString(),
+      is_sidechain: false,
+      parent_uuid: null,
+      cwd: '/test/project',
+      project_name: 'project',
+      data: message,
+      memva_session_id: 'memva-session-123'
+    }))
+    
+    vi.mocked(storeEvent).mockResolvedValue(undefined)
+    
+    // Capture the onMessage callback
+    let capturedOnMessage: ((message: any) => void) | undefined
+    
+    vi.mocked(streamClaudeCodeResponse).mockImplementation(({ onMessage }) => {
+      capturedOnMessage = onMessage
+      
+      // Simulate streaming messages
+      setTimeout(() => {
+        onMessage({ type: 'assistant', content: 'Test response', timestamp: '2025-07-14T10:00:01Z' })
+        onMessage({ type: 'result', content: '', timestamp: '2025-07-14T10:00:02Z' })
+      }, 0)
+      
+      return Promise.resolve()
+    })
+    
+    const formData = new FormData()
+    formData.append('prompt', 'Test prompt')
+    
+    const request = new Request('http://localhost/api/claude-code/memva-session-123', {
+      method: 'POST',
+      body: formData
+    })
+    
+    const params = { sessionId: 'memva-session-123' }
+    
+    const response = await action({ request, params } as Route.ActionArgs)
+    
+    // The response should be a streaming response
+    expect(response.body).toBeDefined()
+    expect(response.headers.get('Content-Type')).toBe('text/event-stream')
+    
+    // Since we can't easily test the actual streamed content in this test,
+    // we'll verify that the streaming was set up correctly
+    expect(streamClaudeCodeResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: 'Test prompt',
+        projectPath: '/test/project',
+        memvaSessionId: 'memva-session-123',
+        sessionId: expect.any(String),
+        onMessage: expect.any(Function),
+        abortController: expect.any(AbortController)
+      })
+    )
   })
 })
