@@ -202,8 +202,8 @@ export default function SessionDetail() {
 
   // Auto-start conversation for new sessions from homepage
   useEffect(() => {
-    // New session from homepage: explicitly marked for auto-start + not already started
-    if (session?.metadata?.should_auto_start && !hasAutoStartedRef.current) {
+    // New session from homepage: explicitly marked for auto-start + not already started + no existing events
+    if (session?.metadata?.should_auto_start && !hasAutoStartedRef.current && events.length === 0) {
       console.log('🚀 Auto-starting conversation with session title:', session.title);
       
       // Reset auto-scroll for auto-started session
@@ -247,7 +247,7 @@ export default function SessionDetail() {
         signal: abortControllerRef.current.signal
       });
     }
-  }, [session?.metadata?.should_auto_start]);
+  }, [session?.metadata?.should_auto_start, events.length]);
 
   if (!session) {
     return (
