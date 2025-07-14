@@ -88,7 +88,7 @@ export default function Home() {
             />
             <button
               type="submit"
-              className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium rounded-lg transition-colors focus:outline-none focus:bg-zinc-700 flex items-center gap-2"
+              className="pl-5 pr-7 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium rounded-lg transition-colors focus:outline-none focus:bg-zinc-700 flex items-center gap-2"
             >
               <RiPlayFill className="w-5 h-5" />
               Start
