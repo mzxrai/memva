@@ -18,8 +18,10 @@ export default function SessionDetail() {
   // Initialize messages with historical events
   const initialMessages = events.map(event => ({
     type: event.event_type,
-    content: event.data.content || JSON.stringify(event.data),
-    timestamp: event.timestamp
+    content: event.data.content || event.data,
+    timestamp: event.timestamp,
+    uuid: event.uuid,
+    memva_session_id: event.memva_session_id
   }))
   
   const [messages, setMessages] = useState<SDKMessage[]>(initialMessages);
