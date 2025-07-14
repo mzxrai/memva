@@ -433,6 +433,110 @@ const processOrder = (order: Order) => {
 - [Kent C. Dodds Testing JavaScript](https://testingjavascript.com/)
 - [Functional Programming in TypeScript](https://gcanti.github.io/fp-ts/)
 
+## Test Organization and Guidelines
+
+### Directory Structure
+
+Tests are organized based on what they test and how they test it:
+
+```
+app/
+├── __tests__/              # Behavior tests for components and API routes
+│   ├── *.test.tsx          # React component behavior tests
+│   ├── *.test.ts           # API route and integration tests
+│   └── (examples)
+│       ├── session-creation.test.tsx    # Tests user interactions
+│       ├── api.claude-code.test.ts      # Tests API endpoints
+│       └── event-storage.test.ts        # Tests system behavior
+├── db/
+│   └── *.test.ts           # Database integration tests using real SQLite
+│       ├── sessions.service.test.ts     # Tests database operations
+│       └── schema.test.ts               # Tests database schema
+└── services/               # NO test files here (implementation details)
+```
+
+### Testing Rules
+
+1. **NO unit tests for implementation details**
+   - Don't test internal service methods
+   - Don't mock internal dependencies
+   - Don't create `*.service.test.ts` files that test implementation
+
+2. **Test through public APIs only**
+   - API routes: Test HTTP request/response behavior
+   - Components: Test user interactions and visible behavior
+   - Database: Test actual database operations with real SQLite
+
+3. **Mock external dependencies only**
+   - Use MSW for external API calls (like Claude Code SDK)
+   - Never mock internal services or database
+   - Mock at the boundary, not internally
+
+### Good vs Bad Examples
+
+```typescript
+// ❌ BAD - Testing implementation details
+describe('ClaudeCodeService', () => {
+  it('should call query with correct parameters', () => {
+    // This tests HOW it works, not WHAT it does
+  })
+})
+
+// ✅ GOOD - Testing behavior through API
+describe('Claude Code API', () => {
+  it('should stream events when valid request is made', async () => {
+    // Tests the actual HTTP behavior users experience
+  })
+})
+
+// ❌ BAD - Mocking internal services
+vi.mock('../services/events.service', () => ({
+  storeEvent: vi.fn()
+}))
+
+// ✅ GOOD - Using real database in tests
+const session = await createSession({ title: 'Test' })
+const events = await getEventsForSession(session.id)
+expect(events).toHaveLength(4)
+
+// ❌ BAD - Testing service internals
+expect(streamClaudeCodeResponse).toHaveBeenCalledWith(...)
+
+// ✅ GOOD - Testing observable behavior
+const response = await fetch('/api/claude-code/session-id', { 
+  method: 'POST',
+  body: formData 
+})
+expect(response.headers.get('Content-Type')).toBe('text/event-stream')
+```
+
+### MSW Setup
+
+For mocking external services, we use MSW (Mock Service Worker):
+
+```typescript
+// app/test-utils/msw-server.ts
+import { setupServer } from 'msw/node'
+
+// Mock only external dependencies like Claude Code SDK
+vi.mock('@anthropic-ai/claude-code', () => ({
+  query: vi.fn().mockImplementation(/* mock implementation */)
+}))
+```
+
+### Test Execution
+
+- Database tests run sequentially to avoid conflicts
+- Component tests use `happy-dom` environment
+- All tests must pass before committing
+- Coverage based on behavior, not lines of code
+
 ## Summary
 
 Write clean, testable, functional code through small, safe increments. Every change driven by a test describing desired behavior. Implementation should be simplest thing that makes test pass. When in doubt, favor simplicity and readability over cleverness.
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
