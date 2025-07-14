@@ -23,6 +23,8 @@ export function sendPromptToClaudeCode({
 }: SendPromptOptions): void {
   const formData = new FormData()
   formData.append('prompt', prompt)
+  
+  console.log('[Client] Starting fetch with signal:', signal)
 
   fetch(`/api/claude-code/${sessionId}`, {
     method: 'POST',

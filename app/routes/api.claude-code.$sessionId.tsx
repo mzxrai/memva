@@ -43,6 +43,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       
       // Monitor if the stream is still writable
       const checkStreamClosed = () => {
+        // Check if stream is closed
         if (controller.desiredSize === null) {
           console.log(`[API Stream] Stream closed for session ${params.sessionId}`)
           isStreamClosed = true
@@ -53,10 +54,24 @@ export async function action({ request, params }: Route.ActionArgs) {
           }
           return true
         }
+        
+        // Check if client has stopped consuming (buffer is filling up)
+        if (controller.desiredSize !== null && controller.desiredSize < 0) {
+          console.log(`[API Stream] Client appears disconnected (desiredSize=${controller.desiredSize})`)
+          isStreamClosed = true
+          if (!abortController.signal.aborted) {
+            console.log(`[API Stream] Aborting Claude Code due to client disconnect`)
+            abortController.abort()
+          }
+          return true
+        }
+        
         return false
       }
 
       const sendMessage = (message: any) => {
+        console.log(`[API Stream] Sending message, desiredSize=${controller.desiredSize}, closed=${isStreamClosed}`)
+        
         if (checkStreamClosed()) {
           console.log(`[API Stream] Attempted to send message to closed stream`)
           return

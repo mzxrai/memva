@@ -54,11 +54,9 @@ export async function streamClaudeCodeResponse({
 
     let messageCount = 0
     for await (const message of messages) {
-      messageCount++
-      
-      // Check if we've been aborted
+      // Check if we've been aborted BEFORE processing
       if (controller.signal.aborted) {
-        console.log(`[Claude Code] Abort detected after ${messageCount} messages for session ${memvaSessionId}`)
+        console.log(`[Claude Code] Abort detected before processing message ${messageCount + 1} for session ${memvaSessionId}`)
         
         // Store a cancellation event
         if (memvaSessionId) {
@@ -84,6 +82,8 @@ export async function streamClaudeCodeResponse({
         console.log(`[Claude Code] Breaking out of message loop due to abort`)
         break
       }
+      
+      messageCount++
       
       // Capture timestamp when message is received
       const receivedTimestamp = new Date().toISOString()
