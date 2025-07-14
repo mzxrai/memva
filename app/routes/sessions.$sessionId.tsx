@@ -50,6 +50,7 @@ export default function SessionDetail() {
   const [messages, setMessages] = useState<Record<string, unknown>[]>(initialMessages);
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [scrollbarWidth, setScrollbarWidth] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Refs for chat behavior
@@ -156,6 +157,31 @@ export default function SessionDetail() {
       }, 100);
     }
   }, [isLoading, hasActiveTextSelection]);
+
+  // Calculate scrollbar width
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const calculateScrollbarWidth = () => {
+      const hasScrollbar = container.scrollHeight > container.clientHeight;
+      if (hasScrollbar) {
+        // Calculate actual scrollbar width
+        const width = container.offsetWidth - container.clientWidth;
+        setScrollbarWidth(width);
+      } else {
+        setScrollbarWidth(0);
+      }
+    };
+
+    calculateScrollbarWidth();
+    
+    // Recalculate when messages change
+    const resizeObserver = new ResizeObserver(calculateScrollbarWidth);
+    resizeObserver.observe(container);
+
+    return () => resizeObserver.disconnect();
+  }, [messages]);
 
   // Detect user scrolling up during streaming to disable auto-scroll
   useEffect(() => {
@@ -329,7 +355,7 @@ export default function SessionDetail() {
       {/* Messages Area */}
       <div 
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto"
+        className="flex-1 overflow-y-auto overflow-x-hidden"
         style={{ height: '100%' }}
       >
         {messages.length === 0 ? (
@@ -360,10 +386,12 @@ export default function SessionDetail() {
       </div>
 
       {/* Floating input form */}
-      <div className="fixed bottom-0 left-0 right-0 px-4 pb-7 z-30">
-        <div className="container mx-auto max-w-7xl">
-          <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 p-4">
-            <form onSubmit={handleSubmit} className="flex gap-3">
+      <div className="fixed bottom-0 left-0 right-0 pb-7 z-30">
+        <div className="px-4" style={{ paddingRight: `${16 + scrollbarWidth}px` }}>
+          <div className="container mx-auto max-w-7xl">
+            <div className="relative">
+              <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 p-4">
+                <form onSubmit={handleSubmit} className="flex gap-3">
               <input
                 ref={inputRef}
                 type="text"
@@ -393,7 +421,9 @@ export default function SessionDetail() {
                   Send
                 </button>
               )}
-            </form>
+                </form>
+              </div>
+            </div>
           </div>
         </div>
       </div>
