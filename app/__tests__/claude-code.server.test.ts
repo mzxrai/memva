@@ -6,6 +6,12 @@ vi.mock('@anthropic-ai/claude-code', () => ({
   query: vi.fn()
 }))
 
+// Mock the events service
+vi.mock('../services/events.service', () => ({
+  createEventFromMessage: vi.fn(),
+  storeEvent: vi.fn()
+}))
+
 describe('Claude Code Server Service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -207,5 +213,95 @@ describe('Claude Code Server Service', () => {
       projectPath: '/test/path',
       onMessage
     })).rejects.toBe('String error')
+  })
+
+  it('should store events when memvaSessionId is provided', async () => {
+    const { query } = await import('@anthropic-ai/claude-code')
+    const { createEventFromMessage, storeEvent } = await import('../services/events.service')
+    
+    const mockMessages = [
+      { type: 'thinking', content: 'Analyzing...', timestamp: '2025-07-14T10:00:01Z' },
+      { type: 'assistant', content: 'Here is my response', timestamp: '2025-07-14T10:00:02Z' },
+      { type: 'result', subtype: 'success', content: '', timestamp: '2025-07-14T10:00:03Z' }
+    ]
+
+    vi.mocked(query).mockReturnValue({
+      [Symbol.asyncIterator]: async function* () {
+        for (const message of mockMessages) {
+          yield message
+        }
+      }
+    } as any)
+
+    // Mock event creation
+    let eventIndex = 0
+    vi.mocked(createEventFromMessage).mockImplementation(({ message }) => ({
+      uuid: `event-${eventIndex++}`,
+      session_id: 'session-123',
+      event_type: message.type,
+      timestamp: message.timestamp,
+      is_sidechain: false,
+      parent_uuid: eventIndex > 1 ? `event-${eventIndex - 2}` : null,
+      cwd: '/test/path',
+      project_name: 'path',
+      data: message,
+      memva_session_id: 'memva-session-456'
+    }))
+
+    const onMessage = vi.fn()
+
+    await streamClaudeCodeResponse({
+      prompt: 'Test prompt',
+      projectPath: '/test/path',
+      onMessage,
+      sessionId: 'session-123',
+      memvaSessionId: 'memva-session-456'
+    })
+
+    // Should create and store events for each message
+    expect(createEventFromMessage).toHaveBeenCalledTimes(3)
+    expect(storeEvent).toHaveBeenCalledTimes(3)
+
+    // Check event creation calls
+    expect(createEventFromMessage).toHaveBeenNthCalledWith(1, {
+      message: mockMessages[0],
+      sessionId: 'session-123',
+      memvaSessionId: 'memva-session-456',
+      projectPath: '/test/path',
+      parentUuid: null
+    })
+
+    expect(createEventFromMessage).toHaveBeenNthCalledWith(2, {
+      message: mockMessages[1],
+      sessionId: 'session-123',
+      memvaSessionId: 'memva-session-456',
+      projectPath: '/test/path',
+      parentUuid: 'event-0'
+    })
+
+    // Messages should still be passed to onMessage
+    expect(onMessage).toHaveBeenCalledTimes(3)
+  })
+
+  it('should not store events when memvaSessionId is not provided', async () => {
+    const { query } = await import('@anthropic-ai/claude-code')
+    const { storeEvent } = await import('../services/events.service')
+    
+    vi.mocked(query).mockReturnValue({
+      [Symbol.asyncIterator]: async function* () {
+        yield { type: 'assistant', content: 'Test', timestamp: '2025-07-14T10:00:01Z' }
+      }
+    } as any)
+
+    const onMessage = vi.fn()
+
+    await streamClaudeCodeResponse({
+      prompt: 'Test prompt',
+      projectPath: '/test/path',
+      onMessage
+    })
+
+    expect(storeEvent).not.toHaveBeenCalled()
+    expect(onMessage).toHaveBeenCalledTimes(1)
   })
 })

@@ -1,4 +1,5 @@
 import { query, type SDKMessage } from '@anthropic-ai/claude-code'
+import { createEventFromMessage, storeEvent } from './events.service'
 
 interface StreamClaudeCodeOptions {
   prompt: string
@@ -6,6 +7,8 @@ interface StreamClaudeCodeOptions {
   onMessage: (message: SDKMessage) => void
   onError?: (error: Error) => void
   abortController?: AbortController
+  sessionId?: string
+  memvaSessionId?: string
 }
 
 export async function streamClaudeCodeResponse({
@@ -13,9 +16,12 @@ export async function streamClaudeCodeResponse({
   projectPath,
   onMessage,
   onError,
-  abortController
+  abortController,
+  sessionId,
+  memvaSessionId
 }: StreamClaudeCodeOptions): Promise<void> {
   const controller = abortController || new AbortController()
+  let lastEventUuid: string | null = null
 
   try {
     const messages = query({
@@ -28,6 +34,20 @@ export async function streamClaudeCodeResponse({
     })
 
     for await (const message of messages) {
+      // Store event if we have both sessionId and memvaSessionId
+      if (sessionId && memvaSessionId) {
+        const event = createEventFromMessage({
+          message,
+          sessionId,
+          memvaSessionId,
+          projectPath,
+          parentUuid: lastEventUuid
+        })
+        
+        await storeEvent(event)
+        lastEventUuid = event.uuid
+      }
+
       onMessage(message)
     }
   } catch (error) {

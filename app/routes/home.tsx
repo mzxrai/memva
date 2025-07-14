@@ -66,7 +66,6 @@ export default function Home() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-semibold text-zinc-100 mb-2">Sessions</h1>
-          <p className="text-zinc-400">Manage your Claude Code sessions</p>
         </div>
 
         {/* New Session Bar */}
@@ -81,7 +80,7 @@ export default function Home() {
               name="title"
               value={sessionTitle}
               onChange={(e) => setSessionTitle(e.target.value)}
-              placeholder="Start a new Claude Code session: implement auth, fix bug in API, refactor database..."
+              placeholder=""
               className="flex-1 px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200"
             />
             <button
