@@ -46,6 +46,9 @@ export async function streamClaudeCodeResponse({
     })
 
     for await (const message of messages) {
+      // Capture timestamp when message is received
+      const receivedTimestamp = new Date().toISOString()
+      
       // Track session ID from each message
       if ('session_id' in message) {
         lastSessionId = message.session_id
@@ -57,7 +60,8 @@ export async function streamClaudeCodeResponse({
           message,
           memvaSessionId,
           projectPath,
-          parentUuid: lastEventUuid
+          parentUuid: lastEventUuid,
+          timestamp: receivedTimestamp
         })
         
         await storeEvent(event)

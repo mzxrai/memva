@@ -22,6 +22,15 @@ export default function SessionDetail() {
     memva_session_id: event.memva_session_id || undefined
   }))
   
+  // Debug logging for event ordering
+  if (events.length > 0) {
+    console.log('[SessionDetail] Loaded events:', {
+      count: events.length,
+      firstEvent: { uuid: events[0].uuid, timestamp: events[0].timestamp },
+      lastEvent: { uuid: events[events.length - 1].uuid, timestamp: events[events.length - 1].timestamp }
+    })
+  }
+  
   const [messages, setMessages] = useState<any[]>(initialMessages);
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -85,6 +94,11 @@ export default function SessionDetail() {
           setIsLoading(false);
           return;
         }
+        console.log('[SessionDetail] New message received:', {
+          type: message.type,
+          uuid: message.uuid,
+          timestamp: message.timestamp || new Date().toISOString()
+        });
         setMessages(prev => [...prev, message]);
       },
       onError: (error) => {
@@ -131,8 +145,8 @@ export default function SessionDetail() {
                   <p className="text-zinc-500">No messages yet. Start by asking Claude Code something!</p>
                 </div>
               ) : (
-                messages.map((message, index) => (
-                  <div key={index} className="mb-4">
+                messages.map((message) => (
+                  <div key={message.uuid || `${message.type}-${message.timestamp}`} className="mb-4">
                     <pre className="bg-zinc-800 p-4 rounded-lg text-zinc-100 font-mono text-xs overflow-x-auto">
                       {JSON.stringify(message, null, 2)}
                     </pre>

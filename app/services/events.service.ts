@@ -7,13 +7,15 @@ interface CreateEventOptions {
   memvaSessionId: string
   projectPath: string
   parentUuid: string | null
+  timestamp?: string
 }
 
 export function createEventFromMessage({
   message,
   memvaSessionId,
   projectPath,
-  parentUuid
+  parentUuid,
+  timestamp
 }: CreateEventOptions): NewEvent {
   const pathParts = projectPath.split('/')
   const projectName = pathParts[pathParts.length - 1] || 'root'
@@ -22,7 +24,7 @@ export function createEventFromMessage({
     uuid: uuidv4(),
     session_id: 'session_id' in message ? message.session_id : '',
     event_type: message.type,
-    timestamp: new Date().toISOString(),
+    timestamp: timestamp || new Date().toISOString(),
     is_sidechain: false,
     parent_uuid: parentUuid,
     cwd: projectPath,
