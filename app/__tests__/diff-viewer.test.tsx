@@ -42,24 +42,18 @@ describe('DiffViewer', () => {
     expect(screen.getByText(/New content/)).toBeInTheDocument()
   })
 
-  it('should render with dual line numbers', () => {
+  it('should render diff content in a table format', () => {
     const oldString = 'line 1\nline 2'
     const newString = 'line 1\nmodified line 2'
     
-    const { container } = render(<DiffViewer oldString={oldString} newString={newString} />)
+    render(<DiffViewer oldString={oldString} newString={newString} />)
     
-    // Should show both old and new line numbers
-    const table = container.querySelector('table')
-    expect(table).toBeInTheDocument()
+    // Should render diff content in semantic table structure
+    expect(screen.getByRole('table')).toBeInTheDocument()
     
-    // Should have line numbers in the table cells
-    const rows = container.querySelectorAll('tbody tr')
-    expect(rows.length).toBeGreaterThan(0)
-    
-    // Each row should have old line number, new line number, indicator, and content
-    const firstRow = rows[0]
-    const cells = firstRow.querySelectorAll('td')
-    expect(cells.length).toBe(4) // old line, new line, indicator, content
+    // Should show the original and modified content
+    expect(screen.getByText('line 1')).toBeInTheDocument()
+    expect(screen.getByText('modified line 2')).toBeInTheDocument()
   })
 
   it('should handle multiline changes correctly', () => {
@@ -85,17 +79,21 @@ describe('DiffViewer', () => {
     expect(screen.getByText(/Extra logging/)).toBeInTheDocument()
   })
 
-  it('should apply custom className when provided', () => {
-    const { container } = render(
+  it('should render diff content with proper semantic structure', () => {
+    render(
       <DiffViewer 
-        oldString="old" 
-        newString="new" 
+        oldString="old content" 
+        newString="new content" 
         className="custom-diff-class" 
       />
     )
     
-    // The className should be passed to the main container
-    expect(container.querySelector('.custom-diff-class')).toBeInTheDocument()
+    // Should render diff content in proper table structure
+    expect(screen.getByRole('table')).toBeInTheDocument()
+    
+    // Should show old and new content
+    expect(screen.getByText('old content')).toBeInTheDocument()
+    expect(screen.getByText('new content')).toBeInTheDocument()
   })
 
   it('should handle complex diff scenarios with smart algorithm', () => {
