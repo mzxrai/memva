@@ -1,33 +1,8 @@
-import { vi } from 'vitest'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import { eq } from 'drizzle-orm'
 import * as schema from '../db/schema'
 import { sessions, events } from '../db/schema'
-
-// Mock the database to use in-memory for parallel execution
-vi.mock('../db/index', () => {
-  let db: ReturnType<typeof drizzle>
-  return {
-    get db() { return db },
-    set db(value: ReturnType<typeof drizzle>) { db = value },
-    sessions: schema.sessions,
-    events: schema.events,
-    closeDatabase: () => {}
-  }
-})
-
-// Mock the database module to prevent real database connections
-vi.mock('../db/database', () => {
-  let db: ReturnType<typeof drizzle>
-  return {
-    getDb: () => db,
-    getDatabase: () => db,
-    closeDatabase: () => {},
-    resetDatabase: () => {},
-    set db(value: ReturnType<typeof drizzle>) { db = value }
-  }
-})
 
 export type TestDatabase = {
   db: ReturnType<typeof drizzle>

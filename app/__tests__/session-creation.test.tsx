@@ -9,7 +9,6 @@ import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-
 
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
-import { sessions } from '../db/schema'
 
 // Mock Claude Code service to avoid external dependencies
 vi.mock('../services/claude-code.service', () => ({

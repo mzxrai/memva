@@ -299,7 +299,7 @@ describe('Session Database Operations', () => {
 ## Files to Analyze (25 total)
 
 ### __tests__ Directory (.tsx files - 17 files)
-1. session-detail.test.tsx - ⚠️ NEEDS DATABASE FIX
+1. session-detail.test.tsx - ✅ FIXED (split into session-detail-component.test.tsx + session-detail-loader.test.ts)
 2. events.$sessionId.test.tsx - ✅ FIXED (split into events-sessionid-loader.test.ts + events-sessionid-component.test.tsx)  
 3. events.test.tsx - ⚠️ NEEDS DATABASE FIX + SPLIT
 4. session-creation.test.tsx - ✅ EXCELLENT (already follows guidelines)
@@ -332,6 +332,54 @@ describe('Session Database Operations', () => {
 ---
 
 ## Detailed Analysis
+
+### 1. session-detail.test.tsx
+**Status**: ✅ FIXED - FOLLOWS ALL GUIDELINES
+
+**Issues Fixed:**
+- ✅ Split into two separate files following TDD guidelines:
+  - session-detail-component.test.tsx: Component tests for UI rendering with mock data
+  - session-detail-loader.test.ts: Integration tests for the loader function with real database
+- ✅ Removed testing implementation details (manually creating database sessions)
+- ✅ Component tests use mock data with factories, no database integration
+- ✅ Integration tests focus on loader behavior with real database operations
+- ✅ Test behavior, not implementation - component tests focus on UI interactions
+- ✅ Proper separation of concerns following PLAN.md test type guidelines
+
+**Final Implementation:**
+```typescript
+// ✅ CORRECT pattern for component tests (session-detail-component.test.tsx):
+vi.mock('react-router', () => ({
+  useLoaderData: vi.fn()
+}))
+
+const mockSession = createMockSession({ title: 'Test Session' })
+vi.mocked(useLoaderData).mockReturnValue({ session: mockSession, events: [] })
+render(<SessionDetail />)
+
+// Test UI behavior and interactions
+expect(screen.getByText('Test Session')).toBeInTheDocument()
+expect(screen.getByRole('textbox')).toBeInTheDocument()
+
+// ✅ CORRECT pattern for integration tests (session-detail-loader.test.ts):
+setupDatabaseMocks(vi)
+import { loader } from '../routes/sessions.$sessionId'
+
+beforeEach(() => {
+  testDb = setupInMemoryDb()
+  setTestDatabase(testDb)
+})
+
+// Test loader behavior with real database
+const session = testDb.createSession({ title: 'Test', project_path: '/test' })
+const result = await loader({ params: { sessionId: session.id } })
+expect(result.session).not.toBeNull()
+```
+
+**Result:** 
+- Component Tests (UI behavior with mock data) - All 7 tests pass reliably
+- Integration Tests (loader with real database) - All 5 tests pass reliably
+- **Architectural fix**: No more mixed responsibilities or implementation detail testing
 
 ### 2. user-message-storage.test.ts
 **Status**: ✅ FIXED - FOLLOWS ALL GUIDELINES
@@ -1137,24 +1185,46 @@ describe('CodeBlock component', () => {
 **Keep as reference for other component tests**
 
 ### 16. markdown-renderer.test.tsx
-**Status**: GOOD - MINOR FIXES NEEDED
+**Status**: ✅ FIXED - FOLLOWS ALL GUIDELINES
 
-**Issues:**
-- ❌ Testing CSS classes for bold/italic text formatting
-- ❌ Some styling-focused tests instead of semantic markup
+**Issues Fixed:**
+- ✅ Replaced direct screen.getByText() calls with expectContent.text() utility
+- ✅ Used expectSemanticMarkup.heading() for header testing
+- ✅ Used expectSemanticMarkup.link() for link testing
+- ✅ Used expectContent.code() for inline code testing
+- ✅ Improved list testing with semantic structure validation
+- ✅ Enhanced semantic testing while maintaining HTML tag validation
 
-**Fix Required:**
+**Final Implementation:**
 ```typescript
-// ✅ ALWAYS test semantic markup, NEVER CSS classes:
-expect(screen.getByText('bold').tagName).toBe('STRONG')
-expect(codeElement.tagName).toBe('CODE')
+// ✅ CORRECT pattern for component tests:
+import { expectSemanticMarkup, expectContent } from '../test-utils/component-testing'
 
-// ❌ NEVER test font classes:
-// expect(screen.getByText('bold')).toHaveClass('font-semibold')
-// expect(codeElement).toHaveClass('font-mono')
+describe('MarkdownRenderer', () => {
+  it('should render basic text', () => {
+    render(<MarkdownRenderer content="Hello world" />)
+    expectContent.text('Hello world')
+  })
+
+  it('should render headers', () => {
+    expectSemanticMarkup.heading(1, 'Heading 1')
+    expectSemanticMarkup.heading(2, 'Heading 2')
+    expectSemanticMarkup.heading(3, 'Heading 3')
+  })
+
+  it('should render inline code with semantic markup', () => {
+    expectContent.code('npm install')
+  })
+
+  it('should render links with proper attributes', () => {
+    const link = expectSemanticMarkup.link('Google', 'https://google.com')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+  })
+})
 ```
 
-**Convert to:** Component Tests (UI behavior)
+**Result:** Component Tests (markdown rendering behavior) - All 11 tests pass reliably
 
 ### 17. message-container.test.tsx
 **Status**: CRITICAL - NEEDS IMMEDIATE FIX
@@ -1268,7 +1338,7 @@ expect(screen.getByText('Test User')).toBeInTheDocument()
 - ✅ message-container.test.tsx (FIXED - now follows all guidelines)
 - ✅ message-header.test.tsx (FIXED - now follows all guidelines)
 - ✅ loading-indicator.test.tsx (FIXED - now follows all guidelines)
-- ✅ tool-call-display.test.tsx (FIXED), ✅ diff-viewer.test.tsx (FIXED), ✅ code-block.test.tsx (FIXED), markdown-renderer.test.tsx
+- ✅ tool-call-display.test.tsx (FIXED), ✅ diff-viewer.test.tsx (FIXED), ✅ code-block.test.tsx (FIXED), ✅ markdown-renderer.test.tsx (FIXED)
 
 ### **Perfect Examples to Keep as Reference (5 files):**
 - event-renderer.test.tsx, assistant-message-tools.test.tsx

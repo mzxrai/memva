@@ -18,7 +18,7 @@ let currentTestDb: TestDatabase | null = null
  * This must be called before any imports that use the database.
  */
 export function setupDatabaseMocks(vi: { mock: typeof import('vitest').vi.mock; fn: typeof import('vitest').vi.fn }) {
-  // Mock the main database module
+  // Mock the main database module - need to handle the singleton pattern
   vi.mock('../db/index', () => ({
     get db() {
       if (!currentTestDb) {
@@ -35,8 +35,8 @@ export function setupDatabaseMocks(vi: { mock: typeof import('vitest').vi.mock; 
     events: schema.events,
     closeDatabase: vi.fn()
   }))
-
-  // Mock the database connection module
+  
+  // Mock the database connection module that provides getDb()
   vi.mock('../db/database', () => ({
     getDb: vi.fn(() => {
       if (!currentTestDb) {

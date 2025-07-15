@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ToolCallDisplay } from '../components/events/ToolCallDisplay'
 import { MOCK_TOOLS } from '../test-utils/factories'
-import { expectSemanticMarkup, expectContent } from '../test-utils/component-testing'
+import { expectContent } from '../test-utils/component-testing'
 import type { ToolUseContent } from '../types/events'
 
 describe('ToolCallDisplay component', () => {
@@ -57,7 +57,7 @@ describe('ToolCallDisplay component', () => {
     render(<ToolCallDisplay toolCall={readTool} />)
     
     // Click to expand
-    const expandButton = screen.getByRole('button', { name: 'Show parameters' })
+    const expandButton = screen.getByRole('button', { name: 'show parameters' })
     fireEvent.click(expandButton)
     
     // Parameters should now be visible in the JSON code block
@@ -77,7 +77,7 @@ describe('ToolCallDisplay component', () => {
     )
     
     // Should show file path as primary parameter for Edit tool in the header
-    const headerElement = screen.getByRole('button', { name: 'Hide parameters' })
+    const headerElement = screen.getByRole('button', { name: 'hide parameters' })
     expect(headerElement).toHaveTextContent('/path/to/file.ts')
     
     // Should auto-expand to show diff for Edit tools
@@ -158,7 +158,7 @@ describe('ToolCallDisplay component', () => {
     render(<ToolCallDisplay toolCall={complexTool} />)
     
     // Expand to see parameters
-    const expandButton = screen.getByRole('button', { name: 'Show parameters' })
+    const expandButton = screen.getByRole('button', { name: 'show parameters' })
     fireEvent.click(expandButton)
     
     // Should render JSON nicely
