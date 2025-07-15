@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { setupInMemoryDb, setMockDatabase, type TestDatabase } from '../test-utils/in-memory-db'
+import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
+import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+
+// CRITICAL: Setup static mocks before any imports that use database
+setupDatabaseMocks(vi)
+
 import { action } from '../routes/api.claude-code.$sessionId'
 import type { Route } from '../routes/+types/api.claude-code.$sessionId'
-import { events } from '../db/schema'
-import { eq } from 'drizzle-orm'
 
 // Mock Claude Code SDK to return different event types
 vi.mock('@anthropic-ai/claude-code', () => ({
@@ -77,13 +80,14 @@ vi.mock('@anthropic-ai/claude-code', () => ({
 describe('Claude Code Event Processing', () => {
   let testDb: TestDatabase
 
-  beforeEach(async () => {
+  beforeEach(() => {
     testDb = setupInMemoryDb()
-    await setMockDatabase(testDb.db)
+    setTestDatabase(testDb)
   })
 
   afterEach(() => {
     testDb.cleanup()
+    clearTestDatabase()
   })
 
   it('should process and store user text messages', async () => {

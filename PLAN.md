@@ -781,26 +781,73 @@ describe('LoadingIndicator', () => {
 **Result:** Component Tests (loading indicator behavior) - All 9 tests pass reliably
 
 ### 11. tool-call-display.test.tsx
-**Status**: GOOD - MINOR FIXES NEEDED
+**Status**: ✅ FIXED - FOLLOWS ALL GUIDELINES
 
-**Issues:**
-- ❌ Testing implementation details (test IDs, CSS classes)
-- ❌ Some tests focus on styling instead of behavior
+**Issues Fixed:**
+- ✅ Replaced `testId` queries with semantic role-based queries (`screen.getByRole()`)
+- ✅ Replaced CSS class testing (`toHaveClass('font-mono')`, `toHaveClass('bg-emerald-400')`) with semantic behavior testing
+- ✅ Used `MOCK_TOOLS` factory functions for consistent test data creation
+- ✅ Used semantic testing utilities (`expectContent.text()`, `expectSemanticMarkup.button()`)
+- ✅ Focus on user-visible behavior and accessibility rather than implementation details
+- ✅ Test tool rendering, parameter expansion, result display, and error handling
+- ✅ All 19 tests pass reliably
 
-**Fix Required:**
+**Final Implementation:**
 ```typescript
-// ✅ ALWAYS test semantic roles, NEVER test IDs:
-expect(screen.getByRole('img', { hidden: true })).toBeInTheDocument()
+// ✅ CORRECT pattern for component tests:
+import { MOCK_TOOLS } from '../test-utils/factories'
+import { expectSemanticMarkup, expectContent } from '../test-utils/component-testing'
 
-// ✅ ALWAYS test visible content, NEVER CSS classes:
-expect(screen.getByText('Read')).toBeInTheDocument()
+describe('ToolCallDisplay component', () => {
+  it('should render tool name and display visible content', () => {
+    const readTool = MOCK_TOOLS.read('/path/to/file.ts')
+    render(<ToolCallDisplay toolCall={readTool} />)
+    
+    expectContent.text('Read')
+    expectContent.text('/path/to/file.ts')
+  })
 
-// ❌ NEVER use test IDs or CSS classes:
-// expect(screen.getByTestId('read-icon')).toBeInTheDocument()
-// expect(element).toHaveClass('font-mono')
+  it('should display icons for different tool types', () => {
+    const tools = [
+      { name: 'Read', factory: () => MOCK_TOOLS.read('/test.ts') },
+      { name: 'Write', factory: () => MOCK_TOOLS.write('/test.ts', 'content') },
+      { name: 'Edit', factory: () => MOCK_TOOLS.edit('/test.ts', 'old', 'new') },
+      { name: 'Bash', factory: () => MOCK_TOOLS.bash('ls') },
+    ]
+    
+    tools.forEach(({ name, factory }) => {
+      const { unmount, container } = render(<ToolCallDisplay toolCall={factory()} />)
+      
+      expectContent.text(name)
+      // Check that an icon is present (SVG element)
+      const svgElement = container.querySelector('svg')
+      expect(svgElement).toBeInTheDocument()
+      
+      unmount()
+    })
+  })
+
+  // ✅ ALWAYS use factory functions:
+  const readTool = MOCK_TOOLS.read('/path/to/file.ts')
+  const writeTool = MOCK_TOOLS.write('/path/to/file.ts', 'content')
+  const editTool = MOCK_TOOLS.edit('/path/to/file.ts', 'old', 'new')
+
+  // ✅ ALWAYS test visible content:
+  expectContent.text('Read')
+  expectContent.text('/path/to/file.ts')
+
+  // ✅ ALWAYS test semantic interactions:
+  const expandButton = screen.getByRole('button', { name: /show parameters/i })
+  fireEvent.click(expandButton)
+
+  // ❌ NEVER use test IDs or CSS classes:
+  // expect(screen.getByTestId('read-icon')).toBeInTheDocument()
+  // expect(element).toHaveClass('font-mono')
+  // expect(indicator).toHaveClass('bg-emerald-400')
+})
 ```
 
-**Convert to:** Component Tests (UI behavior)
+**Result:** Component Tests (tool call display behavior) - All 19 tests pass reliably
 
 ### 12. tool-call-error-indicator.test.tsx
 **Status**: ✅ FIXED - FOLLOWS ALL GUIDELINES
@@ -952,44 +999,131 @@ describe('MessageHeader', () => {
 **Result:** Component Tests (message header behavior) - All 6 tests pass reliably
 
 ### 15. diff-viewer.test.tsx
-**Status**: GOOD - MINOR FIXES NEEDED
+**Status**: ✅ FIXED - FOLLOWS ALL GUIDELINES
 
-**Issues:**
-- ❌ Complex DOM traversal (querySelector) instead of semantic queries
-- ❌ Testing table structure instead of diff content
+**Issues Fixed:**
+- ✅ Replaced complex DOM traversal (`container.querySelector('table')`, `container.querySelectorAll('tbody tr')`) with semantic queries (`screen.getByRole('table')`)
+- ✅ Replaced CSS class testing (`container.querySelector('.custom-diff-class')`) with semantic behavior testing
+- ✅ Replaced DOM structure testing (cell counts, row counts) with content/behavior testing
+- ✅ Focus on user-visible behavior rather than implementation details
+- ✅ Test semantic table structure and diff content visibility
 
-**Fix Required:**
+**Final Implementation:**
 ```typescript
-// ✅ ALWAYS use semantic queries, NEVER querySelector:
-expect(screen.getByRole('table')).toBeInTheDocument()
-expect(screen.getByText(/Line 1/)).toBeInTheDocument()
+// ✅ CORRECT pattern for component tests:
+describe('DiffViewer', () => {
+  it('should render diff content in a table format', () => {
+    render(<DiffViewer oldString="line 1\nline 2" newString="line 1\nmodified line 2" />)
+    
+    // Should render diff content in semantic table structure
+    expect(screen.getByRole('table')).toBeInTheDocument()
+    
+    // Should show the original and modified content
+    expect(screen.getByText('line 1')).toBeInTheDocument()
+    expect(screen.getByText('modified line 2')).toBeInTheDocument()
+  })
 
-// ❌ NEVER test DOM structure:
-// const cells = firstRow.querySelectorAll('td')
-// expect(cells.length).toBe(4)
+  it('should render diff content with proper semantic structure', () => {
+    render(
+      <DiffViewer 
+        oldString="old content" 
+        newString="new content" 
+        className="custom-diff-class" 
+      />
+    )
+    
+    // Should render diff content in proper table structure
+    expect(screen.getByRole('table')).toBeInTheDocument()
+    
+    // Should show old and new content
+    expect(screen.getByText('old content')).toBeInTheDocument()
+    expect(screen.getByText('new content')).toBeInTheDocument()
+  })
+
+  // ✅ ALWAYS test semantic structure:
+  expect(screen.getByRole('table')).toBeInTheDocument()
+  expect(screen.getByText('diff content')).toBeInTheDocument()
+
+  // ❌ NEVER test DOM structure or CSS classes:
+  // const cells = firstRow.querySelectorAll('td')
+  // expect(cells.length).toBe(4)
+  // expect(container.querySelector('.custom-diff-class')).toBeInTheDocument()
+})
 ```
 
-**Convert to:** Component Tests (UI behavior)
+**Result:** Component Tests (diff viewer behavior) - All 8 tests pass reliably
 
 ### 16. code-block.test.tsx
-**Status**: GOOD - MINOR FIXES NEEDED
+**Status**: ✅ FIXED - FOLLOWS ALL GUIDELINES
 
-**Issues:**
-- ❌ Multiple tests checking CSS classes for styling
-- ❌ Testing background colors and font classes
+**Issues Fixed:**
+- ✅ Replaced CSS class testing (`expect(codeTextElement).toHaveClass('font-mono')`) with semantic behavior testing
+- ✅ Replaced DOM traversal (`querySelector`) with semantic queries (`screen.getByRole('region')`)
+- ✅ Fixed React state update timing by adding proper `act()` wrappers
+- ✅ Fixed multiple elements issue in long code test using `getAllByText`
+- ✅ Focus on user-visible behavior and accessibility instead of implementation details
+- ✅ Test copy functionality, language indicators, and diff mode through behavior
+- ✅ Use `expectContent` utility for semantic testing
 
-**Fix Required:**
+**Final Implementation:**
 ```typescript
-// ✅ ALWAYS test accessible content, NEVER CSS classes:
-expect(screen.getByRole('region', { name: /code block/i })).toBeInTheDocument()
-expect(screen.getByText(/console.log/)).toBeInTheDocument()
+// ✅ CORRECT pattern for component tests:
+import { expectContent } from '../test-utils/component-testing'
 
-// ❌ NEVER test styling classes:
-// expect(codeTextElement).toHaveClass('font-mono')
-// expect(removedLine).toHaveClass('bg-red-950/20')
+describe('CodeBlock component', () => {
+  it('should render code content accessibly', () => {
+    render(<CodeBlock code={code} language="javascript" />)
+    
+    // Test code content is accessible within proper semantic region
+    const codeRegion = screen.getByRole('region', { name: /code block/i })
+    expect(codeRegion).toBeInTheDocument()
+    
+    // Test code content is visible
+    expectContent.text('function hello() {')
+    expectContent.text('console.log("Hello, world!");')
+  })
+
+  it('should show copy button on hover', () => {
+    render(<CodeBlock code="const x = 1" />)
+    
+    // Hover over the code block region
+    const codeRegion = screen.getByRole('region', { name: /code block/i })
+    act(() => {
+      fireEvent.mouseEnter(codeRegion)
+    })
+    
+    // Copy button should now be visible and accessible
+    const copyButton = screen.getByLabelText('Copy code')
+    expect(copyButton).toBeInTheDocument()
+    expect(copyButton.tagName).toBe('BUTTON')
+  })
+
+  it('should show feedback after copying', async () => {
+    // Test copy functionality with proper act() wrapper
+    await act(async () => {
+      await fireEvent.click(copyButton)
+    })
+    
+    // Test feedback message is visible
+    await waitFor(() => {
+      expectContent.text('Copied!')
+    })
+  })
+
+  // ✅ ALWAYS test accessible content:
+  const codeRegion = screen.getByRole('region', { name: /code block/i })
+  expect(codeRegion).toBeInTheDocument()
+  expectContent.text('typescript')
+  expectContent.text('console.log("Line");')
+
+  // ❌ NEVER test CSS classes:
+  // expect(codeTextElement).toHaveClass('font-mono')
+  // expect(removedLine).toHaveClass('bg-red-950/20')
+  // expect(container.firstChild).toHaveClass('custom-class')
+})
 ```
 
-**Convert to:** Component Tests (UI behavior)
+**Result:** Component Tests (code block behavior) - All 12 tests pass reliably
 
 ### 15. event-renderer.test.tsx
 **Status**: EXCELLENT - NO FIXES NEEDED
@@ -1134,7 +1268,7 @@ expect(screen.getByText('Test User')).toBeInTheDocument()
 - ✅ message-container.test.tsx (FIXED - now follows all guidelines)
 - ✅ message-header.test.tsx (FIXED - now follows all guidelines)
 - ✅ loading-indicator.test.tsx (FIXED - now follows all guidelines)
-- tool-call-display.test.tsx, diff-viewer.test.tsx, code-block.test.tsx, markdown-renderer.test.tsx
+- ✅ tool-call-display.test.tsx (FIXED), ✅ diff-viewer.test.tsx (FIXED), ✅ code-block.test.tsx (FIXED), markdown-renderer.test.tsx
 
 ### **Perfect Examples to Keep as Reference (5 files):**
 - event-renderer.test.tsx, assistant-message-tools.test.tsx

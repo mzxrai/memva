@@ -3,7 +3,11 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createRoutesStub } from 'react-router'
 import SessionDetail, { loader as sessionDetailLoader } from '../routes/sessions.$sessionId'
-import { setupInMemoryDb, setMockDatabase, type TestDatabase } from '../test-utils/in-memory-db'
+import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
+import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+
+// CRITICAL: Setup static mocks before any imports that use database
+setupDatabaseMocks(vi)
 import type { Session } from '../db/schema'
 
 // Mock external dependencies only
@@ -19,14 +23,15 @@ vi.mock('../db/event-session.service', () => ({
 describe('Session Detail Page', () => {
   let testDb: TestDatabase
 
-  beforeEach(async () => {
+  beforeEach(() => {
     testDb = setupInMemoryDb()
-    await setMockDatabase(testDb.db)
+    setTestDatabase(testDb)
     vi.clearAllMocks()
   })
 
   afterEach(() => {
     testDb.cleanup()
+    clearTestDatabase()
   })
   it('should display session details', async () => {
     // Create a real session in the test database
@@ -39,7 +44,7 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: sessionDetailLoader
+        loader: sessionDetailLoader as any
       }
     ])
 
@@ -57,7 +62,7 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: sessionDetailLoader
+        loader: sessionDetailLoader as any
       }
     ])
 
@@ -71,7 +76,7 @@ describe('Session Detail Page', () => {
   it('should display prompt input form', async () => {
     // Create a session without auto-start metadata
     const session = testDb.createSession({
-      title: null,
+      title: undefined,
       project_path: '/Users/mbm-premva/dev/memva'
     })
 
@@ -79,7 +84,7 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: sessionDetailLoader
+        loader: sessionDetailLoader as any
       }
     ])
 
@@ -115,7 +120,7 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: sessionDetailLoader
+        loader: sessionDetailLoader as any
       }
     ])
 
@@ -151,7 +156,7 @@ describe('Session Detail Page', () => {
     
     // Create session without auto-start
     const session = testDb.createSession({
-      title: null,
+      title: undefined,
       project_path: '/Users/mbm-premva/dev/memva'
     })
 
@@ -180,7 +185,7 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: sessionDetailLoader
+        loader: sessionDetailLoader as any
       }
     ])
 
@@ -210,7 +215,7 @@ describe('Session Detail Page', () => {
     
     // Create session without auto-start
     const session = testDb.createSession({
-      title: null,
+      title: undefined,
       project_path: '/Users/mbm-premva/dev/memva'
     })
 
@@ -244,7 +249,7 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: sessionDetailLoader
+        loader: sessionDetailLoader as any
       }
     ])
 
@@ -293,7 +298,7 @@ describe('Session Detail Page', () => {
   it('should load and display historical events on mount', async () => {
     // Create session without auto-start
     const session = testDb.createSession({
-      title: null,
+      title: undefined,
       project_path: '/Users/mbm-premva/dev/memva'
     })
 
@@ -333,7 +338,7 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: sessionDetailLoader
+        loader: sessionDetailLoader as any
       }
     ])
 
@@ -354,7 +359,7 @@ describe('Session Detail Page', () => {
     
     // Create session without auto-start
     const session = testDb.createSession({
-      title: null,
+      title: undefined,
       project_path: '/Users/mbm-premva/dev/memva'
     })
 
@@ -372,7 +377,7 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: sessionDetailLoader
+        loader: sessionDetailLoader as any
       }
     ])
 
@@ -403,7 +408,7 @@ describe('Session Detail Page', () => {
   it('should show empty state for new sessions', async () => {
     // Create session without auto-start
     const session = testDb.createSession({
-      title: null,
+      title: undefined,
       project_path: '/Users/mbm-premva/dev/memva'
     })
 
@@ -411,7 +416,7 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: sessionDetailLoader
+        loader: sessionDetailLoader as any
       }
     ])
 

@@ -4,7 +4,11 @@ import userEvent from '@testing-library/user-event'
 import { createRoutesStub } from 'react-router'
 import Home, { loader as homeLoader, action as homeAction } from '../routes/home'
 import SessionDetail, { loader as sessionDetailLoader } from '../routes/sessions.$sessionId'
-import { setupInMemoryDb, setMockDatabase, type TestDatabase } from '../test-utils/in-memory-db'
+import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
+import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+
+// CRITICAL: Setup static mocks before any imports that use database
+setupDatabaseMocks(vi)
 
 // Mock external dependencies only
 vi.mock('../services/claude-code.service', () => ({
@@ -18,13 +22,14 @@ vi.mock('../db/event-session.service', () => ({
 describe('Homepage Initial Prompt Behavior', () => {
   let testDb: TestDatabase
 
-  beforeEach(async () => {
+  beforeEach(() => {
     testDb = setupInMemoryDb()
-    await setMockDatabase(testDb.db)
+    setTestDatabase(testDb)
   })
 
   afterEach(() => {
     testDb.cleanup()
+    clearTestDatabase()
   })
 
   it('should create session and show initial prompt on session page', async () => {
@@ -40,7 +45,7 @@ describe('Homepage Initial Prompt Behavior', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: sessionDetailLoader
+        loader: sessionDetailLoader as any
       }
     ])
 
@@ -74,7 +79,7 @@ describe('Homepage Initial Prompt Behavior', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: sessionDetailLoader
+        loader: sessionDetailLoader as any
       }
     ])
 
@@ -111,7 +116,7 @@ describe('Homepage Initial Prompt Behavior', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: sessionDetailLoader
+        loader: sessionDetailLoader as any
       }
     ])
 
