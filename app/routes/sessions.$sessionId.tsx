@@ -6,7 +6,6 @@ import { sendPromptToClaudeCode } from "../services/claude-code.service";
 import { useState, useRef, useEffect, useCallback, type FormEvent } from "react";
 import { RiSendPlaneFill, RiStopCircleLine } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
-import { LoadingIndicator } from "../components/LoadingIndicator";
 import { PendingMessage } from "../components/PendingMessage";
 
 export async function loader({ params }: Route.LoaderArgs) {
@@ -656,7 +655,10 @@ export default function SessionDetail() {
           <div className="h-full flex items-center justify-center">
             {isWaitingForFirstMessage ? (
               <div className="w-full">
-                <PendingMessage />
+                <PendingMessage 
+                  tokenCount={tokenCount} 
+                  startTime={loadingStartTime || undefined}
+                />
               </div>
             ) : (
               <p className="text-zinc-500">No messages yet. Start by asking Claude Code something!</p>
@@ -688,7 +690,10 @@ export default function SessionDetail() {
             
             {/* Show pending message indicator when waiting for first response */}
             {isWaitingForFirstMessage && (
-              <PendingMessage />
+              <PendingMessage 
+                tokenCount={tokenCount} 
+                startTime={loadingStartTime || undefined}
+              />
             )}
           </div>
         )}
@@ -705,18 +710,6 @@ export default function SessionDetail() {
         <div className="px-4" style={{ paddingRight: `${16 + scrollbarWidth}px` }}>
           <div className="container mx-auto max-w-7xl">
             <div className="relative">
-              {/* Loading indicator */}
-              {isLoading && loadingStartTime && (
-                <div className="mb-2">
-                  <div className="px-4 pt-2 pb-0.5 bg-zinc-900/40 backdrop-blur-sm rounded-full inline-block">
-                    <LoadingIndicator
-                      tokenCount={tokenCount}
-                      startTime={loadingStartTime}
-                      isLoading={isLoading}
-                    />
-                  </div>
-                </div>
-              )}
               <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 p-4">
                 <form onSubmit={handleSubmit} className="flex gap-3">
               <div className="flex-1 flex items-center px-5 py-3.5 bg-zinc-800/60 border border-zinc-700/50 rounded-xl focus-within:border-zinc-600 focus-within:bg-zinc-800/80 transition-all duration-200">
