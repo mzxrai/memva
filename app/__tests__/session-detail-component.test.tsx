@@ -197,4 +197,57 @@ describe('SessionDetail Component', () => {
     // Input should be disabled during loading
     expect(input).toBeDisabled()
   })
+
+  it('should hide pending message when auto-start session receives result message', async () => {
+    const mockSession = createMockSession({
+      title: 'Auto-start Session',
+      project_path: '/Users/test/project',
+      metadata: { should_auto_start: true }
+    })
+
+    const { sendPromptToClaudeCode } = await import('../services/claude-code.service')
+    const { act } = await import('@testing-library/react')
+    
+    let onMessageCallback: ((message: any) => void) | undefined
+
+    // Mock Claude Code service to capture callback
+    vi.mocked(sendPromptToClaudeCode).mockImplementation(({ onMessage }) => {
+      onMessageCallback = onMessage
+    })
+
+    vi.mocked(useLoaderData).mockReturnValue({ 
+      session: mockSession, 
+      events: [] 
+    })
+
+    render(<SessionDetail />)
+
+    // Simulate Claude response with result message wrapped in act
+    if (onMessageCallback) {
+      await act(async () => {
+        onMessageCallback!({
+          type: 'assistant',
+          content: 'Hello! How can I help you?',
+          timestamp: new Date().toISOString()
+        })
+      })
+
+      await act(async () => {
+        onMessageCallback!({
+          type: 'result',
+          subtype: 'success',
+          timestamp: new Date().toISOString()
+        })
+      })
+    }
+
+    // Assistant message should be visible
+    await waitFor(() => {
+      expect(screen.getByText('Hello! How can I help you?')).toBeInTheDocument()
+    })
+
+    // Test that we only have one "Claude" header (from assistant message, not pending)
+    const claudeHeaders = screen.getAllByText('Claude')
+    expect(claudeHeaders).toHaveLength(1)
+  })
 })

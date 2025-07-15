@@ -84,12 +84,12 @@ export default function Home() {
               value={sessionTitle}
               onChange={(e) => setSessionTitle(e.target.value)}
               placeholder="Start a new Claude Code session: ask, brainstorm, build"
-              className="flex-1 px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono"
+              className="flex-1 px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem]"
             />
             <button
               type="submit"
               disabled={!sessionTitle.trim()}
-              className="pl-5 pr-7 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium rounded-lg transition-colors focus:outline-none focus:bg-zinc-700 flex items-center gap-2 font-mono disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-zinc-800"
+              className="pl-5 pr-7 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium rounded-lg transition-colors focus:outline-none focus:bg-zinc-700 flex items-center gap-2 font-mono text-[0.9375rem] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-zinc-800"
             >
               <RiPlayFill className="w-5 h-5" />
               Start

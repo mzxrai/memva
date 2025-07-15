@@ -466,6 +466,7 @@ export default function SessionDetail() {
           if (message.type === 'result') {
             setIsLoading(false);
             setLoadingStartTime(null);
+            setIsWaitingForFirstMessage(false);
           }
         },
         onError: (error) => {
@@ -653,7 +654,13 @@ export default function SessionDetail() {
       >
         {messages.length === 0 ? (
           <div className="h-full flex items-center justify-center">
-            <p className="text-zinc-500">No messages yet. Start by asking Claude Code something!</p>
+            {isWaitingForFirstMessage ? (
+              <div className="w-full">
+                <PendingMessage />
+              </div>
+            ) : (
+              <p className="text-zinc-500">No messages yet. Start by asking Claude Code something!</p>
+            )}
           </div>
         ) : (
           <div 
@@ -720,14 +727,14 @@ export default function SessionDetail() {
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   disabled={isLoading}
-                  className="flex-1 bg-transparent text-zinc-100 focus:outline-none disabled:opacity-50 font-mono"
+                  className="flex-1 bg-transparent text-zinc-100 focus:outline-none disabled:opacity-50 font-mono text-[0.9375rem]"
                 />
               </div>
               {isLoading ? (
                 <button
                   type="button"
                   onClick={handleStop}
-                  className="px-6 py-3.5 bg-red-900/90 hover:bg-red-800/90 text-zinc-100 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:bg-red-800/90 flex items-center gap-2 shadow-lg font-mono"
+                  className="px-6 py-3.5 bg-red-900/90 hover:bg-red-800/90 text-zinc-100 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:bg-red-800/90 flex items-center gap-2 shadow-lg font-mono text-[0.9375rem]"
                   title="Press Escape to stop"
                 >
                   <RiStopCircleLine className="w-5 h-5" />
@@ -737,7 +744,7 @@ export default function SessionDetail() {
                 <button
                   type="submit"
                   disabled={!prompt.trim()}
-                  className="px-6 py-3.5 bg-zinc-700/90 hover:bg-zinc-600/90 text-zinc-100 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:bg-zinc-600/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg font-mono"
+                  className="px-6 py-3.5 bg-zinc-700/90 hover:bg-zinc-600/90 text-zinc-100 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:bg-zinc-600/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg font-mono text-[0.9375rem]"
                 >
                   <RiSendPlaneFill className="w-5 h-5" />
                   Send
