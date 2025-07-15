@@ -395,6 +395,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
         {/* Status indicator - shows right after tool name */}
         <div 
           data-testid="tool-status-indicator"
+          data-status={hasResult ? (isInterrupted ? 'interrupted' : (isError ? 'error' : 'success')) : 'pending'}
           className={clsx(
             'w-2 h-2 rounded-full',
             hasResult ? (
