@@ -622,22 +622,69 @@ const userEvent = createMockEvent({
 **Result:** Integration Tests (API endpoint workflow) - All 5 tests pass reliably
 
 ### 8. home.test.tsx
-**Status**: WARNING - NEEDS EXPANSION
+**Status**: ✅ FIXED - FOLLOWS ALL GUIDELINES
 
-**Issues:**
-- ❌ Mocking internal database service instead of proper pattern
-- ❌ Single trivial test, missing core functionality coverage
+**Issues Fixed:**
+- ✅ Split into 3 separate, focused test files following TDD guidelines:
+  - home-loader.test.ts: Integration tests for loader function with real database
+  - home-component.test.tsx: Component tests for UI rendering with mock data
+  - home-action.test.ts: Integration tests for action function with real database
+- ✅ Replaced internal database service mocking with proper setupDatabaseMocks() + setTestDatabase() pattern
+- ✅ Expanded from 1 trivial test to 20 comprehensive tests covering all functionality
+- ✅ Used factory functions (createMockEvent, createMockSession) for consistent test data
+- ✅ Used semantic testing utilities for component tests
+- ✅ Test behavior, not implementation details
+- ✅ Added comprehensive coverage for loader, component, and action workflows
 
-**Fix Required:**
+**Final Implementation:**
 ```typescript
-// ✅ SPLIT into two files like events.test.tsx above
-// ✅ ALWAYS use factories: createMockSession({ title: 'Test' })
-// ✅ Add comprehensive test coverage for session management
+// ✅ CORRECT pattern for integration tests (home-loader.test.ts):
+import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+import { createMockEvent } from '../test-utils/factories'
+
+// Setup static mocks before any imports
+setupDatabaseMocks(vi)
+
+beforeEach(() => {
+  testDb = setupInMemoryDb()
+  setTestDatabase(testDb)
+})
+
+afterEach(() => {
+  testDb.cleanup()
+  clearTestDatabase()
+})
+
+// ✅ CORRECT pattern for component tests (home-component.test.tsx):
+import { expectSemanticMarkup, expectContent } from '../test-utils/component-testing'
+import { createMockSession } from '../test-utils/factories'
+
+// Test semantic markup and accessibility
+expectSemanticMarkup.heading(1, 'Sessions')
+expectContent.text('No sessions yet')
+
+// Test form interactions
+const titleInput = screen.getByRole('textbox')
+const submitButton = screen.getByRole('button', { name: 'Start' })
+
+// ✅ CORRECT pattern for action tests (home-action.test.ts):
+const result = await action({ request: mockRequest, params: {}, context: {} })
+
+// Test redirect behavior
+expect(result).toBeInstanceOf(Response)
+const response = result as Response
+expect(response.headers.get('Location')).toMatch(/^\/sessions\/[a-f0-9-]+$/)
+
+// Test database side effects
+const sessionsInDb = testDb.db.select().from(sessions).all()
+expect(sessionsInDb).toHaveLength(1)
 ```
 
-**Convert to:**
-- Integration Tests (loader with real database)
-- Component Tests (UI rendering and interactions)
+**Result:** 
+- Integration Tests (loader with real database) - 4 tests pass reliably
+- Component Tests (UI rendering and interactions) - 9 tests pass reliably  
+- Integration Tests (action with real database) - 7 tests pass reliably
+- Total: 20 comprehensive tests covering all home functionality
 
 ### 9. stop-functionality.test.tsx
 **Status**: ✅ FIXED - FOLLOWS ALL GUIDELINES
@@ -1080,7 +1127,7 @@ expect(screen.getByText('Test User')).toBeInTheDocument()
 - ✅ events.test.tsx (FIXED - split into events-loader.test.ts + events-component.test.tsx)
 - ✅ session-resumption.test.ts (FIXED - now follows all guidelines)
 - ✅ events.$sessionId.test.tsx (FIXED - split into events-sessionid-loader.test.ts + events-sessionid-component.test.tsx)
-- home.test.tsx
+- ✅ home.test.tsx (FIXED - split into home-loader.test.ts + home-component.test.tsx + home-action.test.ts)
 
 ### **Tests Requiring CSS → Semantic Conversion (5 files):**
 - ✅ tool-call-error-indicator.test.tsx (FIXED - now follows all guidelines)
