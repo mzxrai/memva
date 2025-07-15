@@ -319,8 +319,8 @@ describe('Session Database Operations', () => {
 
 ### __tests__ Directory (.ts files - 5 files)
 18. claude-code-events.test.ts - ✅ EXCELLENT (already follows guidelines)
-19. event-storage.test.ts - ❌ CRITICAL DATABASE FIX
-20. user-message-storage.test.ts - ❌ CRITICAL DATABASE FIX
+19. event-storage.test.ts - ✅ FIXED (follows all guidelines)
+20. user-message-storage.test.ts - ✅ FIXED (follows all guidelines)
 21. session-resumption.test.ts - ❌ CRITICAL DATABASE FIX
 22. api.claude-code.test.ts - ❌ CRITICAL DATABASE FIX
 
@@ -363,16 +363,20 @@ await waitForEvents(() => testDb.getEventsForSession(sessionId), ['user', 'syste
 **Result:** Integration Tests (user message storage workflow) - All 3 tests pass reliably
 
 ### 3. event-storage.test.ts
-**Status**: CRITICAL - NEEDS IMMEDIATE FIX
+**Status**: ✅ FIXED - FOLLOWS ALL GUIDELINES
 
-**Issues:**
-- ❌ Using broken `setMockDatabase()` pattern
-- ❌ Arbitrary timeouts (100ms) instead of condition polling
-- ❌ Direct database queries mixed with API testing
+**Issues Fixed:**
+- ✅ Fixed database mocking pattern: replaced broken `setMockDatabase()` with `setupDatabaseMocks()` + `setTestDatabase()` pattern
+- ✅ Replaced arbitrary timeouts with smart waiting (`waitForEvents`, `waitForCondition`)
+- ✅ Used testDb helpers instead of direct database queries
+- ✅ Proper integration test pattern with working database mocks
 
-**Fix Required:**
+**Final Implementation:**
 ```typescript
-// ✅ ALWAYS do this for integration tests:
+// ✅ CORRECT pattern for integration tests:
+import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+import { waitForEvents, waitForCondition } from '../test-utils/async-testing'
+
 // Setup static mocks before any imports
 setupDatabaseMocks(vi)
 
@@ -387,13 +391,13 @@ afterEach(() => {
 })
 
 // ✅ ALWAYS use smart waiting:
-await waitForEvents(() => testDb.getEventsForSession(sessionId), ['user', 'assistant', 'system'])
+await waitForEvents(() => testDb.getEventsForSession(sessionId), ['system', 'user', 'assistant', 'result'])
 
-// ✅ ALWAYS use testDb helpers, NEVER direct database queries:
+// ✅ ALWAYS use testDb helpers:
 const events = testDb.getEventsForSession(sessionId)
 ```
 
-**Convert to:** Integration Tests (complete event storage workflow)
+**Result:** Integration Tests (complete event storage workflow) - All 4 tests pass reliably
 
 ### 4. events.test.tsx
 **Status**: CRITICAL - NEEDS IMMEDIATE FIX
@@ -736,7 +740,8 @@ expect(screen.getByText('Test User')).toBeInTheDocument()
 
 ### **Critical Tests Requiring Database Fix (7 files):**
 - ✅ user-message-storage.test.ts (FIXED - now follows all guidelines)
-- event-storage.test.ts, session-resumption.test.ts, api.claude-code.test.ts
+- ✅ event-storage.test.ts (FIXED - now follows all guidelines)
+- session-resumption.test.ts, api.claude-code.test.ts
 - stop-functionality.test.tsx, home.test.tsx
 - events.test.tsx, events.$sessionId.test.tsx (split into component + integration)
 
