@@ -171,7 +171,9 @@ describe('ToolCallDisplay component', () => {
     )
     
     // Should show some indication that result is available
-    expect(screen.getByTestId('has-result-indicator')).toBeInTheDocument()
+    const indicator = screen.getByTestId('tool-status-indicator')
+    expect(indicator).toBeInTheDocument()
+    expect(indicator).toHaveClass('bg-emerald-400')
   })
   
   describe('with results', () => {

@@ -2,7 +2,7 @@ import React from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import oneDark from 'react-syntax-highlighter/dist/esm/styles/prism/one-dark'
+import vscDarkPlus from 'react-syntax-highlighter/dist/esm/styles/prism/vsc-dark-plus'
 import { colors, typography, radius } from '../constants/design'
 import clsx from 'clsx'
 import type { Components } from 'react-markdown'
@@ -108,11 +108,14 @@ const components: Components = {
         <div className="my-3">
           <SyntaxHighlighter
             language={language}
-            style={oneDark}
+            style={vscDarkPlus}
             customStyle={{
               margin: 0,
               borderRadius: '0.5rem',
-              fontSize: '0.875rem'
+              fontSize: '0.875rem',
+              padding: '1rem',
+              background: 'rgb(24, 24, 27)', // zinc-900 - matches our design system
+              fontFamily: '"JetBrains Mono", "SF Mono", Monaco, "Courier New", monospace',
             }}
           >
             {String(children).replace(/\n$/, '')}

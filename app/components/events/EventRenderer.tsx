@@ -8,7 +8,7 @@ import type { AnyEvent } from '../../types/events'
 
 interface EventRendererProps {
   event: AnyEvent
-  toolResults?: Map<string, unknown>
+  toolResults?: Map<string, { result: unknown; isError?: boolean }>
   isStreaming?: boolean
 }
 

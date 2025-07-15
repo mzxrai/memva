@@ -52,7 +52,7 @@ describe('LoadingIndicator', () => {
     const container = screen.getByTestId('loading-indicator')
     const text = container.textContent || ''
     
-    // Check that it contains at least one of the expected verbs
+    // Check that it contains at least one of the expected verbs (possibly truncated)
     const verbs = [
       'Crunching', 'Pondering', 'Contemplating', 'Cogitating',
       'Ruminating', 'Deliberating', 'Noodling', 'Percolating',
@@ -63,7 +63,11 @@ describe('LoadingIndicator', () => {
       'Sifting through', 'Wrangling', 'Untangling'
     ]
     
-    const hasVerb = verbs.some(verb => text.includes(verb))
+    // Check for verb with "..." (truncated or full)
+    const hasVerb = verbs.some(verb => {
+      const expectedText = verb.length > 15 ? verb.substring(0, 15) + '...' : verb + '...'
+      return text.includes(expectedText)
+    })
     expect(hasVerb).toBe(true)
   })
 

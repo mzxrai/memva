@@ -7,6 +7,7 @@ import { useState, useRef, useEffect, useCallback, type FormEvent } from "react"
 import { RiSendPlaneFill, RiStopCircleLine } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
 import { LoadingIndicator } from "../components/LoadingIndicator";
+import { PendingMessage } from "../components/PendingMessage";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const session = await getSession(params.sessionId);
@@ -15,6 +16,13 @@ export async function loader({ params }: Route.LoaderArgs) {
 }
 
 // The EventRenderer component is already memoized and handles all event types
+
+// Helper function to estimate tokens from text (rough approximation)
+function estimateTokens(text: string): number {
+  // Rough estimate: 1 token ≈ 4 characters for English text
+  // This is a simplified heuristic but works reasonably well
+  return Math.ceil(text.length / 4)
+}
 
 // Helper function to generate stable keys for message components
 const getMessageKey = (message: Record<string, unknown>, index: number): string => {
@@ -50,7 +58,7 @@ const isToolResultMessage = (message: Record<string, unknown>): boolean => {
 };
 
 // Helper function to extract tool result data
-const extractToolResult = (message: Record<string, unknown>): { toolUseId: string; result: unknown } | null => {
+const extractToolResult = (message: Record<string, unknown>): { toolUseId: string; result: unknown; isError?: boolean } | null => {
   if (!isToolResultMessage(message)) return null;
   
   if (message.message && typeof message.message === 'object' && 'content' in message.message) {
@@ -64,17 +72,22 @@ const extractToolResult = (message: Record<string, unknown>): { toolUseId: strin
       );
       
       if (toolResult && 'tool_use_id' in toolResult) {
+        // Extract is_error flag
+        const isError = 'is_error' in toolResult && toolResult.is_error === true;
+        
         // Check if we have the actual result in toolUseResult field
         if ('toolUseResult' in message && message.toolUseResult) {
           return {
             toolUseId: toolResult.tool_use_id as string,
-            result: message.toolUseResult
+            result: message.toolUseResult,
+            isError
           };
         }
         // Otherwise use the content field
         return {
           toolUseId: toolResult.tool_use_id as string,
-          result: 'content' in toolResult ? toolResult.content : null
+          result: 'content' in toolResult ? toolResult.content : null,
+          isError
         };
       }
     }
@@ -94,11 +107,14 @@ export default function SessionDetail() {
   })).reverse()
   
   // Extract initial tool results from historical messages
-  const initialToolResults = new Map<string, unknown>();
+  const initialToolResults = new Map<string, { result: unknown; isError?: boolean }>();
   initialMessages.forEach(message => {
     const result = extractToolResult(message);
     if (result) {
-      initialToolResults.set(result.toolUseId, result.result);
+      initialToolResults.set(result.toolUseId, { 
+        result: result.result, 
+        isError: result.isError 
+      });
     }
   });
   
@@ -115,9 +131,11 @@ export default function SessionDetail() {
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [scrollbarWidth, setScrollbarWidth] = useState(0);
-  const [toolResults, setToolResults] = useState<Map<string, unknown>>(initialToolResults);
+  const [toolResults, setToolResults] = useState<Map<string, { result: unknown; isError?: boolean }>>(initialToolResults);
   const [tokenCount, setTokenCount] = useState(0);
   const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null);
+  const [isWaitingForFirstMessage, setIsWaitingForFirstMessage] = useState(false);
+  const [realTokenCount, setRealTokenCount] = useState<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Refs for chat behavior
@@ -230,6 +248,42 @@ export default function SessionDetail() {
     }
   }, [isLoading, autoScrollDisabled, messages.length]);
 
+  // Sporadic token animation while loading
+  useEffect(() => {
+    if (!isLoading) return;
+    
+    let timeoutId: ReturnType<typeof setTimeout>;
+    
+    const animateTokens = () => {
+      // Random delay between 100ms and 800ms
+      const delay = Math.random() * 700 + 100;
+      
+      // Variable increment based on how long we've been waiting
+      const baseIncrement = isWaitingForFirstMessage ? 15 : 50;
+      const variance = isWaitingForFirstMessage ? 10 : 40;
+      const increment = Math.floor(Math.random() * variance) + baseIncrement;
+      
+      timeoutId = setTimeout(() => {
+        setTokenCount(prev => {
+          // If we have real token count, don't exceed it
+          if (realTokenCount !== null && prev + increment > realTokenCount) {
+            return realTokenCount;
+          }
+          return prev + increment;
+        });
+        
+        // Continue animation if still loading and haven't reached real count
+        if (realTokenCount === null || tokenCount < realTokenCount) {
+          animateTokens();
+        }
+      }, delay);
+    };
+    
+    animateTokens();
+    
+    return () => clearTimeout(timeoutId);
+  }, [isLoading, isWaitingForFirstMessage, realTokenCount]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isLoading) {
@@ -330,9 +384,12 @@ export default function SessionDetail() {
       }
       
       hasAutoStartedRef.current = true;
+      const estimatedInputTokens = estimateTokens(session.title || 'Untitled Session');
       setIsLoading(true);
-      setTokenCount(0);
+      setTokenCount(estimatedInputTokens);
+      setRealTokenCount(null);
       setLoadingStartTime(Date.now());
+      setIsWaitingForFirstMessage(true);
       abortControllerRef.current = new AbortController();
       
       // Call Claude Code directly with session title (no form simulation needed)
@@ -349,14 +406,23 @@ export default function SessionDetail() {
           // Check if this is a tool result message
           const result = extractToolResult(message);
           if (result) {
-            // Store the tool result
-            setToolResults(prev => new Map(prev).set(result.toolUseId, result.result));
+            // Store the tool result with error status
+            setToolResults(prev => new Map(prev).set(result.toolUseId, {
+              result: result.result,
+              isError: result.isError
+            }));
             // Don't add tool result messages to the visible messages
             return;
           }
           
           // Add the message to the end (newest at bottom)
           setMessages(prev => [...prev, message]);
+          
+          // Clear waiting state when first message arrives
+          if (isWaitingForFirstMessage) {
+            console.log('[DEBUG] First message arrived, setting isWaitingForFirstMessage to false');
+            setIsWaitingForFirstMessage(false);
+          }
           
           // Count tokens from messages with usage data
           const messageWithUsage = message as { 
@@ -380,8 +446,15 @@ export default function SessionDetail() {
                 output: usageObj.output_tokens, 
                 total: currentTokens 
               });
-              // Accumulate tokens instead of replacing
+              // Set real token count and update displayed count
+              setRealTokenCount(prev => (prev || 0) + currentTokens);
               setTokenCount(prev => {
+                const realTotal = (realTokenCount || 0) + currentTokens;
+                // If animation overshot, immediately correct to real value
+                if (prev > realTotal) {
+                  return realTotal;
+                }
+                // Otherwise let animation continue toward real value
                 const newCount = prev + currentTokens;
                 console.log('[Token Count - Auto] Updated:', { prev, current: currentTokens, new: newCount });
                 return newCount;
@@ -404,6 +477,8 @@ export default function SessionDetail() {
           }]);
           setIsLoading(false);
           setLoadingStartTime(null);
+          setIsWaitingForFirstMessage(false);
+          setRealTokenCount(null);
         },
         signal: abortControllerRef.current.signal
       });
@@ -435,10 +510,16 @@ export default function SessionDetail() {
       setAutoScrollDisabled(false);
     }
     
+    // Estimate initial tokens from the prompt
+    const estimatedInputTokens = estimateTokens(userPrompt);
+    
     setPrompt("");
     setIsLoading(true);
-    setTokenCount(0);
+    setTokenCount(estimatedInputTokens); // Start with estimated tokens instead of 0
+    setRealTokenCount(null); // Reset real token count
     setLoadingStartTime(Date.now());
+    console.log('[DEBUG] Setting isWaitingForFirstMessage to true on prompt submit');
+    setIsWaitingForFirstMessage(true);
 
     // Create new abort controller for this request
     abortControllerRef.current = new AbortController();
@@ -456,14 +537,23 @@ export default function SessionDetail() {
         // Check if this is a tool result message
         const result = extractToolResult(message);
         if (result) {
-          // Store the tool result
-          setToolResults(prev => new Map(prev).set(result.toolUseId, result.result));
+          // Store the tool result with error status
+          setToolResults(prev => new Map(prev).set(result.toolUseId, {
+            result: result.result,
+            isError: result.isError
+          }));
           // Don't add tool result messages to the visible messages
           return;
         }
         
         // Add the message to the end (newest at bottom)
         setMessages(prev => [...prev, message]);
+        
+        // Clear waiting state when first message arrives
+        if (isWaitingForFirstMessage) {
+          console.log('[DEBUG] First message arrived (regular prompt), setting isWaitingForFirstMessage to false');
+          setIsWaitingForFirstMessage(false);
+        }
         
         // Count tokens from messages with usage data
         const messageWithUsage = message as { 
@@ -487,8 +577,15 @@ export default function SessionDetail() {
               output: usageObj.output_tokens, 
               total: currentTokens 
             });
-            // Accumulate tokens instead of replacing
+            // Set real token count and update displayed count
+            setRealTokenCount(prev => (prev || 0) + currentTokens);
             setTokenCount(prev => {
+              const realTotal = (realTokenCount || 0) + currentTokens;
+              // If animation overshot, immediately correct to real value
+              if (prev > realTotal) {
+                return realTotal;
+              }
+              // Otherwise let animation continue toward real value
               const newCount = prev + currentTokens;
               console.log('[Token Count] Updated:', { prev, current: currentTokens, new: newCount });
               return newCount;
@@ -500,6 +597,8 @@ export default function SessionDetail() {
         if (message.type === 'result') {
           setIsLoading(false);
           setLoadingStartTime(null);
+          setIsWaitingForFirstMessage(false);
+          setRealTokenCount(null);
         }
       },
       onError: (error) => {
@@ -519,12 +618,15 @@ export default function SessionDetail() {
   const handleStop = () => {
     const stopClickTime = new Date().toISOString();
     console.log(`[Client] Stop button clicked at ${stopClickTime}`);
+    console.log(`[DEBUG] Current state: isLoading=${isLoading}, isWaitingForFirstMessage=${isWaitingForFirstMessage}`);
     if (abortControllerRef.current) {
       console.log('[Client] Aborting fetch request');
       // This will abort the fetch, triggering the cancel() method on the server
       abortControllerRef.current.abort();
       setIsLoading(false);
       setLoadingStartTime(null);
+      console.log('[DEBUG] Setting isWaitingForFirstMessage to false in handleStop');
+      setIsWaitingForFirstMessage(false);
       console.log('[Client] Fetch aborted, loading state set to false');
     }
   };
@@ -576,6 +678,11 @@ export default function SessionDetail() {
                   isStreaming={isLoading}
                 />
               ))}
+            
+            {/* Show pending message indicator when waiting for first response */}
+            {isWaitingForFirstMessage && (
+              <PendingMessage />
+            )}
           </div>
         )}
       </div>
@@ -594,11 +701,13 @@ export default function SessionDetail() {
               {/* Loading indicator */}
               {isLoading && loadingStartTime && (
                 <div className="mb-2">
-                  <LoadingIndicator
-                    tokenCount={tokenCount}
-                    startTime={loadingStartTime}
-                    isLoading={isLoading}
-                  />
+                  <div className="px-4 pt-2 pb-0.5 bg-zinc-900/40 backdrop-blur-sm rounded-full inline-block">
+                    <LoadingIndicator
+                      tokenCount={tokenCount}
+                      startTime={loadingStartTime}
+                      isLoading={isLoading}
+                    />
+                  </div>
                 </div>
               )}
               <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 p-4">

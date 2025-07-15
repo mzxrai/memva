@@ -49,7 +49,13 @@ function formatElapsedTime(startTime: number): string {
 }
 
 function formatTokenCount(count: number): string {
-  return count.toLocaleString()
+  if (count < 1000) {
+    return count.toString()
+  }
+  
+  // Format as k with one decimal place
+  const k = count / 1000
+  return `${k.toFixed(1)}k`
 }
 
 export function LoadingIndicator({ tokenCount, startTime, isLoading = true }: LoadingIndicatorProps) {
@@ -175,7 +181,7 @@ export function LoadingIndicator({ tokenCount, startTime, isLoading = true }: Lo
       </span>
 
       {/* Token count - fixed width container */}
-      <div className="w-24 mr-3 text-center">
+      <div className="w-32 mr-3 text-center">
         <span className={clsx(
           typography.font.mono,
           typography.size.sm,

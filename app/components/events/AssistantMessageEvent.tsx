@@ -12,18 +12,24 @@ import clsx from 'clsx'
 
 interface AssistantMessageEventProps {
   event: AnyEvent
-  toolResults?: Map<string, unknown>
+  toolResults?: Map<string, { result: unknown; isError?: boolean }>
   isStreaming?: boolean
 }
 
-function renderContent(content: AssistantMessageContent, toolResults?: Map<string, unknown>, isStreaming?: boolean): ReactNode {
+function renderContent(content: AssistantMessageContent, toolResults?: Map<string, { result: unknown; isError?: boolean }>, isStreaming?: boolean): ReactNode {
   switch (content.type) {
     case 'text':
       return <MarkdownRenderer content={content.text || ''} />
     
     case 'tool_use': {
-      const result = toolResults?.get(content.id);
-      return <ToolCallDisplay toolCall={content} result={result} isStreaming={isStreaming} />
+      const toolResult = toolResults?.get(content.id);
+      return <ToolCallDisplay 
+        toolCall={content} 
+        result={toolResult?.result} 
+        hasResult={!!toolResult}
+        isError={toolResult?.isError}
+        isStreaming={isStreaming} 
+      />
     }
     
     case 'thinking':

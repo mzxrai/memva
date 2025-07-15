@@ -10,7 +10,6 @@ import {
   RiToolsLine,
   RiArrowRightSLine,
   RiArrowDownSLine,
-  RiCheckLine,
   RiFileCopyLine,
   RiDeleteBinLine,
   RiAddLine,
@@ -27,6 +26,7 @@ interface ToolCallDisplayProps {
   result?: unknown
   className?: string
   isStreaming?: boolean
+  isError?: boolean
 }
 
 // Map tool names to appropriate icons
@@ -154,10 +154,10 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
       const firstLine = lines[0] || ''
       let brief: string
       if (lines.length > 1) {
-        const preview = firstLine.length > 50 ? firstLine.substring(0, 50) + '…' : firstLine
+        const preview = firstLine.length > 150 ? firstLine.substring(0, 150) + '…' : firstLine
         brief = `${preview} (+${lines.length - 1} more)`
       } else {
-        brief = firstLine.substring(0, 80) + (firstLine.length > 80 ? '…' : '')
+        brief = firstLine.substring(0, 200) + (firstLine.length > 200 ? '…' : '')
       }
       return { status: 'success', brief, full: bashResult.stdout }
     }
@@ -195,17 +195,25 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
     if (lines.length > 3) {
       return { status: 'success', brief: `${lines.length} lines`, full: result }
     }
-    return { status: 'success', brief: result.substring(0, 50) + (result.length > 50 ? '...' : ''), full: result }
+    return { status: 'success', brief: result.substring(0, 150) + (result.length > 150 ? '...' : ''), full: result }
   }
   
-  return { status: 'success', brief: JSON.stringify(result).substring(0, 50) + '...', full: JSON.stringify(result, null, 2) }
+  return { status: 'success', brief: JSON.stringify(result).substring(0, 150) + '...', full: JSON.stringify(result, null, 2) }
 }
 
-export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, className, isStreaming = false }: ToolCallDisplayProps) => {
+export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, className, isStreaming = false, isError = false }: ToolCallDisplayProps) => {
   // Auto-expand Edit/MultiEdit tools to show diff by default, but NOT during streaming
   const isEditTool = toolCall.name === 'Edit' || toolCall.name === 'MultiEdit'
   const [isExpanded, setIsExpanded] = useState(isEditTool && !isStreaming)
   const [showFullResult, setShowFullResult] = useState(false)
+  
+  // Check if this is an interrupted bash command
+  const isInterrupted = toolCall.name === 'Bash' && 
+    result && 
+    typeof result === 'object' && 
+    result !== null &&
+    'interrupted' in result &&
+    (result as { interrupted?: boolean }).interrupted === true
   
   // Debug logging
   if (isEditTool) {
@@ -384,13 +392,23 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
           {toolCall.name}
         </span>
         
+        {/* Status indicator - shows right after tool name */}
+        <div 
+          data-testid="tool-status-indicator"
+          className={clsx(
+            'w-2 h-2 rounded-full',
+            hasResult ? (
+              isInterrupted ? 'bg-amber-400' : (isError ? 'bg-red-400' : 'bg-emerald-400')
+            ) : 'bg-zinc-600 animate-pulse'
+          )} />
+        
         {/* Primary parameter preview */}
         {primaryParam && (
           <span className={clsx(
             typography.font.mono,
             typography.size.sm,
             colors.text.secondary,
-            'truncate max-w-md'
+            'truncate max-w-3xl'
           )}>
             {primaryParam}
           </span>
@@ -412,26 +430,12 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
           {toolCall.id}
         </span>
         
-        {/* Result indicator */}
-        {hasResult && (
-          <div
-            data-testid="has-result-indicator"
-            className={clsx(
-              'p-1',
-              colors.accent.green.bg,
-              colors.accent.green.border,
-              'border',
-              radius.full,
-              'ml-auto'
-            )}
-          >
-            <RiCheckLine className={clsx(iconSize.xs, colors.accent.green.text)} />
-          </div>
-        )}
+        {/* Spacer to push expand icon to the right */}
+        <div className="flex-1" />
         
         {/* Expand/collapse icon - only show if no result */}
         {!formattedResult && (
-          <div className="ml-auto">
+          <div>
             {isExpanded ? (
               <RiArrowDownSLine className={clsx(iconSize.md, colors.text.tertiary)} />
             ) : (
