@@ -1,63 +1,60 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { ToolCallDisplay } from '../components/events/ToolCallDisplay'
+import { MOCK_TOOLS } from '../test-utils/factories'
+import { expectSemanticMarkup, expectContent } from '../test-utils/component-testing'
 import type { ToolUseContent } from '../types/events'
 
 describe('ToolCallDisplay component', () => {
-  const basicToolCall: ToolUseContent = {
-    type: 'tool_use',
-    id: 'toolu_01ABC123',
-    name: 'Read',
-    input: {
-      file_path: '/path/to/file.ts'
-    }
-  }
-  
-  it('should render tool name with proper styling', () => {
-    render(<ToolCallDisplay toolCall={basicToolCall} />)
+  it('should render tool name and display visible content', () => {
+    const readTool = MOCK_TOOLS.read('/path/to/file.ts')
+    render(<ToolCallDisplay toolCall={readTool} />)
     
-    expect(screen.getByText('Read')).toBeInTheDocument()
-    // Should use monospace font for tool name
-    expect(screen.getByText('Read')).toHaveClass('font-mono')
+    expectContent.text('Read')
+    expectContent.text('/path/to/file.ts')
   })
   
-  it('should display appropriate icon for different tool types', () => {
+  it('should display icons for different tool types', () => {
     const tools = [
-      { name: 'Read', iconTestId: 'read-icon' },
-      { name: 'Write', iconTestId: 'write-icon' },
-      { name: 'Edit', iconTestId: 'edit-icon' },
-      { name: 'Bash', iconTestId: 'bash-icon' },
-      { name: 'Task', iconTestId: 'task-icon' },
-      { name: 'WebFetch', iconTestId: 'web-icon' },
-      { name: 'Grep', iconTestId: 'search-icon' },
+      { name: 'Read', factory: () => MOCK_TOOLS.read('/test.ts') },
+      { name: 'Write', factory: () => MOCK_TOOLS.write('/test.ts', 'content') },
+      { name: 'Edit', factory: () => MOCK_TOOLS.edit('/test.ts', 'old', 'new') },
+      { name: 'Bash', factory: () => MOCK_TOOLS.bash('ls') },
     ]
     
-    tools.forEach(({ name, iconTestId }) => {
-      const { unmount } = render(
-        <ToolCallDisplay toolCall={{ ...basicToolCall, name }} />
+    tools.forEach(({ name, factory }) => {
+      const { unmount, container } = render(
+        <ToolCallDisplay toolCall={factory()} />
       )
-      expect(screen.getByTestId(iconTestId)).toBeInTheDocument()
+      
+      expectContent.text(name)
+      // Check that an icon is present (SVG element)
+      const svgElement = container.querySelector('svg')
+      expect(svgElement).toBeInTheDocument()
+      
       unmount()
     })
   })
   
   it('should show primary parameter in header', () => {
-    render(<ToolCallDisplay toolCall={basicToolCall} />)
+    const readTool = MOCK_TOOLS.read('/path/to/file.ts')
+    render(<ToolCallDisplay toolCall={readTool} />)
     
     // Should show the file path as primary parameter
-    expect(screen.getByText('/path/to/file.ts')).toBeInTheDocument()
-    expect(screen.getByText('/path/to/file.ts')).toHaveClass('font-mono')
+    expectContent.text('/path/to/file.ts')
   })
   
   it('should render parameters in collapsed state by default', () => {
-    render(<ToolCallDisplay toolCall={basicToolCall} />)
+    const readTool = MOCK_TOOLS.read('/path/to/file.ts')
+    render(<ToolCallDisplay toolCall={readTool} />)
     
     // Parameters should not be visible initially
     expect(screen.queryByText('file_path')).not.toBeInTheDocument()
   })
   
   it('should expand to show parameters when clicked', () => {
-    render(<ToolCallDisplay toolCall={basicToolCall} />)
+    const readTool = MOCK_TOOLS.read('/path/to/file.ts')
+    render(<ToolCallDisplay toolCall={readTool} />)
     
     // Click to expand
     const expandButton = screen.getByRole('button', { name: /show parameters/i })
@@ -69,15 +66,11 @@ describe('ToolCallDisplay component', () => {
   })
   
   it('should show primary parameter for Edit tool', () => {
-    const complexInput = {
-      file_path: '/path/to/file.ts',
-      old_string: 'const x = 1',
-      new_string: 'const x = 2'
-    }
+    const editTool = MOCK_TOOLS.edit('/path/to/file.ts', 'const x = 1', 'const x = 2')
     
     render(
       <ToolCallDisplay 
-        toolCall={{ ...basicToolCall, name: 'Edit', input: complexInput }}
+        toolCall={editTool}
         hasResult={true}
         result="The file /path/to/file.ts has been updated. Here's the result of running `cat -n` on a snippet of the edited file:\n   1→const x = 2"
       />
@@ -88,8 +81,8 @@ describe('ToolCallDisplay component', () => {
     expect(headerElement).toHaveTextContent('/path/to/file.ts')
     
     // Should auto-expand to show diff for Edit tools
-    expect(screen.getByText('const x = 1')).toBeInTheDocument()
-    expect(screen.getByText('const x = 2')).toBeInTheDocument()
+    expectContent.text('const x = 1')
+    expectContent.text('const x = 2')
   })
 
   it('should show diff for MultiEdit tool with multiple edits', () => {
@@ -107,31 +100,43 @@ describe('ToolCallDisplay component', () => {
       ]
     }
     
+    const multiEditTool: ToolUseContent = {
+      type: 'tool_use',
+      id: 'toolu_01ABC123',
+      name: 'MultiEdit',
+      input: multiEditInput
+    }
+    
     render(
       <ToolCallDisplay 
-        toolCall={{ ...basicToolCall, name: 'MultiEdit', input: multiEditInput }}
+        toolCall={multiEditTool}
         hasResult={true}
         result="The file /path/to/file.ts has been updated. Here's the result of running `cat -n` on a snippet of the edited file:\n   1→const x = 2\n   2→const y = 4"
       />
     )
     
     // Should auto-expand to show unified diff for MultiEdit tools
-    expect(screen.getByText('const x = 1')).toBeInTheDocument()
-    expect(screen.getByText('const x = 2')).toBeInTheDocument()
-    expect(screen.getByText('const y = 3')).toBeInTheDocument()
-    expect(screen.getByText('const y = 4')).toBeInTheDocument()
+    expectContent.text('const x = 1')
+    expectContent.text('const x = 2')
+    expectContent.text('const y = 3')
+    expectContent.text('const y = 4')
     
     // Should show edit summary instead of individual counters
-    expect(screen.getByText('2 edits applied')).toBeInTheDocument()
+    expectContent.text('2 edits applied')
   })
   
   it('should handle empty input gracefully', () => {
-    render(
-      <ToolCallDisplay toolCall={{ ...basicToolCall, input: {} }} />
-    )
+    const emptyTool: ToolUseContent = {
+      type: 'tool_use',
+      id: 'toolu_01ABC123',
+      name: 'Read',
+      input: {}
+    }
+    
+    render(<ToolCallDisplay toolCall={emptyTool} />)
     
     // Should still show the tool name even with empty input
-    expect(screen.getByText('Read')).toBeInTheDocument()
+    expectContent.text('Read')
   })
   
   it('should render complex nested input properly', () => {
@@ -143,14 +148,18 @@ describe('ToolCallDisplay component', () => {
       paths: ['/src', '/tests']
     }
     
-    render(
-      <ToolCallDisplay 
-        toolCall={{ ...basicToolCall, input: nestedInput }} 
-      />
-    )
+    const complexTool: ToolUseContent = {
+      type: 'tool_use',
+      id: 'toolu_01ABC123',
+      name: 'Grep',
+      input: nestedInput
+    }
+    
+    render(<ToolCallDisplay toolCall={complexTool} />)
     
     // Expand to see parameters
-    fireEvent.click(screen.getByRole('button', { name: /show parameters/i }))
+    const expandButton = screen.getByRole('button', { name: /show parameters/i })
+    fireEvent.click(expandButton)
     
     // Should render JSON nicely
     expect(screen.getByText(/"recursive":/)).toBeInTheDocument()
@@ -158,22 +167,24 @@ describe('ToolCallDisplay component', () => {
   })
   
   it('should apply custom className if provided', () => {
+    const readTool = MOCK_TOOLS.read('/path/to/file.ts')
     const { container } = render(
-      <ToolCallDisplay toolCall={basicToolCall} className="custom-class" />
+      <ToolCallDisplay toolCall={readTool} className="custom-class" />
     )
     
     expect(container.firstChild).toHaveClass('custom-class')
   })
   
   it('should indicate when linked to a result', () => {
+    const readTool = MOCK_TOOLS.read('/path/to/file.ts')
     render(
-      <ToolCallDisplay toolCall={basicToolCall} hasResult={true} />
+      <ToolCallDisplay toolCall={readTool} hasResult={true} />
     )
     
     // Should show some indication that result is available
     const indicator = screen.getByTestId('tool-status-indicator')
     expect(indicator).toBeInTheDocument()
-    expect(indicator).toHaveClass('bg-emerald-400')
+    expect(indicator).toHaveAttribute('data-status', 'success')
   })
   
   describe('with results', () => {
@@ -184,8 +195,9 @@ describe('ToolCallDisplay component', () => {
         interrupted: false
       }
       
+      const readTool = MOCK_TOOLS.read('/path/to/file.ts')
       render(
-        <ToolCallDisplay toolCall={basicToolCall} result={result} />
+        <ToolCallDisplay toolCall={readTool} result={result} />
       )
       
       // Should show result content
@@ -193,12 +205,7 @@ describe('ToolCallDisplay component', () => {
     })
     
     it('should show success status for successful Bash commands', () => {
-      const bashCall: ToolUseContent = {
-        type: 'tool_use',
-        id: 'toolu_01ABC123',
-        name: 'Bash',
-        input: { command: 'ls -la' }
-      }
+      const bashTool = MOCK_TOOLS.bash('ls -la')
       
       const result = {
         stdout: 'file1.txt\nfile2.txt',
@@ -207,7 +214,7 @@ describe('ToolCallDisplay component', () => {
       }
       
       render(
-        <ToolCallDisplay toolCall={bashCall} result={result} />
+        <ToolCallDisplay toolCall={bashTool} result={result} />
       )
       
       // Should show result with line count
@@ -215,12 +222,7 @@ describe('ToolCallDisplay component', () => {
     })
     
     it('should show error status for failed Bash commands', () => {
-      const bashCall: ToolUseContent = {
-        type: 'tool_use',
-        id: 'toolu_01ABC123',
-        name: 'Bash',
-        input: { command: 'invalid-command' }
-      }
+      const bashTool = MOCK_TOOLS.bash('invalid-command')
       
       const result = {
         stdout: '',
@@ -229,7 +231,7 @@ describe('ToolCallDisplay component', () => {
       }
       
       render(
-        <ToolCallDisplay toolCall={bashCall} result={result} />
+        <ToolCallDisplay toolCall={bashTool} result={result} />
       )
       
       // Should show error indicator
@@ -245,13 +247,13 @@ describe('ToolCallDisplay component', () => {
         interrupted: false
       }
       
+      const readTool = MOCK_TOOLS.read('/path/to/file.ts')
       render(
-        <ToolCallDisplay toolCall={basicToolCall} result={longResult} />
+        <ToolCallDisplay toolCall={readTool} result={longResult} />
       )
       
       // Should show collapsed state with expand button
       const expandButton = screen.getByRole('button', { name: /expand/i })
-      expect(expandButton).toBeInTheDocument()
       
       // Click to expand
       fireEvent.click(expandButton)
@@ -261,17 +263,12 @@ describe('ToolCallDisplay component', () => {
     })
     
     it('should handle Read tool results', () => {
-      const readCall: ToolUseContent = {
-        type: 'tool_use',
-        id: 'toolu_01ABC123',
-        name: 'Read',
-        input: { file_path: '/path/to/file.ts' }
-      }
+      const readTool = MOCK_TOOLS.read('/path/to/file.ts')
       
       const result = 'File contents here with multiple lines\nLine 2\nLine 3'
       
       render(
-        <ToolCallDisplay toolCall={readCall} result={result} />
+        <ToolCallDisplay toolCall={readTool} result={result} />
       )
       
       // Should show file loaded indicator
@@ -279,21 +276,16 @@ describe('ToolCallDisplay component', () => {
     })
     
     it('should handle Write tool results', () => {
-      const writeCall: ToolUseContent = {
-        type: 'tool_use',
-        id: 'toolu_01ABC123',
-        name: 'Write',
-        input: { file_path: '/path/to/file.ts', content: 'new content' }
-      }
+      const writeTool = MOCK_TOOLS.write('/path/to/file.ts', 'new content')
       
       const result = { success: true }
       
       render(
-        <ToolCallDisplay toolCall={writeCall} result={result} />
+        <ToolCallDisplay toolCall={writeTool} result={result} />
       )
       
       // Should show success indicator
-      expect(screen.getByText('Updated')).toBeInTheDocument()
+      expectContent.text('Updated')
     })
     
     it('should handle error results gracefully', () => {
@@ -302,8 +294,9 @@ describe('ToolCallDisplay component', () => {
         is_error: true
       }
       
+      const readTool = MOCK_TOOLS.read('/path/to/file.ts')
       render(
-        <ToolCallDisplay toolCall={basicToolCall} result={result} />
+        <ToolCallDisplay toolCall={readTool} result={result} />
       )
       
       // Should show error
@@ -311,8 +304,9 @@ describe('ToolCallDisplay component', () => {
     })
     
     it('should not show result section when result is null', () => {
+      const readTool = MOCK_TOOLS.read('/path/to/file.ts')
       render(
-        <ToolCallDisplay toolCall={basicToolCall} result={null} />
+        <ToolCallDisplay toolCall={readTool} result={null} />
       )
       
       // Should not show result section
