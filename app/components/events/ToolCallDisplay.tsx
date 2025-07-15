@@ -23,6 +23,7 @@ import clsx from 'clsx'
 interface ToolCallDisplayProps {
   toolCall: ToolUseContent
   hasResult?: boolean
+  result?: unknown
   className?: string
 }
 
@@ -91,11 +92,78 @@ const getPrimaryParam = (toolName: string, input: unknown): string => {
   }
 }
 
-export const ToolCallDisplay = memo(({ toolCall, hasResult = false, className }: ToolCallDisplayProps) => {
+// Format result based on tool type and result structure
+const formatResult = (toolName: string, result: unknown): { status: 'success' | 'error', brief: string, full?: string } => {
+  if (!result) return { status: 'success', brief: 'No result' }
+  
+  // Handle Bash command results
+  if (toolName === 'Bash' && typeof result === 'object' && result !== null) {
+    const bashResult = result as { stdout?: string, stderr?: string, interrupted?: boolean }
+    if (bashResult.interrupted) {
+      return { status: 'error', brief: '✗ Interrupted', full: bashResult.stdout || bashResult.stderr }
+    }
+    if (bashResult.stderr && bashResult.stderr.trim()) {
+      return { status: 'error', brief: '✗ Error', full: bashResult.stderr }
+    }
+    if (bashResult.stdout) {
+      const lines = bashResult.stdout.trim().split('\n')
+      const firstLine = lines[0] || ''
+      let brief: string
+      if (lines.length > 1) {
+        const preview = firstLine.length > 50 ? firstLine.substring(0, 50) + '…' : firstLine
+        brief = `${preview} (+${lines.length - 1} more)`
+      } else {
+        brief = firstLine.substring(0, 80) + (firstLine.length > 80 ? '…' : '')
+      }
+      return { status: 'success', brief, full: bashResult.stdout }
+    }
+    return { status: 'success', brief: 'Done' }
+  }
+  
+  // Handle Read tool results
+  if (toolName === 'Read' && typeof result === 'string') {
+    const lines = result.trim().split('\n')
+    const lineCount = lines.length
+    const brief = `${lineCount} line${lineCount !== 1 ? 's' : ''} loaded`
+    return { status: 'success', brief, full: result }
+  }
+  
+  // Handle Write/Edit tool results
+  if ((toolName === 'Write' || toolName === 'Edit' || toolName === 'MultiEdit') && 
+      typeof result === 'object' && result !== null) {
+    const writeResult = result as { success?: boolean }
+    if (writeResult.success) {
+      return { status: 'success', brief: 'Updated' }
+    }
+  }
+  
+  // Handle error results
+  if (typeof result === 'object' && result !== null) {
+    const errorResult = result as { error?: string, is_error?: boolean }
+    if (errorResult.error || errorResult.is_error) {
+      return { status: 'error', brief: errorResult.error || 'Error occurred' }
+    }
+  }
+  
+  // Default formatting
+  if (typeof result === 'string') {
+    const lines = result.trim().split('\n')
+    if (lines.length > 3) {
+      return { status: 'success', brief: `${lines.length} lines`, full: result }
+    }
+    return { status: 'success', brief: result.substring(0, 50) + (result.length > 50 ? '...' : ''), full: result }
+  }
+  
+  return { status: 'success', brief: JSON.stringify(result).substring(0, 50) + '...', full: JSON.stringify(result, null, 2) }
+}
+
+export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, className }: ToolCallDisplayProps) => {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [showFullResult, setShowFullResult] = useState(false)
   
   const Icon = toolIcons[toolCall.name] || RiToolsLine
   const primaryParam = getPrimaryParam(toolCall.name, toolCall.input)
+  const formattedResult = result ? formatResult(toolCall.name, result) : null
   
   return (
     <div
@@ -112,13 +180,14 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, className }:
     >
       {/* Tool header */}
       <button
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={() => !formattedResult && setIsExpanded(!isExpanded)}
         aria-label={isExpanded ? 'hide parameters' : 'show parameters'}
         className={clsx(
-          'w-full flex items-center gap-3 p-3',
-          colors.background.hover,
+          'w-full flex items-center gap-3',
+          formattedResult ? 'px-3 py-2' : 'p-3',
+          !formattedResult && colors.background.hover,
           transition.fast,
-          'cursor-pointer'
+          formattedResult ? 'cursor-default' : 'cursor-pointer'
         )}
       >
         {/* Tool icon */}
@@ -182,8 +251,8 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, className }:
           </div>
         )}
         
-        {/* Expand/collapse icon */}
-        {!hasResult && (
+        {/* Expand/collapse icon - only show if no result */}
+        {!formattedResult && (
           <div className="ml-auto">
             {isExpanded ? (
               <RiArrowDownSLine className={clsx(iconSize.md, colors.text.tertiary)} />
@@ -207,6 +276,57 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, className }:
             showLineNumbers={false}
             className="text-xs"
           />
+        </div>
+      )}
+      
+      {/* Result section - minimal inline display */}
+      {formattedResult && (
+        <div className="px-3 pb-2">
+          <div className={clsx(
+            'flex items-center gap-2',
+            typography.font.mono,
+            typography.size.xs
+          )}>
+            <span className={clsx(
+              formattedResult.status === 'error' ? colors.accent.red.text : colors.text.tertiary
+            )}>
+              {formattedResult.brief}
+            </span>
+            {formattedResult.full && formattedResult.full.length > 100 && (
+              <button
+                onClick={() => setShowFullResult(!showFullResult)}
+                className={clsx(
+                  'flex items-center justify-center',
+                  'w-5 h-5',
+                  'border border-zinc-700',
+                  'bg-zinc-800/50',
+                  'hover:bg-zinc-700/50',
+                  'rounded',
+                  transition.fast
+                )}
+                aria-label={showFullResult ? 'Collapse' : 'Expand'}
+              >
+                <RiArrowDownSLine className={clsx(
+                  'w-3 h-3',
+                  colors.text.tertiary,
+                  transition.fast,
+                  showFullResult && 'rotate-180'
+                )} />
+              </button>
+            )}
+          </div>
+          
+          {/* Expanded result view */}
+          {showFullResult && formattedResult.full && (
+            <div className="mt-2">
+              <CodeBlock
+                code={formattedResult.full}
+                language={toolCall.name === 'Bash' ? 'bash' : 'text'}
+                showLineNumbers={false}
+                className="text-xs"
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -28,6 +28,60 @@ const getMessageKey = (message: Record<string, unknown>, index: number): string 
   return `message-${index}-${JSON.stringify(message).slice(0, 50)}`;
 };
 
+// Helper function to check if a message is a tool result
+const isToolResultMessage = (message: Record<string, unknown>): boolean => {
+  if (message.type !== 'user') return false;
+  
+  // Check if message content contains tool_result
+  if (message.message && typeof message.message === 'object' && 'content' in message.message) {
+    const content = (message.message as { content: unknown }).content;
+    if (Array.isArray(content) && content.length > 0) {
+      return content.some(item => 
+        typeof item === 'object' && 
+        item !== null && 
+        'type' in item && 
+        item.type === 'tool_result'
+      );
+    }
+  }
+  
+  return false;
+};
+
+// Helper function to extract tool result data
+const extractToolResult = (message: Record<string, unknown>): { toolUseId: string; result: unknown } | null => {
+  if (!isToolResultMessage(message)) return null;
+  
+  if (message.message && typeof message.message === 'object' && 'content' in message.message) {
+    const content = (message.message as { content: unknown }).content;
+    if (Array.isArray(content)) {
+      const toolResult = content.find(item => 
+        typeof item === 'object' && 
+        item !== null && 
+        'type' in item && 
+        item.type === 'tool_result'
+      );
+      
+      if (toolResult && 'tool_use_id' in toolResult) {
+        // Check if we have the actual result in toolUseResult field
+        if ('toolUseResult' in message && message.toolUseResult) {
+          return {
+            toolUseId: toolResult.tool_use_id as string,
+            result: message.toolUseResult
+          };
+        }
+        // Otherwise use the content field
+        return {
+          toolUseId: toolResult.tool_use_id as string,
+          result: 'content' in toolResult ? toolResult.content : null
+        };
+      }
+    }
+  }
+  
+  return null;
+};
+
 export default function SessionDetail() {
   const { session, events = [] } = useLoaderData<typeof loader>();
   
@@ -37,6 +91,15 @@ export default function SessionDetail() {
     uuid: event.uuid,
     memva_session_id: event.memva_session_id || undefined
   })).reverse()
+  
+  // Extract initial tool results from historical messages
+  const initialToolResults = new Map<string, unknown>();
+  initialMessages.forEach(message => {
+    const result = extractToolResult(message);
+    if (result) {
+      initialToolResults.set(result.toolUseId, result.result);
+    }
+  });
   
   // Debug logging for event ordering
   if (events.length > 0) {
@@ -51,6 +114,7 @@ export default function SessionDetail() {
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [scrollbarWidth, setScrollbarWidth] = useState(0);
+  const [toolResults, setToolResults] = useState<Map<string, unknown>>(initialToolResults);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Refs for chat behavior
@@ -242,6 +306,15 @@ export default function SessionDetail() {
             timestamp: message.timestamp || new Date().toISOString()
           });
           
+          // Check if this is a tool result message
+          const result = extractToolResult(message);
+          if (result) {
+            // Store the tool result
+            setToolResults(prev => new Map(prev).set(result.toolUseId, result.result));
+            // Don't add tool result messages to the visible messages
+            return;
+          }
+          
           // Add the message to the end (newest at bottom)
           setMessages(prev => [...prev, message]);
           
@@ -304,6 +377,15 @@ export default function SessionDetail() {
           uuid: message.uuid,
           timestamp: message.timestamp || new Date().toISOString()
         });
+        
+        // Check if this is a tool result message
+        const result = extractToolResult(message);
+        if (result) {
+          // Store the tool result
+          setToolResults(prev => new Map(prev).set(result.toolUseId, result.result));
+          // Don't add tool result messages to the visible messages
+          return;
+        }
         
         // Add the message to the end (newest at bottom)
         setMessages(prev => [...prev, message]);
@@ -369,12 +451,15 @@ export default function SessionDetail() {
               ? "min-h-full flex flex-col justify-end pt-6 pb-32"     // Overflow: bottom-anchored (newest at bottom)
               : "min-h-full flex flex-col justify-start pt-6 pb-32"   // Fits: top-anchored (start from top)
             }>
-            {messages.map((message, index) => (
-              <EventRenderer
-                key={getMessageKey(message, index)}
-                event={message}
-              />
-            ))}
+            {messages
+              .filter(message => !isToolResultMessage(message))
+              .map((message, index) => (
+                <EventRenderer
+                  key={getMessageKey(message, index)}
+                  event={message}
+                  toolResults={toolResults}
+                />
+              ))}
           </div>
         )}
       </div>

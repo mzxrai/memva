@@ -133,4 +133,148 @@ describe('ToolCallDisplay component', () => {
     // Should show some indication that result is available
     expect(screen.getByTestId('has-result-indicator')).toBeInTheDocument()
   })
+  
+  describe('with results', () => {
+    it('should display result inline when provided', () => {
+      const result = {
+        stdout: 'File content here',
+        stderr: '',
+        interrupted: false
+      }
+      
+      render(
+        <ToolCallDisplay toolCall={basicToolCall} result={result} />
+      )
+      
+      // Should show result content
+      expect(screen.getByText(/stdout.*File content here/)).toBeInTheDocument()
+    })
+    
+    it('should show success status for successful Bash commands', () => {
+      const bashCall: ToolUseContent = {
+        type: 'tool_use',
+        id: 'toolu_01ABC123',
+        name: 'Bash',
+        input: { command: 'ls -la' }
+      }
+      
+      const result = {
+        stdout: 'file1.txt\nfile2.txt',
+        stderr: '',
+        interrupted: false
+      }
+      
+      render(
+        <ToolCallDisplay toolCall={bashCall} result={result} />
+      )
+      
+      // Should show result with line count
+      expect(screen.getByText(/file1\.txt.*\+1 more/)).toBeInTheDocument()
+    })
+    
+    it('should show error status for failed Bash commands', () => {
+      const bashCall: ToolUseContent = {
+        type: 'tool_use',
+        id: 'toolu_01ABC123',
+        name: 'Bash',
+        input: { command: 'invalid-command' }
+      }
+      
+      const result = {
+        stdout: '',
+        stderr: 'command not found: invalid-command',
+        interrupted: false
+      }
+      
+      render(
+        <ToolCallDisplay toolCall={bashCall} result={result} />
+      )
+      
+      // Should show error indicator
+      expect(screen.getByText(/✗/)).toBeInTheDocument()
+      // Error is shown in the brief message for short errors
+      expect(screen.getByText(/✗ Error/)).toBeInTheDocument()
+    })
+    
+    it('should collapse long results by default', () => {
+      const longResult = {
+        stdout: 'Line 1\n'.repeat(50),
+        stderr: '',
+        interrupted: false
+      }
+      
+      render(
+        <ToolCallDisplay toolCall={basicToolCall} result={longResult} />
+      )
+      
+      // Should show collapsed state with expand button
+      const expandButton = screen.getByRole('button', { name: /expand/i })
+      expect(expandButton).toBeInTheDocument()
+      
+      // Click to expand
+      fireEvent.click(expandButton)
+      
+      // The button should now be collapse
+      expect(screen.getByRole('button', { name: /collapse/i })).toBeInTheDocument()
+    })
+    
+    it('should handle Read tool results', () => {
+      const readCall: ToolUseContent = {
+        type: 'tool_use',
+        id: 'toolu_01ABC123',
+        name: 'Read',
+        input: { file_path: '/path/to/file.ts' }
+      }
+      
+      const result = 'File contents here with multiple lines\nLine 2\nLine 3'
+      
+      render(
+        <ToolCallDisplay toolCall={readCall} result={result} />
+      )
+      
+      // Should show file loaded indicator
+      expect(screen.getByText(/3 lines loaded/)).toBeInTheDocument()
+    })
+    
+    it('should handle Write tool results', () => {
+      const writeCall: ToolUseContent = {
+        type: 'tool_use',
+        id: 'toolu_01ABC123',
+        name: 'Write',
+        input: { file_path: '/path/to/file.ts', content: 'new content' }
+      }
+      
+      const result = { success: true }
+      
+      render(
+        <ToolCallDisplay toolCall={writeCall} result={result} />
+      )
+      
+      // Should show success indicator
+      expect(screen.getByText('Updated')).toBeInTheDocument()
+    })
+    
+    it('should handle error results gracefully', () => {
+      const result = {
+        error: 'Permission denied',
+        is_error: true
+      }
+      
+      render(
+        <ToolCallDisplay toolCall={basicToolCall} result={result} />
+      )
+      
+      // Should show error
+      expect(screen.getByText(/Permission denied/)).toBeInTheDocument()
+    })
+    
+    it('should not show result section when result is null', () => {
+      render(
+        <ToolCallDisplay toolCall={basicToolCall} result={null} />
+      )
+      
+      // Should not show result section
+      expect(screen.queryByText('Result')).not.toBeInTheDocument()
+    })
+  })
 })

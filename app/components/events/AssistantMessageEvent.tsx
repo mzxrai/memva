@@ -11,9 +11,10 @@ import clsx from 'clsx'
 
 interface AssistantMessageEventProps {
   event: AnyEvent
+  toolResults?: Map<string, unknown>
 }
 
-function renderContent(content: AssistantMessageContent): ReactNode {
+function renderContent(content: AssistantMessageContent, toolResults?: Map<string, unknown>): ReactNode {
   switch (content.type) {
     case 'text':
       return (
@@ -27,8 +28,10 @@ function renderContent(content: AssistantMessageContent): ReactNode {
         </div>
       )
     
-    case 'tool_use':
-      return <ToolCallDisplay toolCall={content} />
+    case 'tool_use': {
+      const result = toolResults?.get(content.id);
+      return <ToolCallDisplay toolCall={content} result={result} />
+    }
     
     case 'thinking':
       return (
@@ -70,7 +73,7 @@ function renderContent(content: AssistantMessageContent): ReactNode {
   }
 }
 
-export function AssistantMessageEvent({ event }: AssistantMessageEventProps) {
+export function AssistantMessageEvent({ event, toolResults }: AssistantMessageEventProps) {
   // Handle different event structures
   let messageContent: AssistantMessageContent[] = []
   
@@ -104,7 +107,7 @@ export function AssistantMessageEvent({ event }: AssistantMessageEventProps) {
           <div className="space-y-2">
             {messageContent.map((content, index) => (
               <div key={index}>
-                {renderContent(content)}
+                {renderContent(content, toolResults)}
               </div>
             ))}
           </div>
