@@ -1,24 +1,71 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { setupInMemoryDb, setMockDatabase, type TestDatabase } from '../test-utils/in-memory-db'
-import { eq, desc } from 'drizzle-orm'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
+import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+import { waitForEvents, waitForCondition } from '../test-utils/async-testing'
+import { createMockUserEvent, createMockAssistantEvent } from '../test-utils/factories'
 import { events } from '../db/schema'
+
+// Set up database mocks before any other imports
+setupDatabaseMocks(vi)
+
 import { action } from '../routes/api.claude-code.$sessionId'
 import type { Route } from '../routes/+types/api.claude-code.$sessionId'
+
+// Mock Claude Code SDK
+vi.mock('@anthropic-ai/claude-code', () => ({
+  query: vi.fn().mockImplementation(({ options }) => {
+    const abortController = options?.abortController
+    
+    return (async function* () {
+      const events = [
+        {
+          type: 'system',
+          content: 'Starting...',
+          session_id: 'mock-session-id'
+        },
+        {
+          type: 'user',
+          content: 'User message',
+          session_id: 'mock-session-id'
+        },
+        {
+          type: 'assistant',
+          content: 'Assistant response',
+          session_id: 'mock-session-id'
+        },
+        {
+          type: 'result',
+          content: 'Complete',
+          session_id: 'mock-session-id'
+        }
+      ]
+      
+      for (const event of events) {
+        // Respect abort signal to prevent execution after test cleanup
+        if (abortController?.signal.aborted) {
+          break
+        }
+        yield event
+      }
+    })()
+  })
+}))
 
 describe('Session Resumption Behavior', () => {
   let testDb: TestDatabase
 
-  beforeEach(async () => {
+  beforeEach(() => {
     testDb = setupInMemoryDb()
-    await setMockDatabase(testDb.db)
+    setTestDatabase(testDb)
   })
 
   afterEach(() => {
     testDb.cleanup()
+    clearTestDatabase()
   })
 
   it('should resume conversation using previous Claude session ID', async () => {
-    // Create a session
+    // Create a session using factory
     const session = testDb.createSession({
       title: 'Resumption Test',
       project_path: '/test/project'
@@ -40,13 +87,11 @@ describe('Session Resumption Behavior', () => {
     
     expect(firstResponse.status).toBe(200)
     
-    // Wait a bit for the mock events to be stored
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // Wait for events to be stored using smart waiting
+    await waitForEvents(() => testDb.getEventsForSession(session.id), ['user', 'system', 'assistant', 'result'])
     
     // Check that events were stored with Claude session ID
-    const storedEvents = await testDb.db.select().from(events)
-      .where(eq(events.memva_session_id, session.id))
-      .all()
+    const storedEvents = testDb.getEventsForSession(session.id)
     
     expect(storedEvents.length).toBeGreaterThan(0)
     // Find the first non-user event or user event with session_id
@@ -71,6 +116,9 @@ describe('Session Resumption Behavior', () => {
     
     expect(secondResponse.status).toBe(200)
     
+    // Wait for more events to be stored
+    await waitForCondition(() => testDb.getEventsForSession(session.id).length > 4)
+    
     // The session should have been resumed (logs would show this)
     // In a real test, we'd verify the Claude SDK was called with resume option
   })
@@ -81,32 +129,27 @@ describe('Session Resumption Behavior', () => {
       project_path: '/test/project'
     })
 
-    // Simulate first conversation with stored events
-    testDb.db.insert(events).values([
-      {
-        uuid: 'event-1',
-        session_id: 'claude-session-1',
-        memva_session_id: session.id,
-        event_type: 'user',
-        timestamp: new Date(Date.now() - 5000).toISOString(),
-        is_sidechain: false,
-        cwd: '/test/project',
-        project_name: 'project',
-        data: { type: 'user', content: 'First message' }
-      },
-      {
-        uuid: 'event-2',
-        session_id: 'claude-session-1',
-        memva_session_id: session.id,
-        event_type: 'assistant',
-        timestamp: new Date(Date.now() - 4000).toISOString(),
-        is_sidechain: false,
-        parent_uuid: 'event-1',
-        cwd: '/test/project',
-        project_name: 'project',
-        data: { type: 'assistant', content: 'First response' }
-      }
-    ]).run()
+    // Simulate first conversation with stored events using factories
+    const userEvent = createMockUserEvent('First message', {
+      uuid: 'event-1',
+      session_id: 'claude-session-1',
+      memva_session_id: session.id,
+      timestamp: new Date(Date.now() - 5000).toISOString(),
+      cwd: '/test/project',
+      project_name: 'project'
+    })
+    
+    const assistantEvent = createMockAssistantEvent('First response', {
+      uuid: 'event-2',
+      session_id: 'claude-session-1',
+      memva_session_id: session.id,
+      timestamp: new Date(Date.now() - 4000).toISOString(),
+      parent_uuid: 'event-1',
+      cwd: '/test/project',
+      project_name: 'project'
+    })
+    
+    testDb.db.insert(events).values([userEvent, assistantEvent]).run()
 
     // Send new message in the conversation
     const formData = new FormData()
@@ -124,14 +167,11 @@ describe('Session Resumption Behavior', () => {
     
     expect(response.status).toBe(200)
     
-    // Wait for events to be stored
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // Wait for new events to be stored using smart waiting
+    await waitForCondition(() => testDb.getEventsForSession(session.id).length > 2)
     
     // Check that new events maintain threading
-    const allEvents = await testDb.db.select().from(events)
-      .where(eq(events.memva_session_id, session.id))
-      .orderBy(desc(events.timestamp))
-      .all()
+    const allEvents = testDb.getEventsForSession(session.id)
     
     // Should have original 2 events plus new ones
     expect(allEvents.length).toBeGreaterThan(2)
@@ -163,13 +203,11 @@ describe('Session Resumption Behavior', () => {
     
     expect(response.status).toBe(200)
     
-    // Wait for events to be stored
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // Wait for events to be stored using smart waiting
+    await waitForEvents(() => testDb.getEventsForSession(session.id), ['user', 'system', 'assistant', 'result'])
     
     // Check that events were stored
-    const storedEvents = await testDb.db.select().from(events)
-      .where(eq(events.memva_session_id, session.id))
-      .all()
+    const storedEvents = testDb.getEventsForSession(session.id)
     
     expect(storedEvents.length).toBeGreaterThan(0)
     // First conversation should not have resumed anything

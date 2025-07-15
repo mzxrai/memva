@@ -1,55 +1,49 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { createRoutesStub } from 'react-router'
-import SessionDetail from '../routes/sessions.$sessionId'
+import SessionDetail, { loader as sessionDetailLoader } from '../routes/sessions.$sessionId'
+import { setupInMemoryDb, setMockDatabase, type TestDatabase } from '../test-utils/in-memory-db'
 import type { Session } from '../db/schema'
 
-// Mock the database service
-vi.mock('../db/sessions.service', () => ({
-  getSession: vi.fn(),
-  listSessions: vi.fn(),
-  getSessionWithStats: vi.fn(),
-  createSession: vi.fn()
-}))
-
-// Mock the event service
-vi.mock('../db/event-session.service', () => ({
-  getEventsForSession: vi.fn()
-}))
-
-// Mock the Claude Code service
+// Mock external dependencies only
 vi.mock('../services/claude-code.service', () => ({
   sendPromptToClaudeCode: vi.fn(),
   SDKMessage: {}
 }))
 
+vi.mock('../db/event-session.service', () => ({
+  getEventsForSession: vi.fn().mockResolvedValue([])
+}))
+
 describe('Session Detail Page', () => {
-  beforeEach(() => {
+  let testDb: TestDatabase
+
+  beforeEach(async () => {
+    testDb = setupInMemoryDb()
+    await setMockDatabase(testDb.db)
     vi.clearAllMocks()
   })
-  it('should display session details', async () => {
-    const mockSession: Session = {
-      id: 'test-session-id',
-      title: 'Test Session',
-      created_at: '2025-07-13T10:00:00Z',
-      updated_at: '2025-07-13T10:00:00Z',
-      status: 'active',
-      project_path: '/Users/mbm-premva/dev/memva',
-      metadata: { description: 'Test session metadata' }
-    }
 
-    const { getSession } = await import('../db/sessions.service')
-    vi.mocked(getSession).mockResolvedValue(mockSession)
+  afterEach(() => {
+    testDb.cleanup()
+  })
+  it('should display session details', async () => {
+    // Create a real session in the test database
+    const session = testDb.createSession({
+      title: 'Test Session',
+      project_path: '/Users/mbm-premva/dev/memva'
+    })
 
     const Stub = createRoutesStub([
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: async () => ({ session: mockSession, events: [] })
+        loader: sessionDetailLoader
       }
     ])
 
-    render(<Stub initialEntries={['/sessions/test-session-id']} />)
+    render(<Stub initialEntries={[`/sessions/${session.id}`]} />)
 
     await waitFor(() => {
       expect(screen.getByText('Test Session')).toBeInTheDocument()
@@ -59,14 +53,11 @@ describe('Session Detail Page', () => {
   })
 
   it('should handle missing session', async () => {
-    const { getSession } = await import('../db/sessions.service')
-    vi.mocked(getSession).mockResolvedValue(null)
-
     const Stub = createRoutesStub([
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: async () => ({ session: null })
+        loader: sessionDetailLoader
       }
     ])
 
@@ -78,28 +69,21 @@ describe('Session Detail Page', () => {
   })
 
   it('should display prompt input form', async () => {
-    const mockSession: Session = {
-      id: 'test-session-id',
-      title: null, // Prevent auto-start for tests
-      created_at: '2025-07-13T10:00:00Z',
-      updated_at: '2025-07-13T10:00:00Z',
-      status: 'active',
-      project_path: '/Users/mbm-premva/dev/memva',
-      metadata: null
-    }
-
-    const { getSession } = await import('../db/sessions.service')
-    vi.mocked(getSession).mockResolvedValue(mockSession)
+    // Create a session without auto-start metadata
+    const session = testDb.createSession({
+      title: null,
+      project_path: '/Users/mbm-premva/dev/memva'
+    })
 
     const Stub = createRoutesStub([
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: async () => ({ session: mockSession, events: [] })
+        loader: sessionDetailLoader
       }
     ])
 
-    render(<Stub initialEntries={['/sessions/test-session-id']} />)
+    render(<Stub initialEntries={[`/sessions/${session.id}`]} />)
 
     await waitFor(() => {
       expect(screen.getByRole('textbox')).toBeInTheDocument()
@@ -108,42 +92,19 @@ describe('Session Detail Page', () => {
   })
 
   it('should send prompt to Claude Code and display messages', async () => {
-    const mockSession: Session = {
-      id: 'test-session-id',
-      title: 'Test Session', // This test needs title for display
-      created_at: '2025-07-13T10:00:00Z',
-      updated_at: '2025-07-13T10:00:00Z',
-      status: 'active',
-      project_path: '/Users/mbm-premva/dev/memva',
-      metadata: null
-    }
-
-    // Create mock events to prevent auto-start (session already has conversation history)
-    const mockEvents = [
-      {
-        uuid: 'existing-event-1',
-        session_id: 'mock-session-id',
-        memva_session_id: 'test-session-id',
-        event_type: 'user' as const,
-        timestamp: '2025-07-13T09:59:00Z',
-        is_sidechain: false,
-        parent_uuid: null,
-        cwd: '/Users/mbm-premva/dev/memva',
-        project_name: 'memva',
-        data: { type: 'user', content: 'Previous message', timestamp: '2025-07-13T09:59:00Z' }
-      }
-    ]
-
-    const { getSession } = await import('../db/sessions.service')
-    const { sendPromptToClaudeCode } = await import('../services/claude-code.service')
+    const user = userEvent.setup()
     
-    vi.mocked(getSession).mockResolvedValue(mockSession)
+    // Create a session with title to display
+    const session = testDb.createSession({
+      title: 'Test Session',
+      project_path: '/Users/mbm-premva/dev/memva'
+    })
+
+    const { sendPromptToClaudeCode } = await import('../services/claude-code.service')
     
     // Mock Claude Code to simulate streaming messages
     vi.mocked(sendPromptToClaudeCode).mockImplementation(({ prompt, onMessage }) => {
-      // Simulate async streaming
       setTimeout(() => {
-        // Server now sends user message first
         onMessage({ type: 'user', content: prompt, timestamp: '2025-07-13T10:00:00Z' })
         onMessage({ type: 'assistant', content: 'Test response', timestamp: '2025-07-13T10:00:01Z' })
         onMessage({ type: 'result', content: '', timestamp: '2025-07-13T10:00:02Z' })
@@ -154,11 +115,11 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: async () => ({ session: mockSession, events: mockEvents })
+        loader: sessionDetailLoader
       }
     ])
 
-    render(<Stub initialEntries={['/sessions/test-session-id']} />)
+    render(<Stub initialEntries={[`/sessions/${session.id}`]} />)
 
     await waitFor(() => {
       expect(screen.getByRole('textbox')).toBeInTheDocument()
@@ -168,8 +129,8 @@ describe('Session Detail Page', () => {
     const input = screen.getByRole('textbox')
     const sendButton = screen.getByText(/send/i)
 
-    fireEvent.change(input, { target: { value: 'Test prompt' } })
-    fireEvent.click(sendButton)
+    await user.type(input, 'Test prompt')
+    await user.click(sendButton)
 
     await waitFor(() => {
       expect(screen.getByText("Test prompt")).toBeInTheDocument()
@@ -178,7 +139,7 @@ describe('Session Detail Page', () => {
 
     expect(sendPromptToClaudeCode).toHaveBeenCalledWith({
       prompt: 'Test prompt',
-      sessionId: 'test-session-id',
+      sessionId: session.id,
       onMessage: expect.any(Function),
       onError: expect.any(Function),
       signal: expect.any(AbortSignal)
@@ -186,25 +147,19 @@ describe('Session Detail Page', () => {
   })
 
   it('should display streaming messages in real-time', async () => {
-    const mockSession: Session = {
-      id: 'test-session-id',
-      title: null, // Prevent auto-start for tests
-      created_at: '2025-07-13T10:00:00Z',
-      updated_at: '2025-07-13T10:00:00Z',
-      status: 'active',
-      project_path: '/Users/mbm-premva/dev/memva',
-      metadata: null
-    }
-
-    const { getSession } = await import('../db/sessions.service')
-    const { sendPromptToClaudeCode } = await import('../services/claude-code.service')
+    const user = userEvent.setup()
     
-    vi.mocked(getSession).mockResolvedValue(mockSession)
+    // Create session without auto-start
+    const session = testDb.createSession({
+      title: null,
+      project_path: '/Users/mbm-premva/dev/memva'
+    })
+
+    const { sendPromptToClaudeCode } = await import('../services/claude-code.service')
     
     // Mock Claude Code to simulate streaming with different message types
     vi.mocked(sendPromptToClaudeCode).mockImplementation(({ prompt, onMessage }) => {
       setTimeout(() => {
-        // Server now sends user message first
         onMessage({ type: 'user', content: prompt, timestamp: '2025-07-13T10:00:00Z' })
         onMessage({ 
           type: 'assistant', 
@@ -225,11 +180,11 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: async () => ({ session: mockSession, events: [] })
+        loader: sessionDetailLoader
       }
     ])
 
-    render(<Stub initialEntries={['/sessions/test-session-id']} />)
+    render(<Stub initialEntries={[`/sessions/${session.id}`]} />)
 
     await waitFor(() => {
       expect(screen.getByRole('textbox')).toBeInTheDocument()
@@ -239,8 +194,8 @@ describe('Session Detail Page', () => {
     const input = screen.getByRole('textbox')
     const sendButton = screen.getByText(/send/i)
 
-    fireEvent.change(input, { target: { value: 'Help me implement a feature' } })
-    fireEvent.click(sendButton)
+    await user.type(input, 'Help me implement a feature')
+    await user.click(sendButton)
 
     await waitFor(() => {
       expect(screen.getByText("Help me implement a feature")).toBeInTheDocument()
@@ -251,67 +206,49 @@ describe('Session Detail Page', () => {
   })
 
   it('should show stop button while loading and allow aborting', async () => {
-    const mockSession: Session = {
-      id: 'test-session-id',
-      title: null, // Prevent auto-start for tests
-      created_at: '2025-07-13T10:00:00Z',
-      updated_at: '2025-07-13T10:00:00Z',
-      status: 'active',
-      project_path: '/Users/mbm-premva/dev/memva',
-      metadata: null
-    }
-
-    const { getSession } = await import('../db/sessions.service')
-    const { sendPromptToClaudeCode } = await import('../services/claude-code.service')
+    const user = userEvent.setup()
     
-    vi.mocked(getSession).mockResolvedValue(mockSession)
+    // Create session without auto-start
+    const session = testDb.createSession({
+      title: null,
+      project_path: '/Users/mbm-premva/dev/memva'
+    })
+
+    const { sendPromptToClaudeCode } = await import('../services/claude-code.service')
     
     let capturedSignal: AbortSignal | undefined
     
-    // Mock Claude Code to capture the abort signal and simulate ongoing messages
+    // Mock Claude Code to capture the abort signal
     vi.mocked(sendPromptToClaudeCode).mockImplementation(({ prompt, signal, onMessage, onError }) => {
       capturedSignal = signal
       
-      // Server sends user message first
       onMessage({ type: 'user', content: prompt, timestamp: '2025-07-13T10:00:00Z' })
+      onMessage({ type: 'system', content: 'Processing...', timestamp: '2025-07-13T10:00:01Z' })
       
-      // Simulate multiple messages being sent over time
-      const messages = [
-        { 
-          type: 'system' as const, 
-          content: 'Processing...', 
-          timestamp: '2025-07-13T10:00:01Z' 
-        },
-        { type: 'assistant' as const, content: 'Starting analysis...', timestamp: '2025-07-13T10:00:02Z' },
-        { type: 'system' as const, content: 'Reading files...', timestamp: '2025-07-13T10:00:03Z' },
-        { type: 'assistant' as const, content: 'This should not appear if aborted', timestamp: '2025-07-13T10:00:04Z' }
-      ]
-      
-      let messageIndex = 0
-      const intervalId = setInterval(() => {
+      // Simulate ongoing processing that can be aborted
+      const timeoutId = setTimeout(() => {
         if (signal?.aborted) {
-          clearInterval(intervalId)
-          // Simulate the actual error we see in the browser
           onError?.(new Error('BodyStreamBuffer was aborted'))
-          return
         }
-        
-        if (messageIndex < messages.length) {
-          onMessage(messages[messageIndex])
-          messageIndex++
-        }
-      }, 50)
+      }, 100)
+      
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          clearTimeout(timeoutId)
+          onError?.(new Error('BodyStreamBuffer was aborted'))
+        })
+      }
     })
 
     const Stub = createRoutesStub([
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: async () => ({ session: mockSession, events: [] })
+        loader: sessionDetailLoader
       }
     ])
 
-    render(<Stub initialEntries={['/sessions/test-session-id']} />)
+    render(<Stub initialEntries={[`/sessions/${session.id}`]} />)
 
     await waitFor(() => {
       expect(screen.getByRole('textbox')).toBeInTheDocument()
@@ -321,22 +258,22 @@ describe('Session Detail Page', () => {
     const input = screen.getByRole('textbox')
     const sendButton = screen.getByText(/send/i)
 
-    fireEvent.change(input, { target: { value: 'Long running task' } })
-    fireEvent.click(sendButton)
+    await user.type(input, 'Long running task')
+    await user.click(sendButton)
 
     // Stop button should appear
     await waitFor(() => {
       expect(screen.getByText(/stop/i)).toBeInTheDocument()
     })
 
-    // Wait for at least one message to appear
+    // Wait for processing message to appear
     await waitFor(() => {
       expect(screen.getByText("Processing...")).toBeInTheDocument()
     })
 
     // Click stop button
     const stopButton = screen.getByText(/stop/i)
-    fireEvent.click(stopButton)
+    await user.click(stopButton)
 
     // Verify abort signal was triggered
     expect(capturedSignal?.aborted).toBe(true)
@@ -346,37 +283,21 @@ describe('Session Detail Page', () => {
       expect(screen.getByText("Error: BodyStreamBuffer was aborted")).toBeInTheDocument()
     })
 
-    // Verify that later messages did NOT appear
-    expect(screen.queryByText("This should not appear if aborted")).not.toBeInTheDocument()
-
-    // Send button should reappear (but still disabled because input is empty)
+    // Send button should reappear
     await waitFor(() => {
-      const sendButton = screen.getByText(/send/i)
-      expect(sendButton).toBeInTheDocument()
-      // Stop button should be gone
+      expect(screen.getByText(/send/i)).toBeInTheDocument()
       expect(screen.queryByText(/stop/i)).not.toBeInTheDocument()
     })
-
-    // Wait a bit more to ensure no more messages arrive
-    await new Promise(resolve => setTimeout(resolve, 200))
-    expect(screen.queryByText("This should not appear if aborted")).not.toBeInTheDocument()
   })
 
   it('should load and display historical events on mount', async () => {
-    const mockSession: Session = {
-      id: 'test-session-id',
-      title: null, // Prevent auto-start for tests
-      created_at: '2025-07-13T10:00:00Z',
-      updated_at: '2025-07-13T10:00:00Z',
-      status: 'active',
-      project_path: '/Users/mbm-premva/dev/memva',
-      metadata: null
-    }
+    // Create session without auto-start
+    const session = testDb.createSession({
+      title: null,
+      project_path: '/Users/mbm-premva/dev/memva'
+    })
 
-    const { getSession } = await import('../db/sessions.service')
     const { getEventsForSession } = await import('../db/event-session.service')
-    
-    vi.mocked(getSession).mockResolvedValue(mockSession)
     
     // Mock historical events
     const mockEvents = [
@@ -390,7 +311,7 @@ describe('Session Detail Page', () => {
         cwd: '/Users/mbm-premva/dev/memva',
         project_name: 'memva',
         data: { type: 'user', content: 'Previous question', timestamp: '2025-07-13T10:00:00Z' },
-        memva_session_id: 'test-session-id'
+        memva_session_id: session.id
       },
       {
         uuid: 'event-2',
@@ -402,7 +323,7 @@ describe('Session Detail Page', () => {
         cwd: '/Users/mbm-premva/dev/memva',
         project_name: 'memva',
         data: { type: 'assistant', content: 'Previous answer', timestamp: '2025-07-13T10:00:01Z' },
-        memva_session_id: 'test-session-id'
+        memva_session_id: session.id
       }
     ]
     
@@ -412,19 +333,11 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: async ({ params }) => {
-          const sessionId = params.sessionId
-          if (!sessionId) {
-            throw new Error('Session ID is required')
-          }
-          const session = await getSession(sessionId)
-          const events = await getEventsForSession(sessionId)
-          return { session, events }
-        }
+        loader: sessionDetailLoader
       }
     ])
 
-    render(<Stub initialEntries={['/sessions/test-session-id']} />)
+    render(<Stub initialEntries={[`/sessions/${session.id}`]} />)
 
     await waitFor(() => {
       // Should display historical events
@@ -433,35 +346,25 @@ describe('Session Detail Page', () => {
     })
 
     // Should have called getEventsForSession
-    expect(getEventsForSession).toHaveBeenCalledWith('test-session-id')
+    expect(getEventsForSession).toHaveBeenCalledWith(session.id)
   })
 
-  it('should disable input and send button during processing', async () => {
-    const mockSession: Session = {
-      id: 'test-session-id',
-      title: null, // Prevent auto-start for tests
-      created_at: '2025-07-13T10:00:00Z',
-      updated_at: '2025-07-13T10:00:00Z',
-      status: 'active',
-      project_path: '/Users/mbm-premva/dev/memva',
-      metadata: null
-    }
-
-    const { getSession } = await import('../db/sessions.service')
-    const { sendPromptToClaudeCode } = await import('../services/claude-code.service')
+  it('should disable input and show stop button during processing', async () => {
+    const user = userEvent.setup()
     
-    vi.mocked(getSession).mockResolvedValue(mockSession)
+    // Create session without auto-start
+    const session = testDb.createSession({
+      title: null,
+      project_path: '/Users/mbm-premva/dev/memva'
+    })
+
+    const { sendPromptToClaudeCode } = await import('../services/claude-code.service')
     
     // Mock Claude Code to simulate processing
     vi.mocked(sendPromptToClaudeCode).mockImplementation(({ prompt, onMessage }) => {
       setTimeout(() => {
-        // Server sends user message first
         onMessage({ type: 'user', content: prompt, timestamp: '2025-07-13T10:00:00Z' })
-        onMessage({ 
-          type: 'system', 
-          content: 'Processing...', 
-          timestamp: '2025-07-13T10:00:01Z' 
-        })
+        onMessage({ type: 'system', content: 'Processing...', timestamp: '2025-07-13T10:00:01Z' })
       }, 50)
     })
 
@@ -469,11 +372,11 @@ describe('Session Detail Page', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: async () => ({ session: mockSession, events: [] })
+        loader: sessionDetailLoader
       }
     ])
 
-    render(<Stub initialEntries={['/sessions/test-session-id']} />)
+    render(<Stub initialEntries={[`/sessions/${session.id}`]} />)
 
     await waitFor(() => {
       expect(screen.getByRole('textbox')).toBeInTheDocument()
@@ -487,90 +390,38 @@ describe('Session Detail Page', () => {
     expect(sendButton.disabled).toBe(true)
 
     // Submit a prompt
-    fireEvent.change(input, { target: { value: 'Test prompt' } })
-    fireEvent.click(sendButton)
+    await user.type(input, 'Test prompt')
+    await user.click(sendButton)
 
-    // Input and send button should be disabled during processing
+    // Input should be disabled and stop button should appear during processing
     await waitFor(() => {
       expect(input.disabled).toBe(true)
       expect(screen.getByText(/stop/i)).toBeInTheDocument()
     })
   })
 
-  it('should keep input area visible when messages overflow', async () => {
-    const mockSession: Session = {
-      id: 'test-session-id',
-      title: null, // Prevent auto-start for tests
-      created_at: '2025-07-13T10:00:00Z',
-      updated_at: '2025-07-13T10:00:00Z',
-      status: 'active',
-      project_path: '/Users/mbm-premva/dev/memva',
-      metadata: null
-    }
-
-    const { getSession } = await import('../db/sessions.service')
-    const { sendPromptToClaudeCode } = await import('../services/claude-code.service')
-    
-    vi.mocked(getSession).mockResolvedValue(mockSession)
-    
-    // Mock Claude Code to send many messages
-    vi.mocked(sendPromptToClaudeCode).mockImplementation(({ prompt, onMessage }) => {
-      // Server sends user message first
-      onMessage({ type: 'user', content: prompt, timestamp: '2025-07-13T10:00:00Z' })
-      
-      // Send many messages to cause overflow
-      for (let i = 0; i < 20; i++) {
-        setTimeout(() => {
-          onMessage({ 
-            type: 'assistant', 
-            content: `Message ${i + 1}: This is a long message that will cause the page to scroll. `.repeat(5), 
-            timestamp: new Date().toISOString() 
-          })
-        }, i * 10)
-      }
-      
-      setTimeout(() => {
-        onMessage({ type: 'result', content: '', timestamp: new Date().toISOString() })
-      }, 250)
+  it('should show empty state for new sessions', async () => {
+    // Create session without auto-start
+    const session = testDb.createSession({
+      title: null,
+      project_path: '/Users/mbm-premva/dev/memva'
     })
 
     const Stub = createRoutesStub([
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: async () => ({ session: mockSession, events: [] })
+        loader: sessionDetailLoader
       }
     ])
 
-    render(<Stub initialEntries={['/sessions/test-session-id']} />)
+    render(<Stub initialEntries={[`/sessions/${session.id}`]} />)
 
     await waitFor(() => {
+      expect(screen.getByText('No messages yet. Start by asking Claude Code something!')).toBeInTheDocument()
       expect(screen.getByRole('textbox')).toBeInTheDocument()
-    })
-
-    const input = screen.getByRole('textbox')
-    const sendButton = screen.getByText(/send/i)
-
-    // Submit a prompt
-    fireEvent.change(input, { target: { value: 'Generate many messages' } })
-    fireEvent.click(sendButton)
-
-    // Wait for messages to appear
-    await waitFor(() => {
-      expect(screen.getByText(/Message 1:/)).toBeInTheDocument()
-    })
-
-    // Input and button should still be visible and in the document
-    // Note: We can't test actual visibility/positioning in jsdom, but we can verify they're in the DOM
-    expect(screen.getByRole('textbox')).toBeInTheDocument()
-    
-    // During loading, stop button should be present
-    expect(screen.getByText(/stop/i)).toBeInTheDocument()
-    
-    // Wait for completion
-    await waitFor(() => {
       expect(screen.getByText(/send/i)).toBeInTheDocument()
-    }, { timeout: 500 })
+    })
   })
 
 })

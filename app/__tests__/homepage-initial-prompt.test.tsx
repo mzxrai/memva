@@ -1,91 +1,133 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { db, sessions, events } from '../db'
-import { eq } from 'drizzle-orm'
-import { action as homeAction } from '../routes/home'
-import { loader as sessionLoader } from '../routes/sessions.$sessionId'
-import type { Route as HomeRoute } from '../routes/+types/home'
-import type { Route as SessionRoute } from '../routes/+types/sessions.$sessionId'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { createRoutesStub } from 'react-router'
+import Home, { loader as homeLoader, action as homeAction } from '../routes/home'
+import SessionDetail, { loader as sessionDetailLoader } from '../routes/sessions.$sessionId'
+import { setupInMemoryDb, setMockDatabase, type TestDatabase } from '../test-utils/in-memory-db'
+
+// Mock external dependencies only
+vi.mock('../services/claude-code.service', () => ({
+  sendPromptToClaudeCode: vi.fn()
+}))
+
+vi.mock('../db/event-session.service', () => ({
+  getEventsForSession: vi.fn().mockResolvedValue([])
+}))
 
 describe('Homepage Initial Prompt Behavior', () => {
+  let testDb: TestDatabase
+
   beforeEach(async () => {
-    // Clean up database before each test
-    await db.delete(events).execute()
-    await db.delete(sessions).execute()
-    vi.clearAllMocks()
+    testDb = setupInMemoryDb()
+    await setMockDatabase(testDb.db)
   })
 
-  it('should create session when user submits homepage form', async () => {
-    // Test session creation from homepage form submission
-    const userInput = "Help me implement a new feature"
+  afterEach(() => {
+    testDb.cleanup()
+  })
+
+  it('should create session and show initial prompt on session page', async () => {
+    const user = userEvent.setup()
     
-    // Step 1: Submit form on homepage
-    const homeFormData = new FormData()
-    homeFormData.append('title', userInput)
-    
-    const homeRequest = new Request('http://localhost/', {
-      method: 'POST',
-      body: homeFormData
-    })
-    
-    const homeResponse = await homeAction({ 
-      request: homeRequest 
-    } as HomeRoute.ActionArgs)
-    
-    // Should redirect to new session
-    expect(homeResponse).toBeInstanceOf(Response)
-    if (homeResponse instanceof Response) {
-      expect(homeResponse.status).toBe(302)
-      const location = homeResponse.headers.get('Location')
-      expect(location).toMatch(/\/sessions\/[a-zA-Z0-9-]+/)
-      
-      // Extract session ID from redirect location
-      const sessionId = location?.split('/sessions/')[1]
-      expect(sessionId).toBeTruthy()
-      
-      // Verify session was created in database with correct title
-      if (sessionId) {
-        const sessionData = await db.select().from(sessions)
-          .where(eq(sessions.id, sessionId))
-          .execute()
-        
-        expect(sessionData).toHaveLength(1)
-        expect(sessionData[0]?.title).toBe(userInput)
+    const Stub = createRoutesStub([
+      {
+        path: '/',
+        Component: Home,
+        loader: homeLoader,
+        action: homeAction
+      },
+      {
+        path: '/sessions/:sessionId',
+        Component: SessionDetail,
+        loader: sessionDetailLoader
       }
-    }
+    ])
+
+    render(<Stub />)
+
+    // Wait for home page to load
+    await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
+    
+    // Enter initial prompt and submit
+    const input = screen.getByPlaceholderText(/start a new claude code session/i)
+    await user.type(input, 'Help me implement a new feature{Enter}')
+
+    // Should navigate to session page and display the session with correct title
+    await waitFor(() => {
+      expect(screen.getByText('Help me implement a new feature')).toBeInTheDocument()
+      expect(screen.getByText('Status: active')).toBeInTheDocument()
+      expect(screen.getByText('Project: /Users/mbm-premva/dev/memva')).toBeInTheDocument()
+    })
   })
 
-  it('should load session data when navigating to session detail page', async () => {
-    // First create a session with initial prompt
-    const userInput = "Create a React component"
+  it('should handle session creation from homepage form', async () => {
+    const user = userEvent.setup()
     
-    const homeFormData = new FormData()
-    homeFormData.append('title', userInput)
+    const Stub = createRoutesStub([
+      {
+        path: '/',
+        Component: Home,
+        loader: homeLoader,
+        action: homeAction
+      },
+      {
+        path: '/sessions/:sessionId',
+        Component: SessionDetail,
+        loader: sessionDetailLoader
+      }
+    ])
+
+    render(<Stub />)
+
+    // Wait for home page to load
+    await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
     
-    const homeRequest = new Request('http://localhost/', {
-      method: 'POST', 
-      body: homeFormData
+    // Enter prompt and click Start button
+    const input = screen.getByPlaceholderText(/start a new claude code session/i)
+    const button = screen.getByRole('button', { name: /start/i })
+    
+    await user.type(input, 'Create a React component')
+    await user.click(button)
+
+    // Should navigate to session page and display session details
+    await waitFor(() => {
+      expect(screen.getByText('Create a React component')).toBeInTheDocument()
+      expect(screen.getByText('Status: active')).toBeInTheDocument()
+      expect(screen.getByText('Project: /Users/mbm-premva/dev/memva')).toBeInTheDocument()
     })
+  })
+
+  it('should show empty session state for new sessions', async () => {
+    const user = userEvent.setup()
     
-    const homeResponse = await homeAction({ 
-      request: homeRequest 
-    } as HomeRoute.ActionArgs)
+    const Stub = createRoutesStub([
+      {
+        path: '/',
+        Component: Home,
+        loader: homeLoader,
+        action: homeAction
+      },
+      {
+        path: '/sessions/:sessionId',
+        Component: SessionDetail,
+        loader: sessionDetailLoader
+      }
+    ])
+
+    render(<Stub />)
+
+    // Wait for home page to load
+    await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
     
-    expect(homeResponse).toBeInstanceOf(Response)
-    const sessionId = homeResponse instanceof Response 
-      ? homeResponse.headers.get('Location')?.split('/sessions/')[1]
-      : undefined
-    expect(sessionId).toBeTruthy()
-    
-    // Load the session detail page data
-    if (sessionId) {
-      const sessionLoaderData = await sessionLoader({
-        params: { sessionId }
-      } as SessionRoute.LoaderArgs)
-      
-      // Should load session with correct title and empty events (new session)
-      expect(sessionLoaderData.session).toBeTruthy()
-      expect(sessionLoaderData.session?.title).toBe(userInput)
-      expect(sessionLoaderData.events).toHaveLength(0) // New session, no events yet
-    }
+    // Create a new session
+    const input = screen.getByPlaceholderText(/start a new claude code session/i)
+    await user.type(input, 'Test session{Enter}')
+
+    // Should show session page with empty message area (no events yet)
+    await waitFor(() => {
+      expect(screen.getByText('Test session')).toBeInTheDocument()
+      expect(screen.getByText('No messages yet. Start by asking Claude Code something!')).toBeInTheDocument()
+    })
   })
 })

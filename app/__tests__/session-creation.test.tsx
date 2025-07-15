@@ -1,18 +1,34 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createRoutesStub } from 'react-router'
-import Home, { loader as homeLoader } from '../routes/home'
+import Home, { loader as homeLoader, action as homeAction } from '../routes/home'
+import SessionDetail, { loader as sessionDetailLoader } from '../routes/sessions.$sessionId'
+import { setupInMemoryDb, setMockDatabase, type TestDatabase } from '../test-utils/in-memory-db'
+import { sessions } from '../db/schema'
 
-// Mock the database service
-vi.mock('../db/sessions.service', () => ({
-  listSessionsWithStats: vi.fn().mockResolvedValue([]),
-  listSessions: vi.fn().mockResolvedValue([]),
-  getSessionWithStats: vi.fn().mockResolvedValue(null),
-  createSession: vi.fn().mockResolvedValue({ id: 'new-session-id' })
+// Mock Claude Code service to avoid external dependencies
+vi.mock('../services/claude-code.service', () => ({
+  sendPromptToClaudeCode: vi.fn()
+}))
+
+// Mock event session service
+vi.mock('../db/event-session.service', () => ({
+  getEventsForSession: vi.fn().mockResolvedValue([])
 }))
 
 describe('Session Creation', () => {
+  let testDb: TestDatabase
+
+  beforeEach(async () => {
+    testDb = setupInMemoryDb()
+    await setMockDatabase(testDb.db)
+  })
+
+  afterEach(() => {
+    testDb.cleanup()
+  })
+
   it('should display a session creation input bar', async () => {
     const Stub = createRoutesStub([
       {
@@ -35,14 +51,18 @@ describe('Session Creation', () => {
 
   it('should create a new session when Enter is pressed', async () => {
     const user = userEvent.setup()
-    const mockAction = vi.fn().mockResolvedValue({ ok: true })
     
     const Stub = createRoutesStub([
       {
         path: '/',
         Component: Home,
         loader: homeLoader,
-        action: mockAction
+        action: homeAction
+      },
+      {
+        path: '/sessions/:sessionId',
+        Component: SessionDetail,
+        loader: sessionDetailLoader
       }
     ])
 
@@ -53,21 +73,28 @@ describe('Session Creation', () => {
     const input = screen.getByPlaceholderText(/start a new claude code session/i)
     await user.type(input, 'Fix authentication bug{Enter}')
 
+    // Should redirect to session page and display session details
     await waitFor(() => {
-      expect(mockAction).toHaveBeenCalled()
+      expect(screen.getByText('Fix authentication bug')).toBeInTheDocument()
+      expect(screen.getByText('Status: active')).toBeInTheDocument()
+      expect(screen.getByText('Project: /Users/mbm-premva/dev/memva')).toBeInTheDocument()
     })
   })
 
   it('should create a new session when Start button is clicked', async () => {
     const user = userEvent.setup()
-    const mockAction = vi.fn().mockResolvedValue({ ok: true })
     
     const Stub = createRoutesStub([
       {
         path: '/',
         Component: Home,
         loader: homeLoader,
-        action: mockAction
+        action: homeAction
+      },
+      {
+        path: '/sessions/:sessionId',
+        Component: SessionDetail,
+        loader: sessionDetailLoader
       }
     ])
 
@@ -81,21 +108,23 @@ describe('Session Creation', () => {
     await user.type(input, 'Implement new feature')
     await user.click(button)
 
+    // Should redirect to session page and display session details
     await waitFor(() => {
-      expect(mockAction).toHaveBeenCalled()
+      expect(screen.getByText('Implement new feature')).toBeInTheDocument()
+      expect(screen.getByText('Status: active')).toBeInTheDocument()
+      expect(screen.getByText('Project: /Users/mbm-premva/dev/memva')).toBeInTheDocument()
     })
   })
 
   it('should not create session with empty input', async () => {
     const user = userEvent.setup()
-    const mockAction = vi.fn()
     
     const Stub = createRoutesStub([
       {
         path: '/',
         Component: Home,
         loader: homeLoader,
-        action: mockAction
+        action: homeAction
       }
     ])
 
@@ -106,6 +135,73 @@ describe('Session Creation', () => {
     const button = screen.getByRole('button', { name: /start/i })
     await user.click(button)
 
-    expect(mockAction).not.toHaveBeenCalled()
+    // Should not redirect - stays on same page
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    const input = screen.getByPlaceholderText(/start a new claude code session/i)
+    expect(input).toBeInTheDocument()
+    expect(screen.getByText('Sessions')).toBeInTheDocument()
+  })
+
+  it('should allow typing in the input field', async () => {
+    const user = userEvent.setup()
+    
+    const Stub = createRoutesStub([
+      {
+        path: '/',
+        Component: Home,
+        loader: homeLoader
+      }
+    ])
+
+    render(<Stub />)
+
+    await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
+    
+    const input = screen.getByPlaceholderText(/start a new claude code session/i)
+    await user.type(input, 'Test session title')
+
+    expect(input).toHaveValue('Test session title')
+  })
+
+  it('should disable Start button when input is empty', async () => {
+    const Stub = createRoutesStub([
+      {
+        path: '/',
+        Component: Home,
+        loader: homeLoader
+      }
+    ])
+
+    render(<Stub />)
+
+    await waitFor(() => screen.getByRole('button', { name: /start/i }))
+    
+    const button = screen.getByRole('button', { name: /start/i })
+    expect(button).toBeDisabled()
+  })
+
+  it('should enable Start button when input has text', async () => {
+    const user = userEvent.setup()
+    
+    const Stub = createRoutesStub([
+      {
+        path: '/',
+        Component: Home,
+        loader: homeLoader
+      }
+    ])
+
+    render(<Stub />)
+
+    await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
+    
+    const input = screen.getByPlaceholderText(/start a new claude code session/i)
+    const button = screen.getByRole('button', { name: /start/i })
+    
+    expect(button).toBeDisabled()
+    
+    await user.type(input, 'Test session')
+    expect(button).not.toBeDisabled()
   })
 })

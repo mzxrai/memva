@@ -400,19 +400,24 @@ const events = testDb.getEventsForSession(sessionId)
 **Result:** Integration Tests (complete event storage workflow) - All 4 tests pass reliably
 
 ### 4. events.test.tsx
-**Status**: CRITICAL - NEEDS IMMEDIATE FIX
+**Status**: ✅ FIXED - FOLLOWS ALL GUIDELINES
 
-**Issues:**
-- ❌ Mocking internal database module instead of using standard pattern
-- ❌ Testing implementation details (database query chains)
-- ❌ Mixed component and integration testing in same file
-- ❌ Hardcoded mock data instead of factory functions
+**Issues Fixed:**
+- ✅ Split into two separate files following TDD guidelines:
+  - events-loader.test.ts: Integration tests for the loader function with real database
+  - events-component.test.tsx: Component tests for UI rendering with mock data
+- ✅ Removed hardcoded mock data in favor of factory functions from factories.ts
+- ✅ Replaced internal database mocking with proper setupDatabaseMocks() pattern
+- ✅ Test behavior (data grouping, UI rendering) instead of implementation details
+- ✅ Added insertEvent helper to in-memory-db.ts for consistent test data insertion
+- ✅ Fixed schema compatibility issues in factories.ts
 
-**Fix Required:**
+**Final Implementation:**
 ```typescript
-// ✅ SPLIT into two separate files:
+// ✅ CORRECT pattern for integration tests (events-loader.test.ts):
+import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+import { createMockEvent } from '../test-utils/factories'
 
-// events-loader.test.ts (integration):
 // Setup static mocks before any imports
 setupDatabaseMocks(vi)
 
@@ -426,18 +431,27 @@ afterEach(() => {
   clearTestDatabase()
 })
 
-// events-component.test.tsx (component):
-const mockData = createMockSession({ title: 'Test' })
-vi.mocked(useLoaderData).mockReturnValue({ eventsBySession: mockData })
+// ✅ ALWAYS use factories:
+const session1Event1 = createMockEvent({ 
+  session_id: 'session-1', 
+  event_type: 'user', 
+  project_name: 'test-project' 
+})
+
+// ✅ CORRECT pattern for component tests (events-component.test.tsx):
+const eventsBySession = {
+  'session-1': [createMockEvent({ project_name: 'test-project' })]
+}
+vi.mocked(useLoaderData).mockReturnValue({ eventsBySession })
 render(<Events />)
 
-// ✅ ALWAYS use factories, NEVER hardcode:
-const events = createMockEvent({ event_type: 'user', data: { content: 'Hello' } })
+// Test semantic markup and accessibility
+expect(screen.getByRole('heading', { level: 1, name: 'Claude Code Events' })).toBeInTheDocument()
 ```
 
-**Convert to:** 
-- Integration Tests (loader with real database)
-- Component Tests (UI with mock data)
+**Result:** 
+- Integration Tests (events loader with real database) - All 4 tests pass reliably
+- Component Tests (events UI rendering with mock data) - All 8 tests pass reliably
 
 ### 5. events.$sessionId.test.tsx
 **Status**: CRITICAL - NEEDS IMMEDIATE FIX
@@ -806,8 +820,9 @@ expect(screen.getByText('Test User')).toBeInTheDocument()
 - ✅ event-storage.test.ts (FIXED - now follows all guidelines)
 - ✅ api.claude-code.test.ts (FIXED - now follows all guidelines)
 - ✅ stop-functionality.test.tsx (FIXED - now follows all guidelines)
+- ✅ events.test.tsx (FIXED - split into events-loader.test.ts + events-component.test.tsx)
 - session-resumption.test.ts, home.test.tsx
-- events.test.tsx, events.$sessionId.test.tsx (split into component + integration)
+- events.$sessionId.test.tsx (split into component + integration)
 
 ### **Tests Requiring CSS → Semantic Conversion (8 files):**
 - tool-call-error-indicator.test.tsx, message-container.test.tsx, message-header.test.tsx
