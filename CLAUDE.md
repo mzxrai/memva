@@ -72,36 +72,173 @@ I follow TDD with behavior-driven testing and functional programming principles.
 - **React Testing Library** for component testing  
 - **MSW (Mock Service Worker)** for HTTP API mocking
 - **In-memory SQLite** for database testing
-- **setupInMemoryDb()** utility for consistent database setup
+- **Global Test Utilities** for consistent patterns
 - All test code follows same TypeScript strict mode rules as production
 
-### Test Data Factory Pattern
+### Global Test Utilities & Patterns
 
-Use factory functions with optional overrides for type-safe test data:
+**IMPORTANT: These utilities exist to ensure consistency. Always use them instead of reinventing patterns.**
+
+#### Database Testing Utilities
+
+**Standard Pattern: `setupInMemoryDb()` + `setupDatabaseMocks()`**
+- **When to use**: ALL database-related tests (integration, API, database tests)
+- **Pattern**: DRY utility that eliminates SQL duplication and ensures schema consistency
+- **Helper functions**: `createSession()`, `getEventsForSession()`, `cleanup()`
+- **Module mocking**: Uses static mocking to prevent module loading timing issues
 
 ```typescript
-const getMockSession = (
-  overrides?: Partial<Session>
-): Session => ({
-  id: crypto.randomUUID(),
-  title: 'Test Session',
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-  status: 'active',
-  project_path: '/test/project',
-  metadata: null,
-  ...overrides,
-});
+// ✅ ALWAYS USE THIS PATTERN FOR DATABASE TESTS
+import { vi } from 'vitest'
+import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
+import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
 
-// Usage in tests
-const session = getMockSession({ title: 'Custom Title' })
+// CRITICAL: Setup static mocks before any imports that use database
+setupDatabaseMocks(vi)
+
+describe('Database Feature', () => {
+  let testDb: TestDatabase
+
+  beforeEach(() => {
+    testDb = setupInMemoryDb()
+    setTestDatabase(testDb)
+  })
+
+  afterEach(() => {
+    testDb.cleanup()
+    clearTestDatabase()
+  })
+
+  it('should test behavior', () => {
+    const session = testDb.createSession({ title: 'Test', project_path: '/test' })
+    // Test actual behavior
+  })
+})
 ```
 
-**Key principles:**
-- **Type-safe defaults**: Complete objects with sensible defaults
-- **Flexible overrides**: Accept optional `Partial<T>` overrides  
-- **Composable**: Factories can reference other factories
-- **Realistic data**: Use realistic values, not test123
+**⚠️ Deprecated: `setMockDatabase()` and old `mockDatabaseModules()`**
+- **Do not use**: Both are broken due to module loading timing issues
+- **Problem**: Dynamic mocking happens after modules are already imported
+- **Solution**: Always use `setupDatabaseMocks()` at module level + `setTestDatabase()` in beforeEach
+
+#### Test Data Factories
+
+**Factory Functions (app/test-utils/factories.ts)**
+- **When to use**: ALWAYS create mock data with factories, never hardcode
+- **Type-safe**: Proper TypeScript types with `Partial<T>` overrides
+- **Realistic defaults**: Sensible values that work across tests
+
+```typescript
+// ✅ ALWAYS USE FACTORIES
+const session = createMockSession({ title: 'Custom Title' })
+const userEvent = createMockUserEvent('Hello world')
+const toolUse = MOCK_TOOLS.read('/test.ts')
+
+// ❌ NEVER HARDCODE TEST DATA
+const session = { id: 'test-123', title: 'Test', ... }
+```
+
+**Available Factories**:
+- `createMockSession()`, `createMockEvent()`
+- `createMockUserEvent()`, `createMockAssistantEvent()`, `createMockSystemEvent()`
+- `createMockToolUseEvent()`, `createMockToolResultEvent()`
+- `MOCK_TOOLS.read()`, `MOCK_TOOLS.bash()`, `MOCK_TOOLS.write()`, `MOCK_TOOLS.edit()`
+
+#### Async Testing Utilities
+
+**Smart Waiting (app/test-utils/async-testing.ts)**
+- **When to use**: ALWAYS replace `setTimeout()` with condition polling
+- **Pattern**: Check actual conditions instead of arbitrary timeouts
+
+```typescript
+// ✅ ALWAYS USE SMART WAITING
+await waitForCondition(() => testDb.getEventsForSession(sessionId).length > 0)
+await waitForEvents(() => testDb.getEventsForSession(sessionId), ['user', 'assistant'])
+
+// ❌ NEVER USE ARBITRARY TIMEOUTS
+await new Promise(resolve => setTimeout(resolve, 100))
+```
+
+**Available Functions**:
+- `waitForCondition()` - Generic condition polling
+- `waitForDatabaseCondition()` - Wait for expected data count
+- `waitForEvents()` - Wait for specific event types
+- `waitForStreamCompletion()` - Wait for streaming responses
+
+#### Component Testing Utilities
+
+**Semantic Testing (app/test-utils/component-testing.ts)**
+- **When to use**: ALWAYS test behavior/accessibility, never CSS classes
+- **Pattern**: Test what users experience, not implementation details
+
+```typescript
+// ✅ ALWAYS TEST SEMANTICS
+expectSemanticMarkup.heading(1, 'My Title')
+expectSemanticMarkup.button('Save')
+expectInteraction.clickable(button)
+
+// ❌ NEVER TEST CSS CLASSES
+expect(element).toHaveClass('bg-blue-500')
+expect(element).toHaveClass('font-bold')
+```
+
+**Available Utilities**:
+- `expectSemanticMarkup` - Headings, buttons, links, forms
+- `expectContent` - Text visibility, code blocks, preformatted content
+- `expectInteraction` - Focusability, clickability, loading states
+- `expectAccessibility` - ARIA attributes, error associations, labels
+- `expectKeyboardNavigation` - Enter/Space key activation
+
+#### External Dependency Mocking
+
+**Claude Code SDK Mock (app/test-utils/msw-server.ts)**
+- **When to use**: Tests that need Claude Code responses
+- **Pattern**: Pre-configured with realistic responses
+- **Auto-setup**: Imported globally, no manual setup needed
+
+```typescript
+// ✅ MOCK IS ALREADY CONFIGURED
+// Tests automatically get realistic Claude Code responses
+// No additional setup needed
+```
+
+### Test Types & Locations
+
+#### Where Each Test Type Lives
+
+| Test Type | Location | File Pattern | Purpose | When to Create |
+|-----------|----------|--------------|---------|----------------|
+| **Component Tests** | `app/__tests__/*.test.tsx` | `component-name.test.tsx` | Test React component UI behavior | Testing individual components, forms, layouts |
+| **Integration Tests** | `app/__tests__/*.test.ts` | `feature-name.test.ts` | Test complete user workflows | Testing API routes, user journeys, business logic |
+| **Database Tests** | `app/db/*.test.ts` | `module-name.test.ts` | Test database operations directly | Testing queries, migrations, schema changes |
+
+#### Decision Matrix: Which Pattern to Use
+
+| Test Type | Database | Data Creation | Async Operations | Component Testing |
+|-----------|----------|---------------|------------------|-------------------|
+| **Component Tests** | ❌ No DB | ✅ Factories | ✅ Smart waiting | ✅ Semantic utils |
+| **Integration Tests** | ✅ setupInMemoryDb + setupDatabaseMocks + setTestDatabase | ✅ Factories | ✅ Smart waiting | ✅ Semantic utils |
+| **Database Tests** | ✅ setupInMemoryDb + setupDatabaseMocks + setTestDatabase | ✅ Factories | ✅ Smart waiting | ❌ N/A |
+
+#### When to Use Each Test Type
+
+**🎨 Component Tests (`app/__tests__/*.test.tsx`)**
+- **What**: React components, forms, UI interactions
+- **When**: Testing individual component behavior, accessibility, user interactions
+- **Examples**: Button clicks, form validation, conditional rendering, loading states
+- **No database**: Use mock data with factories
+
+**🔄 Integration Tests (`app/__tests__/*.test.ts`)**  
+- **What**: Complete user workflows, API routes, business logic
+- **When**: Testing end-to-end features, user journeys, cross-component interactions
+- **Examples**: User creates session → sends message → receives response → data persisted
+- **With database**: Full workflow with real database operations
+
+**🗄️ Database Tests (`app/db/*.test.ts`)**
+- **What**: Database operations, queries, migrations, schema
+- **When**: Testing data layer functionality, complex queries, database logic
+- **Examples**: Session creation, event storage, data relationships, migrations
+- **Direct database**: Test database operations without UI layer
 
 ## TypeScript Guidelines
 
@@ -414,7 +551,7 @@ const processSession = (session: Session): ProcessedSession => {
 // Good - tests behavior through public API
 describe("SessionProcessor", () => {
   it("should reject session when project path is invalid", () => {
-    const session = getMockSession({ project_path: '' });
+    const session = createMockSession({ project_path: '' });
 
     const result = processSession(session);
 
@@ -480,25 +617,6 @@ const processSession = (session: Session) => {
 
 ## Test Organization and Guidelines
 
-### Directory Structure
-
-Tests are organized based on what they test and how they test it:
-
-```
-app/
-├── __tests__/              # Behavior tests for components and API routes
-│   ├── *.test.tsx          # React component behavior tests
-│   ├── *.test.ts           # API route and integration tests
-│   └── (examples)
-│       ├── session-creation.test.tsx    # Tests user interactions
-│       ├── api.claude-code.test.ts      # Tests API endpoints
-│       └── event-storage.test.ts        # Tests system behavior
-├── db/
-│   └── *.test.ts           # Database integration tests using in-memory SQLite
-│       └── schema.test.ts               # Tests database schema
-└── services/               # NO test files here (implementation details)
-```
-
 ### Testing Rules
 
 1. **NO unit tests for implementation details**
@@ -512,312 +630,128 @@ app/
    - Database: Test actual database operations with in-memory SQLite
 
 3. **Mock external dependencies only**
-   - Use **Vitest mocks** for external modules (like Claude Code SDK)
-   - Use **MSW** for external HTTP API calls (if any)
-   - Never mock internal services or database
+   - Use **setupDatabaseMocks()** for database module mocking
+   - Use **MSW** for external HTTP API calls (pre-configured)
+   - Never mock internal services or database directly
    - Mock at the boundary, not internally
 
-### Good vs Bad Examples
+### Complete Examples by Test Type
 
+**🎨 Component Test Example (`app/__tests__/session-form.test.tsx`)**
 ```typescript
-// ❌ BAD - Testing implementation details
-describe('ClaudeCodeService', () => {
-  it('should call query with correct parameters', () => {
-    // This tests HOW it works, not WHAT it does
+import { render, screen, fireEvent } from '@testing-library/react'
+import { createMockSession } from '../test-utils/factories'
+import { expectSemanticMarkup } from '../test-utils/component-testing'
+import SessionForm from '../components/SessionForm'
+
+describe('SessionForm Component', () => {
+  it('should render form with proper accessibility', () => {
+    const mockData = createMockSession()
+    render(<SessionForm initialData={mockData} />)
+    
+    expectSemanticMarkup.heading(2, 'Session Details')
+    expectSemanticMarkup.textbox('Session Title')
+    expectSemanticMarkup.button('Save Session')
   })
 })
-
-// ✅ GOOD - Testing behavior through API
-describe('Claude Code API', () => {
-  it('should stream events when valid request is made', async () => {
-    // Tests the actual HTTP behavior users experience
-  })
-})
-
-// ❌ BAD - Mocking internal services
-vi.mock('../services/events.service', () => ({
-  storeEvent: vi.fn()
-}))
-
-// ✅ GOOD - Using DRY utility for database tests
-const session = testDb.createSession({ title: 'Test', project_path: '/test' })
-const events = testDb.getEventsForSession(session.id)
-expect(events).toHaveLength(0)
-
-// ❌ BAD - Testing service internals
-expect(streamClaudeCodeResponse).toHaveBeenCalledWith(...)
-
-// ✅ GOOD - Testing observable behavior
-const response = await fetch('/api/claude-code/session-id', { 
-  method: 'POST',
-  body: formData 
-})
-expect(response.headers.get('Content-Type')).toBe('text/event-stream')
 ```
 
-### Database Testing Pattern - DRY Utility Approach
-
-**ALWAYS use the `setupInMemoryDb()` utility** for database tests. This ensures consistency and eliminates SQL duplication:
-
+**🔄 Integration Test Example (`app/__tests__/user-message-storage.test.ts`)**
 ```typescript
-// ✅ EXCELLENT - DRY Utility Pattern (REQUIRED)
-import { setupInMemoryDb, setMockDatabase, type TestDatabase } from '../test-utils/in-memory-db'
+import { vi } from 'vitest'
+import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
+import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+import { waitForEvents } from '../test-utils/async-testing'
 
-describe('Database operations', () => {
+// CRITICAL: Setup static mocks before any imports that use database
+setupDatabaseMocks(vi)
+
+import { action } from '../routes/api.claude-code.$sessionId'
+
+describe('User Message Storage Workflow', () => {
   let testDb: TestDatabase
 
-  beforeEach(async () => {
+  beforeEach(() => {
     testDb = setupInMemoryDb()
-    // For API tests that need to mock the database module:
-    await setMockDatabase(testDb.db)
+    setTestDatabase(testDb)
   })
 
   afterEach(() => {
     testDb.cleanup()
+    clearTestDatabase()
   })
 
-  it('should create and retrieve session', () => {
-    const session = testDb.createSession({
-      title: 'Test Session',
-      project_path: '/test/project'
-    })
+  it('should store user message and process Claude response', async () => {
+    const session = testDb.createSession({ title: 'Test', project_path: '/test' })
+    
+    // Test complete user workflow: create → message → response → persistence
+    await action({ request, params: { sessionId: session.id } })
+    
+    await waitForEvents(() => testDb.getEventsForSession(session.id), ['user', 'system'])
     
     const events = testDb.getEventsForSession(session.id)
-    expect(events).toHaveLength(0)
+    expect(events.filter(e => e.event_type === 'user')).toHaveLength(1)
   })
 })
 ```
 
-**Benefits of DRY utility:**
-- **No SQL duplication**: Single source of truth for schema
-- **Consistent setup**: All tests use identical database structure
-- **Helper functions**: Built-in `createSession()` and `getEventsForSession()`
-- **Proper cleanup**: Automatic database connection management
-- **Parallel-safe**: Each test gets isolated in-memory database
-
-### Database Testing Anti-Patterns
-
+**🗄️ Database Test Example (`app/db/sessions.test.ts`)**
 ```typescript
-// ❌ NEVER DO THIS - Manual database setup
-beforeEach(() => {
-  sqlite = new Database(':memory:')
-  db = drizzle(sqlite, { schema })
-  sqlite.exec(`CREATE TABLE...`) // Duplicates schema definition
-})
+import { vi } from 'vitest'
+import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
+import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+import { createMockSession } from '../test-utils/factories'
+import { eq } from 'drizzle-orm'
+import { sessions } from './schema'
 
-// ❌ NEVER DO THIS - Service imports in API tests
-import { createSession } from '../db/sessions.service'
-const session = await createSession({ title: 'Test' })
+// CRITICAL: Setup static mocks before any imports that use database
+setupDatabaseMocks(vi)
 
-// ❌ NEVER DO THIS - Direct database imports in API tests
-import { db, sessions } from '../db'
-await db.delete(sessions).execute()
-```
+describe('Session Database Operations', () => {
+  let testDb: TestDatabase
 
-**Why in-memory SQLite with DRY utility:**
-- **Fast**: No file I/O operations
-- **Isolated**: Each test gets fresh database
-- **Parallel**: No file locking issues
-- **Consistent**: No schema drift between tests
-- **Maintainable**: Single place to update database structure
-- **Reliable**: No race conditions or cleanup issues
-
-### Async Testing Patterns
-
-**For API tests with streaming responses**, use proper completion polling instead of arbitrary timeouts:
-
-```typescript
-// ✅ EXCELLENT - Polling for completion
-it('should handle streaming response', async () => {
-  const response = await action({ request, params })
-  expect(response.status).toBe(200)
-  
-  // Wait for streaming to complete by checking actual state
-  let attempts = 0
-  const maxAttempts = 50 // 5 seconds max
-  while (attempts < maxAttempts) {
-    const storedEvents = testDb.getEventsForSession(session.id)
-    if (storedEvents.length > 1) { // Expected: user + system + assistant + result
-      break
-    }
-    await new Promise(resolve => setTimeout(resolve, 100))
-    attempts++
-  }
-})
-
-// ❌ NEVER DO THIS - Arbitrary timeouts
-it('should handle streaming response', async () => {
-  const response = await action({ request, params })
-  expect(response.status).toBe(200)
-  
-  // This is flaky and unreliable
-  await new Promise(resolve => setTimeout(resolve, 500))
-})
-```
-
-**Key principles for async testing:**
-- **Poll for actual completion** - Check database state, don't guess timing
-- **Use reasonable timeouts** - 5-10 seconds max with clear loop logic
-- **Validate expected behavior** - Ensure the async work actually completed
-- **Clean up properly** - Wait for async operations before test cleanup
-
-### External Dependency Mocking
-
-**For external modules**, use Vitest mocks:
-
-```typescript
-// Mock the Claude Code SDK module
-vi.mock('@anthropic-ai/claude-code', () => ({
-  query: vi.fn().mockImplementation(({ prompt }) => ({
-    async *[Symbol.asyncIterator]() {
-      yield { type: 'system', session_id: 'mock-session-id' }
-      yield { type: 'user', message: { content: prompt } }
-      yield { type: 'assistant', message: { content: 'Test response' } }
-      yield { type: 'result', subtype: 'success' }
-    }
-  }))
-}))
-```
-
-**For external HTTP APIs**, use MSW:
-
-```typescript
-// app/test-utils/msw-server.ts
-import { setupServer } from 'msw/node'
-import { http, HttpResponse } from 'msw'
-
-export const handlers = [
-  http.get('https://api.external.com/data', () => {
-    return HttpResponse.json({ data: 'mock response' })
+  beforeEach(() => {
+    testDb = setupInMemoryDb()
+    setTestDatabase(testDb)
   })
-]
 
-export const server = setupServer(...handlers)
+  afterEach(() => {
+    testDb.cleanup()
+    clearTestDatabase()
+  })
+
+  it('should create and retrieve session correctly', () => {
+    const sessionData = createMockSession({ title: 'Test Session' })
+    
+    // Test direct database operations
+    testDb.db.insert(sessions).values(sessionData).run()
+    const retrieved = testDb.db.select().from(sessions).where(eq(sessions.id, sessionData.id)).get()
+    
+    expect(retrieved).toEqual(sessionData)
+  })
+})
 ```
 
-### TypeScript Testing Patterns
+### Mock Strategy Hierarchy
 
-**Always use proper types in tests** - follow strict mode requirements:
+1. **External APIs**: Mock at boundary (MSW, vitest mocks)
+2. **Database**: Use in-memory SQLite (setupInMemoryDb + setupDatabaseMocks + setTestDatabase)
+3. **Internal services**: NEVER mock - use real implementations (follows CLAUDE.md: no unit tests for implementation details)
+4. **Test data**: ALWAYS use factories
 
-```typescript
-// ✅ EXCELLENT - Proper type handling for SQLite results
-const tableInfo = testDb.sqlite.prepare("PRAGMA table_info(events)").all()
-const columnNames = tableInfo.map((col: unknown) => (col as { name: string }).name)
+### Async Testing Best Practices
 
-// ❌ NEVER DO THIS - Using any types
-const columnNames = tableInfo.map((col: any) => col.name)
+- **Never** use arbitrary timeouts (`setTimeout(100)`)
+- **Always** poll for actual completion conditions
+- **Use** `waitForCondition()` for custom conditions
+- **Use** `waitForEvents()` for Claude Code integration tests
 
-// ✅ EXCELLENT - Proper data type assertions
-const data = result.data as {
-  type: string;
-  message: {
-    role: string;
-    content: Array<{ type: string; name: string; }>;
-  };
-}
+### Testing Philosophy (Per CLAUDE.md)
 
-// ❌ NEVER DO THIS - Casting to any
-const data = result.data as any
-```
-
-**Use factory functions consistently** - see Test Data Factory Pattern section above for details.
-
-### Test Execution
-
-- Database tests run in parallel using in-memory SQLite
-- Component tests use `happy-dom` environment
-- All tests must pass before committing
-- Coverage based on behavior, not lines of code
-- TypeScript strict mode enforced in all test files
-
-## Testing Troubleshooting Guide
-
-### Common Issues and Solutions
-
-**"Database connection is not open" errors:**
-- **Cause**: Test cleanup happens before async operations complete
-- **Solution**: Use proper completion polling, not arbitrary timeouts
-- **Example**: Check for stored events before cleanup
-
-**"Cannot read properties of undefined" in component tests:**
-- **Cause**: Component state updates not wrapped in `act()`
-- **Solution**: Wrap state-changing operations in React's `act()` helper
-- **Example**: `act(() => { fireEvent.click(button) })`
-
-**Race conditions in parallel tests:**
-- **Cause**: Shared database or global state
-- **Solution**: Always use `setupInMemoryDb()` for isolated test databases
-- **Example**: Each test gets its own in-memory SQLite instance
-
-**TypeScript errors with SQLite results:**
-- **Cause**: SQLite returns `unknown[]` types, not specific interfaces
-- **Solution**: Use proper type assertions, not `any`
-- **Example**: `(result as { name: string }).name`
-
-**Flaky tests that sometimes pass/fail:**
-- **Cause**: Timing dependencies or insufficient waiting
-- **Solution**: Poll for actual completion conditions
-- **Example**: Check database state instead of using `setTimeout`
-
-### Performance Issues
-
-**Slow database tests:**
-- **Cause**: Using file-based SQLite instead of in-memory
-- **Solution**: Ensure all tests use `:memory:` database
-- **Expected**: Database tests should run in <50ms each
-
-**Tests timing out:**
-- **Cause**: Async operations not properly awaited
-- **Solution**: Use completion polling with reasonable timeouts
-- **Expected**: API tests should complete within 5 seconds
-
-### Test Organization Issues
-
-**Duplicate test setup code:**
-- **Cause**: Manual database setup instead of DRY utility
-- **Solution**: Always use `setupInMemoryDb()` utility
-- **Benefit**: Single source of truth for schema
-
-**Tests failing after schema changes:**
-- **Cause**: Hardcoded SQL in individual test files
-- **Solution**: Schema changes only need updating in `setupInMemoryDb()`
-- **Benefit**: All tests automatically get updated schema
-
-## TypeScript Testing Best Practices Summary
-
-### The Golden Rules
-
-1. **Test behavior, not implementation** - Test what the code does, not how it does it
-2. **Use real dependencies internally** - Never mock internal services or database
-3. **Mock only external boundaries** - Mock external APIs and modules at the boundary
-4. **Follow TypeScript strict mode** - No `any` types, proper type assertions when needed
-5. **Use factories for test data** - Type-safe, composable, realistic test data
-6. **Consistent database setup** - Always use `setupInMemoryDb()` utility
-7. **Poll for async completion** - Don't use arbitrary timeouts, check actual state
-
-### Test Architecture Patterns
-
-**Database Tests**: Use in-memory SQLite with DRY utility
-**API Tests**: Test HTTP endpoints with proper async polling
-**Component Tests**: Test user interactions with React Testing Library
-**External Mocks**: Vitest mocks for modules, MSW for HTTP APIs
-
-### Quality Indicators
-
-- **Fast**: Database tests <50ms, API tests <5s
-- **Reliable**: No race conditions, no flaky tests
-- **Maintainable**: Single source of truth for schema and test data
-- **Type-safe**: No `any` types, proper assertions when needed
-- **Behavior-focused**: Tests document expected business behavior
-
-### Red Flags to Avoid
-
-- ❌ Testing internal service methods
-- ❌ Mocking internal dependencies  
-- ❌ Using `any` types in tests
-- ❌ Hardcoded SQL in individual test files
-- ❌ Arbitrary timeouts for async operations
-- ❌ Shared mutable state between tests
+- **NO "unit tests"** - test expected behavior through public APIs only
+- **NO testing implementation details** - test what users experience, not how code works internally
+- **NO mocking internal services** - use real implementations for internal dependencies
+- **Test behavior, not implementation** - focus on business outcomes, not code structure
 
 ## Summary
 
