@@ -17,10 +17,23 @@ vi.mock('../db/index', () => {
   }
 })
 
+// Mock the database module to prevent real database connections
+vi.mock('../db/database', () => {
+  let db: ReturnType<typeof drizzle>
+  return {
+    getDb: () => db,
+    getDatabase: () => db,
+    closeDatabase: () => {},
+    resetDatabase: () => {},
+    set db(value: ReturnType<typeof drizzle>) { db = value }
+  }
+})
+
 export type TestDatabase = {
   db: ReturnType<typeof drizzle>
   sqlite: Database.Database
   createSession: (input: { title?: string; project_path: string }) => typeof sessions.$inferInsert & { id: string }
+  insertEvent: (event: typeof events.$inferInsert) => void
   getEventsForSession: (sessionId: string) => Array<typeof events.$inferSelect>
   cleanup: () => void
 }
@@ -84,6 +97,10 @@ export function setupInMemoryDb(): TestDatabase {
     return session
   }
 
+  const insertEvent = (event: typeof events.$inferInsert) => {
+    db.insert(events).values(event).run()
+  }
+
   const getEventsForSession = (sessionId: string) => {
     return db.select().from(events).where(eq(events.memva_session_id, sessionId)).all()
   }
@@ -96,12 +113,9 @@ export function setupInMemoryDb(): TestDatabase {
     db,
     sqlite,
     createSession,
+    insertEvent,
     getEventsForSession,
     cleanup
   }
 }
 
-export async function setMockDatabase(db: ReturnType<typeof drizzle>) {
-  const dbModule = await import('../db/index')
-  ;(dbModule as { db: ReturnType<typeof drizzle> }).db = db
-}
