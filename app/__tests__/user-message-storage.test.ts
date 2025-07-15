@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { setupInMemoryDb, setMockDatabase, type TestDatabase } from '../test-utils/in-memory-db'
+import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
+import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+import { waitForEvents } from '../test-utils/async-testing'
+
+// Set up database mocks before any other imports
+setupDatabaseMocks(vi)
+
 import { action } from '../routes/api.claude-code.$sessionId'
 import type { Route } from '../routes/+types/api.claude-code.$sessionId'
 
@@ -25,13 +31,14 @@ vi.mock('@anthropic-ai/claude-code', () => ({
 describe('User Message Storage', () => {
   let testDb: TestDatabase
 
-  beforeEach(async () => {
+  beforeEach(() => {
     testDb = setupInMemoryDb()
-    await setMockDatabase(testDb.db)
+    setTestDatabase(testDb)
   })
 
   afterEach(() => {
     testDb.cleanup()
+    clearTestDatabase()
   })
 
   it('should store user prompt as an event when submitted', async () => {
@@ -58,14 +65,8 @@ describe('User Message Storage', () => {
     
     expect(response.status).toBe(200)
     
-    // Let the stream complete
-    const reader = response.body?.getReader()
-    if (reader) {
-      while (true) {
-        const { done } = await reader.read()
-        if (done) break
-      }
-    }
+    // Wait for events to be stored using smart waiting
+    await waitForEvents(() => testDb.getEventsForSession(session.id), ['user', 'system'])
     
     // Check that user message was stored
     const storedEvents = testDb.getEventsForSession(session.id)
@@ -111,19 +112,13 @@ describe('User Message Storage', () => {
       body: formData
     })
     
-    const response = await action({ 
+    await action({ 
       request, 
       params: { sessionId: session.id } 
     } as Route.ActionArgs)
     
-    // Consume the stream
-    const reader = response.body?.getReader()
-    if (reader) {
-      while (true) {
-        const { done } = await reader.read()
-        if (done) break
-      }
-    }
+    // Wait for events to be stored using smart waiting
+    await waitForEvents(() => testDb.getEventsForSession(session.id), ['user', 'system'])
     
     // Check event order
     const storedEvents = testDb.getEventsForSession(session.id)
