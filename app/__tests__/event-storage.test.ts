@@ -1,10 +1,21 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createSession } from '../db/sessions.service'
 import { getEventsForSession } from '../db/event-session.service'
 import { db, sessions, events } from '../db'
 import { action } from '../routes/api.claude-code.$sessionId'
 import type { Route } from '../routes/+types/api.claude-code.$sessionId'
 import { eq } from 'drizzle-orm'
+
+// Mock only external dependencies like Claude Code SDK
+vi.mock('@anthropic-ai/claude-code', () => ({
+  query: vi.fn().mockImplementation(function* () {
+    // Mock Claude Code SDK returning messages
+    yield { type: 'system', content: 'Session started', session_id: 'mock-session-id' }
+    yield { type: 'user', content: 'Test prompt', session_id: 'mock-session-id' }
+    yield { type: 'assistant', content: 'Test response', session_id: 'mock-session-id' }
+    yield { type: 'result', content: '', session_id: 'mock-session-id' }
+  })
+}))
 
 describe('Event Storage Behavior', () => {
   beforeEach(async () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { CodeBlock } from '../components/events/CodeBlock'
 
 // Mock the clipboard API
@@ -77,15 +77,14 @@ describe('CodeBlock component', () => {
     fireEvent.mouseEnter(codeBlock)
     
     const copyButton = screen.getByLabelText('Copy code')
-    fireEvent.click(copyButton)
+    await fireEvent.click(copyButton)
     
-    // Wait for the state to update
-    await new Promise(resolve => setTimeout(resolve, 10))
-    
-    // Should show check icon which has emerald color
-    const button = screen.getByLabelText('Copy code')
-    const checkIcon = button.querySelector('svg')
-    expect(checkIcon).toHaveClass('text-emerald-500')
+    // Wait for the check icon to appear
+    await waitFor(() => {
+      const button = screen.getByLabelText('Copy code')
+      const checkIcon = button.querySelector('svg')
+      expect(checkIcon).toHaveClass('text-emerald-500')
+    }, { timeout: 2000 })
   })
   
   it('should handle long code with scroll', () => {

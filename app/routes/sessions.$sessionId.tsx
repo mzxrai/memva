@@ -323,20 +323,34 @@ export default function SessionDetail() {
           // Add the message to the end (newest at bottom)
           setMessages(prev => [...prev, message]);
           
-          // Count tokens from assistant messages
-          if (message.type === 'assistant') {
-            // Check if usage info is directly on message or nested
-            const messageWithUsage = message as { 
-              usage?: { input_tokens?: number; output_tokens?: number };
-              message?: { usage?: { input_tokens?: number; output_tokens?: number } };
-            };
-            const usage = messageWithUsage.usage || messageWithUsage.message?.usage;
-            if (usage) {
-              // Only count output tokens for the streaming effect
-              const outputTokens = usage.output_tokens || 0;
-              if (outputTokens > 0) {
-                setTokenCount(outputTokens);
-              }
+          // Count tokens from messages with usage data
+          const messageWithUsage = message as { 
+            usage?: { input_tokens?: number; output_tokens?: number };
+            message?: { usage?: { input_tokens?: number; output_tokens?: number } };
+            data?: { usage?: { input_tokens?: number; output_tokens?: number } };
+          };
+          
+          // Check multiple possible locations for usage data
+          const usage = messageWithUsage.usage || 
+                       messageWithUsage.message?.usage ||
+                       (messageWithUsage.data as Record<string, unknown>)?.usage;
+                       
+          if (usage && typeof usage === 'object') {
+            const usageObj = usage as { input_tokens?: number; output_tokens?: number };
+            const currentTokens = (usageObj.input_tokens || 0) + (usageObj.output_tokens || 0);
+            if (currentTokens > 0) {
+              console.log('[Token Count - Auto] Found usage data:', { 
+                type: message.type, 
+                input: usageObj.input_tokens, 
+                output: usageObj.output_tokens, 
+                total: currentTokens 
+              });
+              // Accumulate tokens instead of replacing
+              setTokenCount(prev => {
+                const newCount = prev + currentTokens;
+                console.log('[Token Count - Auto] Updated:', { prev, current: currentTokens, new: newCount });
+                return newCount;
+              });
             }
           }
           
@@ -416,21 +430,34 @@ export default function SessionDetail() {
         // Add the message to the end (newest at bottom)
         setMessages(prev => [...prev, message]);
         
-        // Count tokens from assistant messages
-        if (message.type === 'assistant') {
-          // Check if usage info is directly on message or nested
-          const messageWithUsage = message as { 
-            usage?: { input_tokens?: number; output_tokens?: number };
-            message?: { usage?: { input_tokens?: number; output_tokens?: number } };
-          };
-          const usage = messageWithUsage.usage || messageWithUsage.message?.usage;
-          if (usage) {
-            // Only count output tokens for the streaming effect
-            // Input tokens are usually known upfront and don't change
-            const outputTokens = usage.output_tokens || 0;
-            if (outputTokens > 0) {
-              setTokenCount(outputTokens);
-            }
+        // Count tokens from messages with usage data
+        const messageWithUsage = message as { 
+          usage?: { input_tokens?: number; output_tokens?: number };
+          message?: { usage?: { input_tokens?: number; output_tokens?: number } };
+          data?: { usage?: { input_tokens?: number; output_tokens?: number } };
+        };
+        
+        // Check multiple possible locations for usage data
+        const usage = messageWithUsage.usage || 
+                     messageWithUsage.message?.usage ||
+                     (messageWithUsage.data as Record<string, unknown>)?.usage;
+                     
+        if (usage && typeof usage === 'object') {
+          const usageObj = usage as { input_tokens?: number; output_tokens?: number };
+          const currentTokens = (usageObj.input_tokens || 0) + (usageObj.output_tokens || 0);
+          if (currentTokens > 0) {
+            console.log('[Token Count] Found usage data:', { 
+              type: message.type, 
+              input: usageObj.input_tokens, 
+              output: usageObj.output_tokens, 
+              total: currentTokens 
+            });
+            // Accumulate tokens instead of replacing
+            setTokenCount(prev => {
+              const newCount = prev + currentTokens;
+              console.log('[Token Count] Updated:', { prev, current: currentTokens, new: newCount });
+              return newCount;
+            });
           }
         }
         
@@ -495,11 +522,17 @@ export default function SessionDetail() {
           <div 
             ref={messagesListRef}
             className={contentOverflows 
-              ? `min-h-full flex flex-col justify-end pt-6 ${isLoading ? 'pb-40' : 'pb-32'}`     // Overflow: bottom-anchored (newest at bottom)
-              : `min-h-full flex flex-col justify-start pt-6 ${isLoading ? 'pb-40' : 'pb-32'}`   // Fits: top-anchored (start from top)
+              ? `min-h-full flex flex-col justify-end pt-6 ${isLoading ? 'pb-56' : 'pb-32'}`     // Overflow: bottom-anchored (newest at bottom)
+              : `min-h-full flex flex-col justify-start pt-6 ${isLoading ? 'pb-56' : 'pb-32'}`   // Fits: top-anchored (start from top)
             }>
             {messages
-              .filter(message => !isToolResultMessage(message))
+              .filter(message => {
+                // Filter out tool result messages
+                if (isToolResultMessage(message)) return false;
+                // Filter out success result messages
+                if (message.type === 'result' && message.subtype === 'success') return false;
+                return true;
+              })
               .map((message, index) => (
                 <EventRenderer
                   key={getMessageKey(message, index)}
@@ -534,20 +567,22 @@ export default function SessionDetail() {
               )}
               <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 p-4">
                 <form onSubmit={handleSubmit} className="flex gap-3">
-              <input
-                ref={inputRef}
-                type="text"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Ask Claude Code anything..."
-                disabled={isLoading}
-                className="flex-1 px-5 py-3.5 bg-zinc-800/60 border border-zinc-700/50 rounded-xl text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/80 transition-all duration-200 disabled:opacity-50"
-              />
+              <div className="flex-1 flex items-center px-5 py-3.5 bg-zinc-800/60 border border-zinc-700/50 rounded-xl focus-within:border-zinc-600 focus-within:bg-zinc-800/80 transition-all duration-200">
+                <span className="text-zinc-500 font-mono mr-4 select-none">{'>'}</span>
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  disabled={isLoading}
+                  className="flex-1 bg-transparent text-zinc-100 focus:outline-none disabled:opacity-50 font-mono"
+                />
+              </div>
               {isLoading ? (
                 <button
                   type="button"
                   onClick={handleStop}
-                  className="px-6 py-3.5 bg-red-900/90 hover:bg-red-800/90 text-zinc-100 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:bg-red-800/90 flex items-center gap-2 shadow-lg"
+                  className="px-6 py-3.5 bg-red-900/90 hover:bg-red-800/90 text-zinc-100 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:bg-red-800/90 flex items-center gap-2 shadow-lg font-mono"
                   title="Press Escape to stop"
                 >
                   <RiStopCircleLine className="w-5 h-5" />
@@ -557,7 +592,7 @@ export default function SessionDetail() {
                 <button
                   type="submit"
                   disabled={!prompt.trim()}
-                  className="px-6 py-3.5 bg-zinc-700/90 hover:bg-zinc-600/90 text-zinc-100 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:bg-zinc-600/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg"
+                  className="px-6 py-3.5 bg-zinc-700/90 hover:bg-zinc-600/90 text-zinc-100 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:bg-zinc-600/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg font-mono"
                 >
                   <RiSendPlaneFill className="w-5 h-5" />
                   Send

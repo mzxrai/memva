@@ -102,7 +102,7 @@ describe('Session Detail Page', () => {
     render(<Stub initialEntries={['/sessions/test-session-id']} />)
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText(/ask claude code/i)).toBeInTheDocument()
+      expect(screen.getByRole('textbox')).toBeInTheDocument()
       expect(screen.getByText(/send/i)).toBeInTheDocument()
     })
   })
@@ -161,11 +161,11 @@ describe('Session Detail Page', () => {
     render(<Stub initialEntries={['/sessions/test-session-id']} />)
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText(/ask claude code/i)).toBeInTheDocument()
+      expect(screen.getByRole('textbox')).toBeInTheDocument()
     })
 
     // Type a prompt and submit
-    const input = screen.getByPlaceholderText(/ask claude code/i)
+    const input = screen.getByRole('textbox')
     const sendButton = screen.getByText(/send/i)
 
     fireEvent.change(input, { target: { value: 'Test prompt' } })
@@ -232,11 +232,11 @@ describe('Session Detail Page', () => {
     render(<Stub initialEntries={['/sessions/test-session-id']} />)
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText(/ask claude code/i)).toBeInTheDocument()
+      expect(screen.getByRole('textbox')).toBeInTheDocument()
     })
 
     // Submit a prompt
-    const input = screen.getByPlaceholderText(/ask claude code/i)
+    const input = screen.getByRole('textbox')
     const sendButton = screen.getByText(/send/i)
 
     fireEvent.change(input, { target: { value: 'Help me implement a feature' } })
@@ -314,11 +314,11 @@ describe('Session Detail Page', () => {
     render(<Stub initialEntries={['/sessions/test-session-id']} />)
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText(/ask claude code/i)).toBeInTheDocument()
+      expect(screen.getByRole('textbox')).toBeInTheDocument()
     })
 
     // Type a prompt and submit
-    const input = screen.getByPlaceholderText(/ask claude code/i)
+    const input = screen.getByRole('textbox')
     const sendButton = screen.getByText(/send/i)
 
     fireEvent.change(input, { target: { value: 'Long running task' } })
@@ -476,10 +476,10 @@ describe('Session Detail Page', () => {
     render(<Stub initialEntries={['/sessions/test-session-id']} />)
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText(/ask claude code/i)).toBeInTheDocument()
+      expect(screen.getByRole('textbox')).toBeInTheDocument()
     })
 
-    const input = screen.getByPlaceholderText(/ask claude code/i) as HTMLInputElement
+    const input = screen.getByRole('textbox') as HTMLInputElement
     const sendButton = screen.getByText(/send/i) as HTMLButtonElement
 
     // Input should be enabled initially, button disabled (no text)
@@ -545,10 +545,10 @@ describe('Session Detail Page', () => {
     render(<Stub initialEntries={['/sessions/test-session-id']} />)
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText(/ask claude code/i)).toBeInTheDocument()
+      expect(screen.getByRole('textbox')).toBeInTheDocument()
     })
 
-    const input = screen.getByPlaceholderText(/ask claude code/i)
+    const input = screen.getByRole('textbox')
     const sendButton = screen.getByText(/send/i)
 
     // Submit a prompt
@@ -562,7 +562,7 @@ describe('Session Detail Page', () => {
 
     // Input and button should still be visible and in the document
     // Note: We can't test actual visibility/positioning in jsdom, but we can verify they're in the DOM
-    expect(screen.getByPlaceholderText(/ask claude code/i)).toBeInTheDocument()
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
     
     // During loading, stop button should be present
     expect(screen.getByText(/stop/i)).toBeInTheDocument()

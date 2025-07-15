@@ -63,24 +63,25 @@ export function LoadingIndicator({ tokenCount, startTime, isLoading = true }: Lo
   useEffect(() => {
     if (!isLoading) return
 
-    const duration = 500 // Animation duration in ms
-    const steps = 30 // Number of animation steps
-    const stepDuration = duration / steps
-    
     const difference = tokenCount - displayedTokenCount
     if (difference === 0) return
     
-    const increment = difference / steps
-    let currentStep = 0
+    // Animate by incrementing 1 token at a time
+    const stepDuration = Math.max(10, Math.min(50, 1000 / Math.abs(difference))) // Between 10ms and 50ms per step
     
     const interval = setInterval(() => {
-      currentStep++
-      if (currentStep >= steps) {
-        setDisplayedTokenCount(tokenCount)
-        clearInterval(interval)
-      } else {
-        setDisplayedTokenCount(prev => Math.floor(prev + increment))
-      }
+      setDisplayedTokenCount(prev => {
+        if (prev === tokenCount) {
+          clearInterval(interval)
+          return prev
+        }
+        
+        if (prev < tokenCount) {
+          return prev + 1
+        } else {
+          return prev - 1
+        }
+      })
     }, stepDuration)
     
     return () => clearInterval(interval)
@@ -136,7 +137,7 @@ export function LoadingIndicator({ tokenCount, startTime, isLoading = true }: Lo
     <div
       data-testid="loading-indicator"
       className={clsx(
-        'inline-flex items-center gap-3',
+        'inline-flex items-center',
         'text-sm',
         transition.normal,
         'animate-fade-in'
@@ -146,38 +147,51 @@ export function LoadingIndicator({ tokenCount, startTime, isLoading = true }: Lo
       <span className={clsx(
         'text-zinc-400',
         'inline-block',
-        'animate-smooth-pulse'
+        'animate-smooth-pulse',
+        'mr-3'
       )}>
         ✧
       </span>
 
-      {/* Action verb */}
-      <span className={clsx(
-        colors.text.secondary,
-        typography.size.sm
-      )}>
-        {currentVerb}
-      </span>
+      {/* Action verb - fixed width container */}
+      <div className="w-36 mr-3">
+        <span className={clsx(
+          colors.text.secondary,
+          typography.font.mono,
+          typography.size.sm,
+          'block whitespace-nowrap overflow-hidden',
+          'animate-pulse'
+        )}>
+          {currentVerb.length > 15 ? currentVerb.substring(0, 15) + '...' : currentVerb + '...'}
+        </span>
+      </div>
 
+      {/* Separator */}
       <span className={clsx(
         colors.text.tertiary,
-        typography.size.sm
+        typography.size.sm,
+        'mr-3'
       )}>
         •
       </span>
 
-      {/* Token count */}
-      <span className={clsx(
-        typography.font.mono,
-        typography.size.sm,
-        colors.text.secondary
-      )}>
-        {formatTokenCount(displayedTokenCount)} tokens
-      </span>
+      {/* Token count - fixed width container */}
+      <div className="w-24 mr-3 text-center">
+        <span className={clsx(
+          typography.font.mono,
+          typography.size.sm,
+          colors.text.secondary,
+          'block'
+        )}>
+          {formatTokenCount(displayedTokenCount)} tokens
+        </span>
+      </div>
 
+      {/* Separator */}
       <span className={clsx(
         colors.text.tertiary,
-        typography.size.sm
+        typography.size.sm,
+        'mr-3'
       )}>
         •
       </span>

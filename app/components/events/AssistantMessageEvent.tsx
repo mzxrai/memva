@@ -5,6 +5,7 @@ import { MessageContainer } from './MessageContainer'
 import { MessageHeader } from './MessageHeader'
 import { ToolCallDisplay } from './ToolCallDisplay'
 import { CodeBlock } from './CodeBlock'
+import { MarkdownRenderer } from '../MarkdownRenderer'
 import { colors, typography, radius, iconSize } from '../../constants/design'
 import type { AnyEvent, AssistantMessageContent } from '../../types/events'
 import clsx from 'clsx'
@@ -17,16 +18,7 @@ interface AssistantMessageEventProps {
 function renderContent(content: AssistantMessageContent, toolResults?: Map<string, unknown>): ReactNode {
   switch (content.type) {
     case 'text':
-      return (
-        <div className={clsx(
-          typography.font.mono,
-          typography.size.sm,
-          colors.text.primary,
-          'leading-relaxed whitespace-pre-wrap'
-        )}>
-          {content.text}
-        </div>
-      )
+      return <MarkdownRenderer content={content.text || ''} />
     
     case 'tool_use': {
       const result = toolResults?.get(content.id);
@@ -53,11 +45,10 @@ function renderContent(content: AssistantMessageContent, toolResults?: Map<strin
           </summary>
           <div className={clsx(
             'mt-3',
-            typography.size.sm,
-            colors.text.secondary,
-            'leading-relaxed whitespace-pre-wrap'
+            '[&_p]:text-zinc-400',
+            '[&_code]:text-zinc-300'
           )}>
-            {content.text}
+            <MarkdownRenderer content={content.text || ''} />
           </div>
         </details>
       )

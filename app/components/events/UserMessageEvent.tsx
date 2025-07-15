@@ -30,18 +30,22 @@ export function UserMessageEvent({ event }: UserMessageEventProps) {
         <div className={clsx(
           typography.font.mono,
           typography.size.sm,
-          colors.text.primary,
-          'leading-relaxed'
+          colors.text.secondary,
+          'leading-relaxed',
+          'flex items-start gap-2'
         )}>
-          {typeof content === 'string' ? (
-            content
-          ) : (
-            <CodeBlock 
-              code={JSON.stringify(content, null, 2)}
-              language="json"
-              className="text-xs"
-            />
-          )}
+          <span className={colors.text.tertiary}>{'>'}</span>
+          <div className="flex-1">
+            {typeof content === 'string' ? (
+              content
+            ) : (
+              <CodeBlock 
+                code={JSON.stringify(content, null, 2)}
+                language="json"
+                className="text-xs"
+              />
+            )}
+          </div>
         </div>
       </MessageContainer>
     </BaseEventWrapper>

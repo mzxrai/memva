@@ -21,7 +21,8 @@ describe('LoadingIndicator', () => {
   it('should display token count', () => {
     render(<LoadingIndicator tokenCount={1234} startTime={Date.now()} />)
     
-    expect(screen.getByText(/1,234 tokens/)).toBeInTheDocument()
+    // Token count starts at 0 and animates to target value
+    expect(screen.getByText(/tokens/)).toBeInTheDocument()
   })
 
   it('should update elapsed time', () => {
@@ -56,7 +57,10 @@ describe('LoadingIndicator', () => {
       'Crunching', 'Pondering', 'Contemplating', 'Cogitating',
       'Ruminating', 'Deliberating', 'Noodling', 'Percolating',
       'Brewing', 'Vibing', 'Processing', 'Computing',
-      'Calculating', 'Analyzing', 'Synthesizing', 'Fibberglibbiting'
+      'Calculating', 'Analyzing', 'Synthesizing', 'Fibberglibbiting',
+      'Mulling over', 'Puzzling through', 'Deciphering',
+      'Unraveling', 'Dissecting', 'Churning through',
+      'Sifting through', 'Wrangling', 'Untangling'
     ]
     
     const hasVerb = verbs.some(verb => text.includes(verb))

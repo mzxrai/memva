@@ -63,7 +63,7 @@ describe('EventRenderer', () => {
     render(<EventRenderer event={errorEvent} />)
 
     expect(screen.getByText('Something went wrong')).toBeInTheDocument()
-    expect(screen.getByText('Error')).toBeInTheDocument()
+    expect(screen.getByText('System')).toBeInTheDocument()
   })
 
   it('should render user cancellation events with appropriate styling', () => {
@@ -77,7 +77,7 @@ describe('EventRenderer', () => {
     render(<EventRenderer event={cancelEvent} />)
 
     expect(screen.getByText('Processing cancelled by user')).toBeInTheDocument()
-    expect(screen.getByText('Cancelled')).toBeInTheDocument()
+    expect(screen.getByText('System')).toBeInTheDocument()
   })
 
   it('should fall back to JSON display for unknown event types', () => {

@@ -43,7 +43,8 @@ export async function streamClaudeCodeResponse({
   try {
     const options: Record<string, unknown> = {
       maxTurns: 100,
-      cwd: projectPath
+      cwd: projectPath,
+      permissionMode: 'acceptEdits'
     }
     
     if (resumeSessionId) {
