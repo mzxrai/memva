@@ -322,7 +322,7 @@ describe('Session Database Operations', () => {
 19. event-storage.test.ts - ✅ FIXED (follows all guidelines)
 20. user-message-storage.test.ts - ✅ FIXED (follows all guidelines)
 21. session-resumption.test.ts - ❌ CRITICAL DATABASE FIX
-22. api.claude-code.test.ts - ❌ CRITICAL DATABASE FIX
+22. api.claude-code.test.ts - ✅ FIXED (follows all guidelines)
 
 ### Database Tests (3 files)
 23. app/db/database.test.ts - ✅ EXCELLENT (perfect reference example)
@@ -466,16 +466,55 @@ const events = createMockEvent({ event_type: 'user', data: { content: 'Hello' } 
 **Convert to:** Integration Tests (session resumption workflow)
 
 ### 7. api.claude-code.test.ts
-**Status**: CRITICAL - NEEDS IMMEDIATE FIX
+**Status**: ✅ FIXED - FOLLOWS ALL GUIDELINES
 
-**Issues:**
-- ❌ Using broken `setMockDatabase()` pattern
-- ❌ Arbitrary timeouts within completion polling
-- ❌ Direct database inserts instead of testDb helpers
+**Issues Fixed:**
+- ✅ Fixed broken `setMockDatabase()` pattern - now uses `setupDatabaseMocks()` + `setTestDatabase()` pattern
+- ✅ Replaced arbitrary timeouts with `waitForStreamCompletion()` smart waiting
+- ✅ Used factory functions (`createMockEvent()`) for consistent test data creation
+- ✅ Proper integration test pattern for API endpoint workflow
+- ✅ Fixed database-mocking.ts to prevent TypeScript duplicate property errors
 
-**Fix Required:** Same pattern as user-message-storage.test.ts above
+**Final Implementation:**
+```typescript
+// ✅ CORRECT pattern for integration tests:
+import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+import { waitForStreamCompletion } from '../test-utils/async-testing'
+import { createMockEvent } from '../test-utils/factories'
 
-**Convert to:** Integration Tests (API endpoint workflow)
+// Setup static mocks before any imports
+setupDatabaseMocks(vi)
+
+beforeEach(() => {
+  testDb = setupInMemoryDb()
+  setTestDatabase(testDb)  // ✅ ALWAYS use this pattern
+})
+
+afterEach(() => {
+  testDb.cleanup()
+  clearTestDatabase()
+})
+
+// ✅ ALWAYS use smart waiting:
+await waitForStreamCompletion(
+  () => {
+    const storedEvents = testDb.getEventsForSession(session.id)
+    return storedEvents.length > 1 // Expected completion condition
+  },
+  { timeoutMs: 5000 }
+)
+
+// ✅ ALWAYS use factory functions:
+const userEvent = createMockEvent({
+  uuid: 'event-1',
+  session_id: 'claude-session-1',
+  memva_session_id: session.id,
+  event_type: 'user',
+  data: { type: 'user', content: 'Previous message' }
+})
+```
+
+**Result:** Integration Tests (API endpoint workflow) - All 5 tests pass reliably
 
 ### 8. home.test.tsx
 **Status**: WARNING - NEEDS EXPANSION
@@ -741,7 +780,8 @@ expect(screen.getByText('Test User')).toBeInTheDocument()
 ### **Critical Tests Requiring Database Fix (7 files):**
 - ✅ user-message-storage.test.ts (FIXED - now follows all guidelines)
 - ✅ event-storage.test.ts (FIXED - now follows all guidelines)
-- session-resumption.test.ts, api.claude-code.test.ts
+- ✅ api.claude-code.test.ts (FIXED - now follows all guidelines)
+- session-resumption.test.ts
 - stop-functionality.test.tsx, home.test.tsx
 - events.test.tsx, events.$sessionId.test.tsx (split into component + integration)
 
