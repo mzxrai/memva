@@ -535,16 +535,40 @@ const userEvent = createMockEvent({
 - Component Tests (UI rendering and interactions)
 
 ### 9. stop-functionality.test.tsx
-**Status**: CRITICAL - NEEDS IMMEDIATE FIX
+**Status**: ✅ FIXED - FOLLOWS ALL GUIDELINES
 
-**Issues:**
-- ❌ Using broken `setMockDatabase()` pattern
-- ❌ Multiple arbitrary timeouts (150ms, 100ms, 200ms)
-- ❌ Complex mock with global state (`shouldContinueGenerating`)
+**Issues Fixed:**
+- ✅ Fixed broken `setMockDatabase()` pattern - now uses `setupDatabaseMocks()` + `setTestDatabase()` pattern
+- ✅ Replaced arbitrary timeouts with `waitForCondition()` and `waitForEvents()` smart waiting
+- ✅ Removed complex global state mock (`shouldContinueGenerating`)
+- ✅ Used proper testDb.createSession() instead of factory wrapper
+- ✅ Proper integration test pattern for stop functionality workflow
 
-**Fix Required:** Same pattern as user-message-storage.test.ts above
+**Final Implementation:**
+```typescript
+// ✅ CORRECT pattern for integration tests:
+import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+import { waitForCondition, waitForEvents } from '../test-utils/async-testing'
 
-**Convert to:** Integration Tests (stop functionality workflow)
+// Setup static mocks before any imports
+setupDatabaseMocks(vi)
+
+beforeEach(() => {
+  testDb = setupInMemoryDb()
+  setTestDatabase(testDb)  // ✅ ALWAYS use this pattern
+})
+
+afterEach(() => {
+  testDb.cleanup()
+  clearTestDatabase()
+})
+
+// ✅ ALWAYS use smart waiting:
+await waitForEvents(() => testDb.getEventsForSession(session.id), ['system'])
+await waitForCondition(() => testDb.getEventsForSession(session.id).length > 0)
+```
+
+**Result:** Integration Tests (stop functionality workflow) - All 3 tests pass reliably
 
 ### 10. loading-indicator.test.tsx
 **Status**: GOOD - MINOR FIXES NEEDED
@@ -781,8 +805,8 @@ expect(screen.getByText('Test User')).toBeInTheDocument()
 - ✅ user-message-storage.test.ts (FIXED - now follows all guidelines)
 - ✅ event-storage.test.ts (FIXED - now follows all guidelines)
 - ✅ api.claude-code.test.ts (FIXED - now follows all guidelines)
-- session-resumption.test.ts
-- stop-functionality.test.tsx, home.test.tsx
+- ✅ stop-functionality.test.tsx (FIXED - now follows all guidelines)
+- session-resumption.test.ts, home.test.tsx
 - events.test.tsx, events.$sessionId.test.tsx (split into component + integration)
 
 ### **Tests Requiring CSS → Semantic Conversion (8 files):**
