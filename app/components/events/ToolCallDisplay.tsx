@@ -17,6 +17,7 @@ import {
 } from 'react-icons/ri'
 import { colors, typography, radius, transition, iconSize } from '../../constants/design'
 import { CodeBlock } from './CodeBlock'
+import { DiffViewer } from './DiffViewer'
 import type { ToolUseContent } from '../../types/events'
 import clsx from 'clsx'
 
@@ -59,6 +60,48 @@ const getIconTestId = (toolName: string): string => {
     Glob: 'search-icon',
   }
   return iconMap[toolName] || 'tools-icon'
+}
+
+/**
+ * Reconstructs the original and final file content from MultiEdit operations
+ * to create a unified diff with proper line numbers
+ */
+function reconstructFileFromMultiEdit(edits: Array<{ old_string: string; new_string: string }>): { 
+  originalContent: string; 
+  finalContent: string 
+} {
+  if (edits.length === 0) {
+    return { originalContent: '', finalContent: '' }
+  }
+
+  if (edits.length === 1) {
+    // Single edit case
+    return {
+      originalContent: edits[0].old_string,
+      finalContent: edits[0].new_string
+    }
+  }
+
+  // For multiple edits, create a simple but effective reconstruction
+  // Since MultiEdit edits are typically applied to different parts of the same file,
+  // we'll concatenate them with clear separators to show the context
+  
+  const originalParts = edits.map((edit, index) => {
+    // Add a comment to show which edit this is
+    const marker = `// Edit ${index + 1}/${edits.length}`
+    return `${marker}\n${edit.old_string}`
+  })
+  
+  const finalParts = edits.map((edit, index) => {
+    // Add the same comment structure
+    const marker = `// Edit ${index + 1}/${edits.length}`
+    return `${marker}\n${edit.new_string}`
+  })
+  
+  return {
+    originalContent: originalParts.join('\n\n'),
+    finalContent: finalParts.join('\n\n')
+  }
 }
 
 // Get primary parameter to show in the header
@@ -158,12 +201,37 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
 }
 
 export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, className }: ToolCallDisplayProps) => {
-  const [isExpanded, setIsExpanded] = useState(false)
+  // Auto-expand Edit/MultiEdit tools to show diff by default
+  const isEditTool = toolCall.name === 'Edit' || toolCall.name === 'MultiEdit'
+  const [isExpanded, setIsExpanded] = useState(isEditTool)
   const [showFullResult, setShowFullResult] = useState(false)
   
   const Icon = toolIcons[toolCall.name] || RiToolsLine
   const primaryParam = getPrimaryParam(toolCall.name, toolCall.input)
   const formattedResult = result ? formatResult(toolCall.name, result) : null
+  
+  // Check if this is an Edit tool with diff data
+  const isEditWithDiff = isEditTool && 
+    toolCall.input && 
+    typeof toolCall.input === 'object' && (
+      // Single Edit tool format
+      ('old_string' in toolCall.input && 
+       'new_string' in toolCall.input &&
+       typeof toolCall.input.old_string === 'string' &&
+       typeof toolCall.input.new_string === 'string') ||
+      // MultiEdit tool format  
+      ('edits' in toolCall.input &&
+       Array.isArray(toolCall.input.edits) &&
+       toolCall.input.edits.length > 0 &&
+       toolCall.input.edits.every(edit => 
+         typeof edit === 'object' &&
+         edit !== null &&
+         'old_string' in edit &&
+         'new_string' in edit &&
+         typeof edit.old_string === 'string' &&
+         typeof edit.new_string === 'string'
+       ))
+    )
   
   return (
     <div
@@ -257,15 +325,53 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
         )}
       </button>
       
-      {/* Parameters (collapsible) */}
+      {/* Parameters (collapsible) - show diff for Edit tools */}
       {isExpanded && (
         <div className="py-2">
-          <CodeBlock
-            code={JSON.stringify(toolCall.input, null, 2)}
-            language="json"
-            showLineNumbers={false}
-            className="text-xs"
-          />
+          {isEditWithDiff ? (
+            (() => {
+              const input = toolCall.input as Record<string, unknown>
+              
+              // Handle single Edit tool
+              if ('old_string' in input && 'new_string' in input) {
+                return (
+                  <DiffViewer
+                    oldString={input.old_string as string}
+                    newString={input.new_string as string}
+                    fileName={input.file_path as string}
+                  />
+                )
+              }
+              
+              // Handle MultiEdit tool - reconstruct full file diff
+              if ('edits' in input && Array.isArray(input.edits)) {
+                const edits = input.edits as Array<{ old_string: string; new_string: string }>
+                const { originalContent, finalContent } = reconstructFileFromMultiEdit(edits)
+                
+                return (
+                  <div>
+                    <div className="text-xs text-zinc-400 mb-2 font-mono">
+                      {edits.length} edit{edits.length !== 1 ? 's' : ''} applied
+                    </div>
+                    <DiffViewer
+                      oldString={originalContent}
+                      newString={finalContent}
+                      fileName={input.file_path as string}
+                    />
+                  </div>
+                )
+              }
+              
+              return null
+            })()
+          ) : (
+            <CodeBlock
+              code={JSON.stringify(toolCall.input, null, 2)}
+              language="json"
+              showLineNumbers={false}
+              className="text-xs"
+            />
+          )}
         </div>
       )}
       

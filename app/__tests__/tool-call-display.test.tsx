@@ -81,8 +81,44 @@ describe('ToolCallDisplay component', () => {
       />
     )
     
-    // Should show file path as primary parameter for Edit tool
-    expect(screen.getByText('/path/to/file.ts')).toBeInTheDocument()
+    // Should show file path as primary parameter for Edit tool in the header
+    const headerElement = screen.getByRole('button', { name: /hide parameters/i })
+    expect(headerElement).toHaveTextContent('/path/to/file.ts')
+    
+    // Should auto-expand to show diff for Edit tools
+    expect(screen.getByText('const x = 1')).toBeInTheDocument()
+    expect(screen.getByText('const x = 2')).toBeInTheDocument()
+  })
+
+  it('should show diff for MultiEdit tool with multiple edits', () => {
+    const multiEditInput = {
+      file_path: '/path/to/file.ts',
+      edits: [
+        {
+          old_string: 'const x = 1',
+          new_string: 'const x = 2'
+        },
+        {
+          old_string: 'const y = 3',
+          new_string: 'const y = 4'
+        }
+      ]
+    }
+    
+    render(
+      <ToolCallDisplay 
+        toolCall={{ ...basicToolCall, name: 'MultiEdit', input: multiEditInput }} 
+      />
+    )
+    
+    // Should auto-expand to show unified diff for MultiEdit tools
+    expect(screen.getByText('const x = 1')).toBeInTheDocument()
+    expect(screen.getByText('const x = 2')).toBeInTheDocument()
+    expect(screen.getByText('const y = 3')).toBeInTheDocument()
+    expect(screen.getByText('const y = 4')).toBeInTheDocument()
+    
+    // Should show edit summary instead of individual counters
+    expect(screen.getByText('2 edits applied')).toBeInTheDocument()
   })
   
   it('should handle empty input gracefully', () => {
