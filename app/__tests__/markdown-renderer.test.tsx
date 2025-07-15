@@ -2,11 +2,12 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { MarkdownRenderer } from '../components/MarkdownRenderer'
+import { expectSemanticMarkup, expectContent } from '../test-utils/component-testing'
 
 describe('MarkdownRenderer', () => {
   it('should render basic text', () => {
     render(<MarkdownRenderer content="Hello world" />)
-    expect(screen.getByText('Hello world')).toBeInTheDocument()
+    expectContent.text('Hello world')
   })
 
   it('should render headers', () => {
@@ -16,9 +17,9 @@ describe('MarkdownRenderer', () => {
     
     render(<MarkdownRenderer content={markdown} />)
     
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Heading 1')
-    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Heading 2')
-    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('Heading 3')
+    expectSemanticMarkup.heading(1, 'Heading 1')
+    expectSemanticMarkup.heading(2, 'Heading 2')
+    expectSemanticMarkup.heading(3, 'Heading 3')
   })
 
   it('should render bold and italic text with semantic markup', () => {
@@ -39,9 +40,9 @@ console.log(greeting);
     render(<MarkdownRenderer content={markdown} />)
     
     // Check that the code is rendered
-    expect(screen.getByText(/const/)).toBeInTheDocument()
-    expect(screen.getByText('"Hello, world!"')).toBeInTheDocument()
-    expect(screen.getByText('console')).toBeInTheDocument()
+    expectContent.text('const')
+    expectContent.text('"Hello, world!"')
+    expectContent.text('console')
   })
 
   it('should render inline code with semantic markup', () => {
@@ -49,9 +50,7 @@ console.log(greeting);
     
     render(<MarkdownRenderer content={markdown} />)
     
-    const codeElement = screen.getByText('npm install')
-    expect(codeElement.tagName).toBe('CODE')
-    expect(codeElement).toBeInTheDocument()
+    expectContent.code('npm install')
   })
 
   it('should render links with proper attributes', () => {
@@ -59,8 +58,7 @@ console.log(greeting);
     
     render(<MarkdownRenderer content={markdown} />)
     
-    const link = screen.getByRole('link', { name: 'Google' })
-    expect(link).toHaveAttribute('href', 'https://google.com')
+    const link = expectSemanticMarkup.link('Google', 'https://google.com')
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
   })
@@ -77,15 +75,17 @@ console.log(greeting);
     
     render(<MarkdownRenderer content={markdown} />)
     
-    // Unordered list
-    expect(screen.getByText('Item 1')).toBeInTheDocument()
-    expect(screen.getByText('Item 2')).toBeInTheDocument()
-    expect(screen.getByText('Item 3')).toBeInTheDocument()
+    // Check that lists are rendered with proper semantic structure
+    const lists = screen.getAllByRole('list')
+    expect(lists).toHaveLength(2)
     
-    // Ordered list
-    expect(screen.getByText('First')).toBeInTheDocument()
-    expect(screen.getByText('Second')).toBeInTheDocument()
-    expect(screen.getByText('Third')).toBeInTheDocument()
+    // Check list items are accessible
+    expectContent.text('Item 1')
+    expectContent.text('Item 2')
+    expectContent.text('Item 3')
+    expectContent.text('First')
+    expectContent.text('Second')
+    expectContent.text('Third')
   })
 
   it('should render blockquotes with semantic markup', () => {
@@ -108,8 +108,8 @@ console.log(greeting);
     render(<MarkdownRenderer content={markdown} />)
     
     expect(screen.getByRole('table')).toBeInTheDocument()
-    expect(screen.getByText('Header 1')).toBeInTheDocument()
-    expect(screen.getByText('Cell 1')).toBeInTheDocument()
+    expectContent.text('Header 1')
+    expectContent.text('Cell 1')
   })
 
   it('should render task lists from GFM', () => {
@@ -130,7 +130,7 @@ console.log(greeting);
       <MarkdownRenderer content="Test content" className="custom-class" />
     )
     
-    expect(screen.getByText('Test content')).toBeInTheDocument()
+    expectContent.text('Test content')
     expect(container.firstChild).toBeInTheDocument()
     expect((container.firstChild as Element).tagName).toBe('DIV')
   })
