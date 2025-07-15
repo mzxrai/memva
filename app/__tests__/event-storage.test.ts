@@ -1,9 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { setupInMemoryDb, setMockDatabase, type TestDatabase } from '../test-utils/in-memory-db'
+import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
+import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+import { waitForEvents, waitForCondition } from '../test-utils/async-testing'
+
+// CRITICAL: Setup static mocks before any imports that use database
+setupDatabaseMocks(vi)
+
 import { action } from '../routes/api.claude-code.$sessionId'
 import type { Route } from '../routes/+types/api.claude-code.$sessionId'
-import { eq } from 'drizzle-orm'
-import { events } from '../db/schema'
 
 // Mock only external dependencies like Claude Code SDK
 vi.mock('@anthropic-ai/claude-code', () => ({
@@ -19,13 +23,14 @@ vi.mock('@anthropic-ai/claude-code', () => ({
 describe('Event Storage Behavior', () => {
   let testDb: TestDatabase
 
-  beforeEach(async () => {
+  beforeEach(() => {
     testDb = setupInMemoryDb()
-    await setMockDatabase(testDb.db)
+    setTestDatabase(testDb)
   })
 
   afterEach(() => {
     testDb.cleanup()
+    clearTestDatabase()
   })
 
   it('should store all Claude Code message types as events', async () => {
@@ -49,8 +54,8 @@ describe('Event Storage Behavior', () => {
     
     expect(response.status).toBe(200)
     
-    // Wait for events to be stored
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // Wait for events to be stored using smart waiting
+    await waitForEvents(() => testDb.getEventsForSession(session.id), ['system', 'user', 'assistant', 'result'])
     
     // Retrieve stored events
     const storedEvents = testDb.getEventsForSession(session.id)
@@ -93,8 +98,8 @@ describe('Event Storage Behavior', () => {
     
     await action({ request, params: { sessionId: session.id } } as Route.ActionArgs)
     
-    // Wait for events to be stored
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // Wait for events to be stored using smart waiting
+    await waitForEvents(() => testDb.getEventsForSession(session.id), ['system', 'user', 'assistant', 'result'])
     
     const storedEvents = testDb.getEventsForSession(session.id)
     
@@ -137,23 +142,16 @@ describe('Event Storage Behavior', () => {
       params: { sessionId: session.id } 
     } as Route.ActionArgs)
     
-    // Check for events being stored progressively
-    let previousCount = 0
-    for (let i = 0; i < 5; i++) {
-      await new Promise(resolve => setTimeout(resolve, 20))
-      
-      const currentEvents = await testDb.db.select().from(events)
-        .where(eq(events.memva_session_id, session.id))
-        .all()
-      
-      // Events should be appearing progressively (not all at once)
-      if (currentEvents.length > previousCount) {
-        previousCount = currentEvents.length
-      }
-    }
+    // Check for events being stored progressively using smart waiting
+    await waitForCondition(
+      () => testDb.getEventsForSession(session.id).length > 0,
+      { errorMessage: 'Expected events to start appearing during streaming' }
+    )
+    
+    const progressiveEvents = testDb.getEventsForSession(session.id)
     
     // Should have stored some events during streaming
-    expect(previousCount).toBeGreaterThan(0)
+    expect(progressiveEvents.length).toBeGreaterThan(0)
     
     // Wait for response to complete
     const response = await responsePromise
@@ -198,8 +196,9 @@ describe('Event Storage Behavior', () => {
     expect(response1.status).toBe(200)
     expect(response2.status).toBe(200)
     
-    // Wait for events to be stored
-    await new Promise(resolve => setTimeout(resolve, 100))
+    // Wait for events to be stored using smart waiting
+    await waitForEvents(() => testDb.getEventsForSession(session1.id), ['system', 'user', 'assistant', 'result'])
+    await waitForEvents(() => testDb.getEventsForSession(session2.id), ['system', 'user', 'assistant', 'result'])
     
     // Check that events are properly segregated
     const session1Events = testDb.getEventsForSession(session1.id)
