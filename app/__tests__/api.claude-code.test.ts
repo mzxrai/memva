@@ -1,19 +1,27 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { setupInMemoryDb, setMockDatabase, type TestDatabase } from '../test-utils/in-memory-db'
-import { action } from '../routes/api.claude-code.$sessionId'
-import type { Route } from '../routes/+types/api.claude-code.$sessionId'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
+import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+import { waitForStreamCompletion } from '../test-utils/async-testing'
+import { createMockEvent } from '../test-utils/factories'
 import { events } from '../db/schema'
+import type { Route } from '../routes/+types/api.claude-code.$sessionId'
+
+// CRITICAL: Setup static mocks before any imports that use database
+setupDatabaseMocks(vi)
+
+import { action } from '../routes/api.claude-code.$sessionId'
 
 describe('Claude Code API Route', () => {
   let testDb: TestDatabase
 
-  beforeEach(async () => {
+  beforeEach(() => {
     testDb = setupInMemoryDb()
-    await setMockDatabase(testDb.db)
+    setTestDatabase(testDb)
   })
 
   afterEach(() => {
     testDb.cleanup()
+    clearTestDatabase()
   })
 
   it('should return 404 if session not found', async () => {
@@ -34,7 +42,7 @@ describe('Claude Code API Route', () => {
   })
 
   it('should return 400 if prompt is missing', async () => {
-    // Create a real session in the database
+    // Create a session using factory
     const session = testDb.createSession({
       title: 'Test Session',
       project_path: '/test/project'
@@ -70,7 +78,7 @@ describe('Claude Code API Route', () => {
   })
 
   it('should return streaming response for valid request', async () => {
-    // Create a real session in the database
+    // Create a session using factory
     const session = testDb.createSession({
       title: 'Test Session',
       project_path: '/test/project'
@@ -95,16 +103,13 @@ describe('Claude Code API Route', () => {
     expect(response.headers.get('Connection')).toBe('keep-alive')
     
     // Wait for streaming to complete by checking for stored events
-    let attempts = 0
-    const maxAttempts = 50 // 5 seconds max
-    while (attempts < maxAttempts) {
-      const storedEvents = testDb.getEventsForSession(session.id)
-      if (storedEvents.length > 1) { // Should have user + system + assistant + result
-        break
-      }
-      await new Promise(resolve => setTimeout(resolve, 100))
-      attempts++
-    }
+    await waitForStreamCompletion(
+      () => {
+        const storedEvents = testDb.getEventsForSession(session.id)
+        return storedEvents.length > 1 // Should have user + system + assistant + result
+      },
+      { timeoutMs: 5000 }
+    )
   })
 
   it('should handle session with previous events', async () => {
@@ -114,32 +119,25 @@ describe('Claude Code API Route', () => {
       project_path: '/test/project'
     })
     
-    // Add some events to the database
-    testDb.db.insert(events).values([
-      {
-        uuid: 'event-1',
-        session_id: 'claude-session-1',
-        memva_session_id: session.id,
-        event_type: 'user',
-        timestamp: new Date().toISOString(),
-        is_sidechain: false,
-        cwd: '/test/project',
-        project_name: 'project',
-        data: { type: 'user', content: 'Previous message' }
-      },
-      {
-        uuid: 'event-2',
-        session_id: 'claude-session-1',
-        memva_session_id: session.id,
-        event_type: 'assistant',
-        timestamp: new Date().toISOString(),
-        is_sidechain: false,
-        parent_uuid: 'event-1',
-        cwd: '/test/project',
-        project_name: 'project',
-        data: { type: 'assistant', content: 'Previous response' }
-      }
-    ]).run()
+    // Add some events to the database using factory functions
+    const userEvent = createMockEvent({
+      uuid: 'event-1',
+      session_id: 'claude-session-1',
+      memva_session_id: session.id,
+      event_type: 'user',
+      data: { type: 'user', content: 'Previous message' }
+    })
+    
+    const assistantEvent = createMockEvent({
+      uuid: 'event-2',
+      session_id: 'claude-session-1',
+      memva_session_id: session.id,
+      event_type: 'assistant',
+      parent_uuid: 'event-1',
+      data: { type: 'assistant', content: 'Previous response' }
+    })
+    
+    testDb.db.insert(events).values([userEvent, assistantEvent]).run()
     
     const formData = new FormData()
     formData.append('prompt', 'Continue our conversation')
@@ -158,15 +156,12 @@ describe('Claude Code API Route', () => {
     expect(response.headers.get('Content-Type')).toBe('text/event-stream')
     
     // Wait for streaming to complete by checking for stored events
-    let attempts = 0
-    const maxAttempts = 50 // 5 seconds max
-    while (attempts < maxAttempts) {
-      const storedEvents = testDb.getEventsForSession(session.id)
-      if (storedEvents.length > 3) { // Should have user + previous events + new streaming events
-        break
-      }
-      await new Promise(resolve => setTimeout(resolve, 100))
-      attempts++
-    }
+    await waitForStreamCompletion(
+      () => {
+        const storedEvents = testDb.getEventsForSession(session.id)
+        return storedEvents.length > 3 // Should have user + previous events + new streaming events
+      },
+      { timeoutMs: 5000 }
+    )
   })
 })

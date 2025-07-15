@@ -29,8 +29,6 @@ export function setupDatabaseMocks(vi: { mock: typeof import('vitest').vi.mock; 
     // Export the actual schema objects, not from the database instance
     sessions: schema.sessions,
     events: schema.events,
-    // Re-export all schema types and functions
-    ...schema,
     closeDatabase: vi.fn()
   }))
 
