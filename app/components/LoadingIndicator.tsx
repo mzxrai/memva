@@ -143,41 +143,14 @@ export function LoadingIndicator({ tokenCount, startTime, isLoading = true }: Lo
         'animate-fade-in'
       )}
     >
-      {/* Mesmerizing spinner */}
-      <div className="relative w-6 h-6 mr-3">
-        {/* Central spinning element */}
-        <div className={clsx(
-          'absolute inset-0 rounded-full',
-          'bg-gradient-to-tr from-zinc-600 via-zinc-400 to-zinc-600',
-          'animate-spin-mesmerize'
-        )} />
-        
-        {/* Orbital dots */}
-        <div className="absolute inset-0">
-          <div className={clsx(
-            'absolute w-1.5 h-1.5 bg-zinc-400 rounded-full',
-            'top-1/2 left-1/2 -mt-0.75 -ml-0.75',
-            'animate-orbit'
-          )} />
-          <div className={clsx(
-            'absolute w-1.5 h-1.5 bg-zinc-500 rounded-full',
-            'top-1/2 left-1/2 -mt-0.75 -ml-0.75',
-            'animate-orbit-delayed'
-          )} />
-          <div className={clsx(
-            'absolute w-1.5 h-1.5 bg-zinc-300 rounded-full',
-            'top-1/2 left-1/2 -mt-0.75 -ml-0.75',
-            'animate-orbit-delayed-more'
-          )} />
-        </div>
-        
-        {/* Inner glow effect */}
-        <div className={clsx(
-          'absolute inset-1 rounded-full',
-          'bg-zinc-800/50',
-          'blur-sm'
-        )} />
-      </div>
+      {/* Simple spinner */}
+      <div className={clsx(
+        'w-5 h-5 mr-3',
+        'border-2 border-zinc-600',
+        'border-t-zinc-400',
+        'rounded-full',
+        'animate-spin-smooth'
+      )} />
 
       {/* Action verb - fixed width container */}
       <div className="w-36 mr-3">

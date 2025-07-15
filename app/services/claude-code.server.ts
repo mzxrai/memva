@@ -44,7 +44,8 @@ export async function streamClaudeCodeResponse({
     const options: Record<string, unknown> = {
       maxTurns: 100,
       cwd: projectPath,
-      permissionMode: 'acceptEdits'
+      permissionMode: 'acceptEdits',
+      allowedTools: ['Read', 'Write', 'Bash']
     }
     
     if (resumeSessionId) {
