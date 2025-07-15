@@ -9,9 +9,10 @@ import type { AnyEvent } from '../../types/events'
 interface EventRendererProps {
   event: AnyEvent
   toolResults?: Map<string, unknown>
+  isStreaming?: boolean
 }
 
-export const EventRenderer = memo(({ event, toolResults }: EventRendererProps) => {
+export const EventRenderer = memo(({ event, toolResults, isStreaming = false }: EventRendererProps) => {
   // Determine event type from the event data
   const eventType = ('type' in event ? event.type : undefined) || ('event_type' in event ? event.event_type : undefined)
   
@@ -20,7 +21,7 @@ export const EventRenderer = memo(({ event, toolResults }: EventRendererProps) =
       return <UserMessageEvent event={event} />
     
     case 'assistant':
-      return <AssistantMessageEvent event={event} toolResults={toolResults} />
+      return <AssistantMessageEvent event={event} toolResults={toolResults} isStreaming={isStreaming} />
     
     case 'system':
       return <SystemEvent event={event} />

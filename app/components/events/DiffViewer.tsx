@@ -7,6 +7,8 @@ interface DiffViewerProps {
   newString: string
   fileName?: string
   className?: string
+  startLineNumber?: number
+  showLineNumbers?: boolean
 }
 
 interface DiffLine {
@@ -20,12 +22,12 @@ interface DiffLine {
 /**
  * Creates a unified diff with dual line numbers using the diff library
  */
-function createUnifiedDiff(oldString: string, newString: string): DiffLine[] {
+function createUnifiedDiff(oldString: string, newString: string, startLineNumber: number = 1): DiffLine[] {
   const changes = Diff.diffLines(oldString, newString)
   const diffLines: DiffLine[] = []
   
-  let oldLineNumber = 1
-  let newLineNumber = 1
+  let oldLineNumber = startLineNumber
+  let newLineNumber = startLineNumber
   
   for (const change of changes) {
     const lines = change.value.split('\n')
@@ -67,8 +69,8 @@ function createUnifiedDiff(oldString: string, newString: string): DiffLine[] {
   return diffLines
 }
 
-export function DiffViewer({ oldString, newString, fileName, className }: DiffViewerProps) {
-  const diffLines = createUnifiedDiff(oldString, newString)
+export function DiffViewer({ oldString, newString, fileName, className, startLineNumber, showLineNumbers = true }: DiffViewerProps) {
+  const diffLines = createUnifiedDiff(oldString, newString, startLineNumber)
   
   return (
     <div
@@ -106,24 +108,28 @@ export function DiffViewer({ oldString, newString, fileName, className }: DiffVi
                 )}
               >
                 {/* Old line number */}
-                <td
-                  className={clsx(
-                    'w-12 px-2 py-1 text-right border-r border-zinc-700 select-none',
-                    colors.text.muted
-                  )}
-                >
-                  {line.oldLineNumber || ''}
-                </td>
+                {showLineNumbers && (
+                  <td
+                    className={clsx(
+                      'w-12 px-2 py-1 text-right border-r border-zinc-700 select-none',
+                      colors.text.muted
+                    )}
+                  >
+                    {line.oldLineNumber || ''}
+                  </td>
+                )}
                 
                 {/* New line number */}
-                <td
-                  className={clsx(
-                    'w-12 px-2 py-1 text-right border-r border-zinc-700 select-none',
-                    colors.text.muted
-                  )}
-                >
-                  {line.newLineNumber || ''}
-                </td>
+                {showLineNumbers && (
+                  <td
+                    className={clsx(
+                      'w-12 px-2 py-1 text-right border-r border-zinc-700 select-none',
+                      colors.text.muted
+                    )}
+                  >
+                    {line.newLineNumber || ''}
+                  </td>
+                )}
                 
                 {/* Diff indicator */}
                 <td

@@ -190,22 +190,8 @@ export default function SessionDetail() {
       // Loading existing history: ALWAYS scroll to bottom to show newest message
       setTimeout(() => performScroll('auto'), 0);
     } else if (hasNewMessages && previousCount > 0) {
-      // During active streaming, debounce scroll updates to prevent bouncing
-      if (isLoading) {
-        // Clear any pending scroll
-        if (scrollTimeoutRef.current) {
-          clearTimeout(scrollTimeoutRef.current);
-        }
-        
-        // Schedule a debounced scroll - only execute if no new messages arrive within 150ms
-        scrollTimeoutRef.current = setTimeout(() => {
-          performScroll('smooth');
-          scrollTimeoutRef.current = null;
-        }, 150);
-      } else {
-        // Not actively streaming, scroll immediately
-        performScroll('smooth');
-      }
+      // New messages streaming in: scroll to show them
+      performScroll('smooth');
     }
     // For fresh sessions (no initial history), first message naturally appears at top via justify-start
 
@@ -220,7 +206,7 @@ export default function SessionDetail() {
     };
   }, [messages, isInitialHistoryLoad, contentOverflows, autoScrollDisabled, isLoading]);
 
-  // Ensure final scroll when streaming ends
+  // When streaming ends, expand any collapsed Edit tools and scroll to bottom
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container || autoScrollDisabled) return;
@@ -233,7 +219,7 @@ export default function SessionDetail() {
         scrollTimeoutRef.current = null;
       }
       
-      // Perform final scroll to bottom after a brief delay to allow any final renders
+      // Allow time for any Edit tools to expand, then scroll
       setTimeout(() => {
         if (!autoScrollDisabled) {
           setIsProgrammaticScroll(true);
@@ -587,6 +573,7 @@ export default function SessionDetail() {
                   key={getMessageKey(message, index)}
                   event={message}
                   toolResults={toolResults}
+                  isStreaming={isLoading}
                 />
               ))}
           </div>

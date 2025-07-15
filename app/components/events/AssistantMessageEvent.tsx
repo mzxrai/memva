@@ -13,16 +13,17 @@ import clsx from 'clsx'
 interface AssistantMessageEventProps {
   event: AnyEvent
   toolResults?: Map<string, unknown>
+  isStreaming?: boolean
 }
 
-function renderContent(content: AssistantMessageContent, toolResults?: Map<string, unknown>): ReactNode {
+function renderContent(content: AssistantMessageContent, toolResults?: Map<string, unknown>, isStreaming?: boolean): ReactNode {
   switch (content.type) {
     case 'text':
       return <MarkdownRenderer content={content.text || ''} />
     
     case 'tool_use': {
       const result = toolResults?.get(content.id);
-      return <ToolCallDisplay toolCall={content} result={result} />
+      return <ToolCallDisplay toolCall={content} result={result} isStreaming={isStreaming} />
     }
     
     case 'thinking':
@@ -64,7 +65,7 @@ function renderContent(content: AssistantMessageContent, toolResults?: Map<strin
   }
 }
 
-export function AssistantMessageEvent({ event, toolResults }: AssistantMessageEventProps) {
+export function AssistantMessageEvent({ event, toolResults, isStreaming = false }: AssistantMessageEventProps) {
   // Handle different event structures
   let messageContent: AssistantMessageContent[] = []
   
@@ -98,7 +99,7 @@ export function AssistantMessageEvent({ event, toolResults }: AssistantMessageEv
           <div className="space-y-2">
             {messageContent.map((content, index) => (
               <div key={index}>
-                {renderContent(content, toolResults)}
+                {renderContent(content, toolResults, isStreaming)}
               </div>
             ))}
           </div>
