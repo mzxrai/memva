@@ -141,7 +141,7 @@ export const CodeBlock = memo(({ code, language, showLineNumbers = true, classNa
           aria-label="Copy code"
           className={clsx(
             'absolute top-2 z-20',
-            language ? 'right-16' : 'right-4',
+            language ? 'right-20' : 'right-4',
             'p-2',
             colors.background.secondary,
             colors.border.default,
