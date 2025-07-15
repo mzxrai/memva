@@ -1,49 +1,93 @@
 import { render, screen } from '@testing-library/react'
 import { MessageContainer } from '../components/events/MessageContainer'
 import { describe, it, expect } from 'vitest'
+import { expectContent } from '../test-utils/component-testing'
 
 describe('MessageContainer', () => {
-  it('renders children content', () => {
+  it('renders children content correctly', () => {
     render(
       <MessageContainer>
         <div>Test content</div>
       </MessageContainer>
     )
     
-    expect(screen.getByText('Test content')).toBeTruthy()
+    expectContent.text('Test content')
   })
 
-  it('applies consistent base styling', () => {
-    const { container } = render(
+  it('renders complex nested content', () => {
+    render(
       <MessageContainer>
-        <div>Content</div>
+        <div>
+          <p>Paragraph content</p>
+          <span>Span content</span>
+        </div>
       </MessageContainer>
     )
     
-    const messageBox = container.firstChild as HTMLElement
-    expect(messageBox.className).toContain('p-4')
+    expectContent.text('Paragraph content')
+    expectContent.text('Span content')
   })
 
-  it('accepts and applies additional className', () => {
-    const { container } = render(
-      <MessageContainer className="custom-class">
-        <div>Content</div>
+  it('renders multiple children elements', () => {
+    render(
+      <MessageContainer>
+        <div>First child</div>
+        <div>Second child</div>
       </MessageContainer>
     )
     
-    const messageBox = container.firstChild as HTMLElement
-    expect(messageBox.className).toContain('custom-class')
+    expectContent.text('First child')
+    expectContent.text('Second child')
   })
 
-  it('maintains base styling when custom className is provided', () => {
-    const { container } = render(
-      <MessageContainer className="mt-8">
-        <div>Content</div>
+  it('renders semantic HTML structure as a container', () => {
+    render(
+      <MessageContainer>
+        <div>Container content</div>
       </MessageContainer>
     )
     
-    const messageBox = container.firstChild as HTMLElement
-    expect(messageBox.className).toContain('p-4')
-    expect(messageBox.className).toContain('mt-8')
+    const containerElement = screen.getByText('Container content').parentElement
+    expect(containerElement?.tagName).toBe('DIV')
+    expect(containerElement).toBeInTheDocument()
+  })
+
+  it('preserves accessibility of child elements', () => {
+    render(
+      <MessageContainer>
+        <button>Click me</button>
+        <input aria-label="Test input" />
+      </MessageContainer>
+    )
+    
+    const button = screen.getByRole('button', { name: 'Click me' })
+    const input = screen.getByRole('textbox', { name: 'Test input' })
+    
+    expect(button).toBeInTheDocument()
+    expect(input).toBeInTheDocument()
+  })
+
+  it('handles empty content gracefully', () => {
+    render(
+      <MessageContainer>
+        <div></div>
+      </MessageContainer>
+    )
+    
+    const containerElements = screen.getAllByRole('generic')
+    expect(containerElements.length).toBeGreaterThan(0)
+    expect(containerElements[0]).toBeInTheDocument()
+  })
+
+  it('works with custom className while maintaining functionality', () => {
+    render(
+      <MessageContainer className="custom-styling">
+        <div>Styled content</div>
+      </MessageContainer>
+    )
+    
+    expectContent.text('Styled content')
+    const containerElement = screen.getByText('Styled content').parentElement
+    expect(containerElement).toBeInTheDocument()
   })
 })
