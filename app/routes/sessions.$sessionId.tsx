@@ -6,6 +6,7 @@ import { sendPromptToClaudeCode } from "../services/claude-code.service";
 import { useState, useRef, useEffect, useCallback, type FormEvent } from "react";
 import { RiSendPlaneFill, RiStopCircleLine } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
+import { LoadingIndicator } from "../components/LoadingIndicator";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const session = await getSession(params.sessionId);
@@ -115,6 +116,8 @@ export default function SessionDetail() {
   const [isLoading, setIsLoading] = useState(false);
   const [scrollbarWidth, setScrollbarWidth] = useState(0);
   const [toolResults, setToolResults] = useState<Map<string, unknown>>(initialToolResults);
+  const [tokenCount, setTokenCount] = useState(0);
+  const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Refs for chat behavior
@@ -293,6 +296,8 @@ export default function SessionDetail() {
       
       hasAutoStartedRef.current = true;
       setIsLoading(true);
+      setTokenCount(0);
+      setLoadingStartTime(Date.now());
       abortControllerRef.current = new AbortController();
       
       // Call Claude Code directly with session title (no form simulation needed)
@@ -318,9 +323,27 @@ export default function SessionDetail() {
           // Add the message to the end (newest at bottom)
           setMessages(prev => [...prev, message]);
           
+          // Count tokens from assistant messages
+          if (message.type === 'assistant') {
+            // Check if usage info is directly on message or nested
+            const messageWithUsage = message as { 
+              usage?: { input_tokens?: number; output_tokens?: number };
+              message?: { usage?: { input_tokens?: number; output_tokens?: number } };
+            };
+            const usage = messageWithUsage.usage || messageWithUsage.message?.usage;
+            if (usage) {
+              // Only count output tokens for the streaming effect
+              const outputTokens = usage.output_tokens || 0;
+              if (outputTokens > 0) {
+                setTokenCount(outputTokens);
+              }
+            }
+          }
+          
           // Stop loading when we get the result message
           if (message.type === 'result') {
             setIsLoading(false);
+            setLoadingStartTime(null);
           }
         },
         onError: (error) => {
@@ -331,6 +354,7 @@ export default function SessionDetail() {
             timestamp: new Date().toISOString()
           }]);
           setIsLoading(false);
+          setLoadingStartTime(null);
         },
         signal: abortControllerRef.current.signal
       });
@@ -364,6 +388,8 @@ export default function SessionDetail() {
     
     setPrompt("");
     setIsLoading(true);
+    setTokenCount(0);
+    setLoadingStartTime(Date.now());
 
     // Create new abort controller for this request
     abortControllerRef.current = new AbortController();
@@ -390,9 +416,28 @@ export default function SessionDetail() {
         // Add the message to the end (newest at bottom)
         setMessages(prev => [...prev, message]);
         
+        // Count tokens from assistant messages
+        if (message.type === 'assistant') {
+          // Check if usage info is directly on message or nested
+          const messageWithUsage = message as { 
+            usage?: { input_tokens?: number; output_tokens?: number };
+            message?: { usage?: { input_tokens?: number; output_tokens?: number } };
+          };
+          const usage = messageWithUsage.usage || messageWithUsage.message?.usage;
+          if (usage) {
+            // Only count output tokens for the streaming effect
+            // Input tokens are usually known upfront and don't change
+            const outputTokens = usage.output_tokens || 0;
+            if (outputTokens > 0) {
+              setTokenCount(outputTokens);
+            }
+          }
+        }
+        
         // Stop loading when we get the result message
         if (message.type === 'result') {
           setIsLoading(false);
+          setLoadingStartTime(null);
         }
       },
       onError: (error) => {
@@ -403,6 +448,7 @@ export default function SessionDetail() {
           timestamp: new Date().toISOString()
         }]);
         setIsLoading(false);
+        setLoadingStartTime(null);
       },
       signal: abortControllerRef.current.signal
     });
@@ -416,6 +462,7 @@ export default function SessionDetail() {
       // This will abort the fetch, triggering the cancel() method on the server
       abortControllerRef.current.abort();
       setIsLoading(false);
+      setLoadingStartTime(null);
       console.log('[Client] Fetch aborted, loading state set to false');
     }
   };
@@ -448,8 +495,8 @@ export default function SessionDetail() {
           <div 
             ref={messagesListRef}
             className={contentOverflows 
-              ? "min-h-full flex flex-col justify-end pt-6 pb-32"     // Overflow: bottom-anchored (newest at bottom)
-              : "min-h-full flex flex-col justify-start pt-6 pb-32"   // Fits: top-anchored (start from top)
+              ? `min-h-full flex flex-col justify-end pt-6 ${isLoading ? 'pb-40' : 'pb-32'}`     // Overflow: bottom-anchored (newest at bottom)
+              : `min-h-full flex flex-col justify-start pt-6 ${isLoading ? 'pb-40' : 'pb-32'}`   // Fits: top-anchored (start from top)
             }>
             {messages
               .filter(message => !isToolResultMessage(message))
@@ -475,6 +522,16 @@ export default function SessionDetail() {
         <div className="px-4" style={{ paddingRight: `${16 + scrollbarWidth}px` }}>
           <div className="container mx-auto max-w-7xl">
             <div className="relative">
+              {/* Loading indicator */}
+              {isLoading && loadingStartTime && (
+                <div className="mb-2">
+                  <LoadingIndicator
+                    tokenCount={tokenCount}
+                    startTime={loadingStartTime}
+                    isLoading={isLoading}
+                  />
+                </div>
+              )}
               <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 p-4">
                 <form onSubmit={handleSubmit} className="flex gap-3">
               <input

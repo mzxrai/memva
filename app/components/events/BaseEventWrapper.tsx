@@ -23,7 +23,7 @@ export function BaseEventWrapper({
     <div className={className}>
       <div className="px-4">
         <div className="container mx-auto max-w-7xl">
-          <div className="mb-4 relative">
+          <div className="mb-2 relative">
           {rawEvent !== undefined && (
             <button
               onClick={() => setShowRaw(!showRaw)}

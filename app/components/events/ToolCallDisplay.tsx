@@ -169,11 +169,6 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
     <div
       className={clsx(
         'group',
-        colors.background.secondary,
-        colors.border.subtle,
-        'border',
-        radius.lg,
-        'overflow-hidden',
         transition.normal,
         className
       )}
@@ -184,8 +179,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
         aria-label={isExpanded ? 'hide parameters' : 'show parameters'}
         className={clsx(
           'w-full flex items-center gap-3',
-          formattedResult ? 'px-3 py-2' : 'p-3',
-          !formattedResult && colors.background.hover,
+          'py-1',
           transition.fast,
           formattedResult ? 'cursor-default' : 'cursor-pointer'
         )}
@@ -265,11 +259,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       
       {/* Parameters (collapsible) */}
       {isExpanded && (
-        <div className={clsx(
-          'border-t',
-          colors.border.subtle,
-          'p-3'
-        )}>
+        <div className="py-2">
           <CodeBlock
             code={JSON.stringify(toolCall.input, null, 2)}
             language="json"
@@ -281,17 +271,12 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       
       {/* Result section - minimal inline display */}
       {formattedResult && (
-        <div className="px-3 pb-2">
+        <div className="py-2">
           <div className={clsx(
             'flex items-center gap-2',
             typography.font.mono,
             typography.size.xs
           )}>
-            <span className={clsx(
-              formattedResult.status === 'error' ? colors.accent.red.text : colors.text.tertiary
-            )}>
-              {formattedResult.brief}
-            </span>
             {formattedResult.full && formattedResult.full.length > 100 && (
               <button
                 onClick={() => setShowFullResult(!showFullResult)}
@@ -314,6 +299,11 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
                 )} />
               </button>
             )}
+            <span className={clsx(
+              formattedResult.status === 'error' ? colors.accent.red.text : colors.text.tertiary
+            )}>
+              {formattedResult.brief}
+            </span>
           </div>
           
           {/* Expanded result view */}

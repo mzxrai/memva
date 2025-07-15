@@ -1,7 +1,7 @@
 import { BaseEventWrapper } from './BaseEventWrapper'
 import { MessageContainer } from './MessageContainer'
 import { MessageHeader } from './MessageHeader'
-import { RiErrorWarningLine, RiStopCircleLine } from 'react-icons/ri'
+import { RiErrorWarningLine } from 'react-icons/ri'
 import { typography } from '../../constants/design'
 import type { AnyEvent } from '../../types/events'
 import clsx from 'clsx'
@@ -39,23 +39,16 @@ export function ErrorEvent({ event }: ErrorEventProps) {
       eventType={errorType}
       rawEvent={event}
     >
-      <MessageContainer className={clsx(
-        isUserCancelled 
-          ? 'bg-orange-950/30 border-orange-900/50' 
-          : 'bg-red-950/30 border-red-900/50'
-      )}>
+      <MessageContainer>
         <MessageHeader 
-          icon={isUserCancelled ? RiStopCircleLine : RiErrorWarningLine} 
-          title={isUserCancelled ? 'Cancelled' : 'Error'}
-          className={clsx(
-            isUserCancelled ? '[&_svg]:text-orange-400 [&_span]:text-orange-400' : '[&_svg]:text-red-400 [&_span]:text-red-400'
-          )}
+          icon={RiErrorWarningLine} 
+          title="System"
         />
         <div className={clsx(
           typography.font.mono,
           typography.size.sm,
           'leading-relaxed',
-          isUserCancelled ? 'text-orange-100' : 'text-red-100'
+          isUserCancelled ? 'text-orange-400' : 'text-red-400'
         )}>
           {content}
         </div>

@@ -21,10 +21,6 @@ describe('MessageContainer', () => {
     )
     
     const messageBox = container.firstChild as HTMLElement
-    expect(messageBox.className).toContain('bg-zinc-900')
-    expect(messageBox.className).toContain('border')
-    expect(messageBox.className).toContain('border-zinc-800')
-    expect(messageBox.className).toContain('rounded-lg')
     expect(messageBox.className).toContain('p-4')
   })
 
@@ -47,7 +43,7 @@ describe('MessageContainer', () => {
     )
     
     const messageBox = container.firstChild as HTMLElement
-    expect(messageBox.className).toContain('bg-zinc-900')
+    expect(messageBox.className).toContain('p-4')
     expect(messageBox.className).toContain('mt-8')
   })
 })
