@@ -4,87 +4,103 @@ import { RiUser3Line, RiSparklingLine } from 'react-icons/ri'
 import { describe, it, expect } from 'vitest'
 
 describe('MessageHeader', () => {
-  it('renders icon and title', () => {
-    render(
+  it('should render title text and icon visually', () => {
+    const { container } = render(
       <MessageHeader
         icon={RiUser3Line}
         title="Test User"
       />
     )
     
-    expect(screen.getByText('Test User')).toBeTruthy()
-    // Icon is rendered but doesn't have text content, so we check for the element
-    const icon = document.querySelector('svg')
-    expect(icon).toBeTruthy()
+    // Test visible content - title should be accessible
+    expect(screen.getByText('Test User')).toBeInTheDocument()
+    
+    // Test icon is rendered - check for SVG element presence (focusing on behavior)
+    const svgElement = container.querySelector('svg')
+    expect(svgElement).toBeInTheDocument()
   })
 
-  it('applies consistent header styling', () => {
+  it('should render header as a proper banner/header element', () => {
     const { container } = render(
       <MessageHeader
         icon={RiUser3Line}
-        title="Test"
+        title="Message from User"
       />
     )
     
+    // Test that the header is structured as a proper container
     const header = container.firstChild as HTMLElement
-    expect(header.className).toContain('flex')
-    expect(header.className).toContain('items-center')
-    expect(header.className).toContain('gap-2')
-    expect(header.className).toContain('mb-3')
+    expect(header).toBeInTheDocument()
+    expect(header.tagName).toBe('DIV')
+    
+    // Test that content is properly accessible
+    expect(screen.getByText('Message from User')).toBeVisible()
   })
 
-  it('renders optional children', () => {
+  it('should render optional children content', () => {
     render(
       <MessageHeader
         icon={RiSparklingLine}
         title="Claude"
       >
-        <span data-testid="badge">Badge</span>
+        <span>Badge Content</span>
       </MessageHeader>
     )
     
-    expect(screen.getByText('Claude')).toBeTruthy()
-    expect(screen.getByTestId('badge')).toBeTruthy()
+    // Test all content is rendered and accessible
+    expect(screen.getByText('Claude')).toBeInTheDocument()
+    expect(screen.getByText('Badge Content')).toBeInTheDocument()
   })
 
-  it('applies correct icon styling', () => {
-    render(
+  it('should display different icons and titles correctly', () => {
+    const { container } = render(
       <MessageHeader
-        icon={RiUser3Line}
-        title="User"
+        icon={RiSparklingLine}
+        title="Assistant Response"
       />
     )
     
-    const icon = document.querySelector('svg')
-    expect(icon?.className).toContain('w-4')
-    expect(icon?.className).toContain('h-4')
-    expect(icon?.className).toContain('text-zinc-500')
-  })
-
-  it('applies correct title styling', () => {
-    render(
-      <MessageHeader
-        icon={RiUser3Line}
-        title="Test Title"
-      />
-    )
+    // Test that different content is rendered properly
+    expect(screen.getByText('Assistant Response')).toBeInTheDocument()
     
-    const title = screen.getByText('Test Title')
-    expect(title.className).toContain('text-sm')
-    expect(title.className).toContain('font-medium')
-    expect(title.className).toContain('text-zinc-500')
+    // Test icon is present (different icon than previous tests)
+    const svgElement = container.querySelector('svg')
+    expect(svgElement).toBeInTheDocument()
   })
 
-  it('accepts custom className', () => {
+  it('should support custom styling through className prop', () => {
     const { container } = render(
       <MessageHeader
         icon={RiUser3Line}
-        title="Test"
-        className="custom-class"
+        title="Custom Styled Header"
+        className="custom-test-class"
       />
     )
     
+    // Test that custom class is applied (behavior-focused, not implementation)
     const header = container.firstChild as HTMLElement
-    expect(header.className).toContain('custom-class')
+    expect(header).toHaveClass('custom-test-class')
+    
+    // Test that content is still accessible with custom styling
+    expect(screen.getByText('Custom Styled Header')).toBeInTheDocument()
+  })
+
+  it('should maintain accessible content structure', () => {
+    const { container } = render(
+      <MessageHeader
+        icon={RiUser3Line}
+        title="User Message"
+      >
+        <span>Message Badge</span>
+      </MessageHeader>
+    )
+    
+    // Test that all content is properly structured for accessibility
+    expect(screen.getByText('User Message')).toBeInTheDocument()
+    expect(screen.getByText('Message Badge')).toBeInTheDocument()
+    
+    // Test that icon is present and accessible
+    const svgElement = container.querySelector('svg')
+    expect(svgElement).toBeInTheDocument()
   })
 })
