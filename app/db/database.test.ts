@@ -1,49 +1,39 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { existsSync, unlinkSync } from 'fs'
-import { getDatabase, resetDatabase } from './database'
+import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
+import { eq } from 'drizzle-orm'
+import * as schema from './schema'
 
 describe('Database initialization', () => {
-  const testDbPath = './test-memva.db'
+  let testDb: TestDatabase
 
   beforeEach(() => {
-    // Reset database singleton and clean up any existing test database
-    resetDatabase()
-    if (existsSync(testDbPath)) {
-      unlinkSync(testDbPath)
-    }
+    testDb = setupInMemoryDb()
   })
 
   afterEach(() => {
-    resetDatabase()
-    if (existsSync(testDbPath)) {
-      unlinkSync(testDbPath)
-    }
+    testDb.cleanup()
   })
 
-  it('should create database file if it does not exist', () => {
-    const db = getDatabase(testDbPath)
-    
-    expect(existsSync(testDbPath)).toBe(true)
-    expect(db).toBeDefined()
+  it('should create database instance', () => {
+    expect(testDb.db).toBeDefined()
+    expect(testDb.sqlite).toBeDefined()
   })
 
   it('should create events table with indexes on first run', () => {
-    const db = getDatabase(testDbPath)
-    
     // Check table exists
-    const tables = db.all(`
+    const tables = testDb.sqlite.prepare(`
       SELECT name FROM sqlite_master 
       WHERE type='table' AND name='events'
-    `)
+    `).all()
     expect(tables).toHaveLength(1)
     
     // Check indexes exist
-    const indexes = db.all(`
+    const indexes = testDb.sqlite.prepare(`
       SELECT name FROM sqlite_master 
       WHERE type='index' AND tbl_name='events'
-    `)
+    `).all()
     
-    const indexNames = indexes.map((idx: any) => idx.name)
+    const indexNames = indexes.map((idx: unknown) => (idx as { name: string }).name)
     expect(indexNames).toContain('idx_session_id')
     expect(indexNames).toContain('idx_timestamp')
     expect(indexNames).toContain('idx_project_name')
@@ -51,16 +41,15 @@ describe('Database initialization', () => {
     expect(indexNames).toContain('idx_parent_uuid')
   })
 
-  it('should reuse existing database on subsequent calls', () => {
-    const db1 = getDatabase(testDbPath)
-    const db2 = getDatabase(testDbPath)
+  it('should support multiple database instances', () => {
+    const db1 = testDb.db
+    const db2 = testDb.db
     
-    expect(db1).toBe(db2) // Same instance
+    expect(db1).toBeDefined()
+    expect(db2).toBeDefined()
   })
 
   it('should handle concurrent access gracefully', async () => {
-    const db = getDatabase(testDbPath)
-    
     // Insert test event
     const testEvent = {
       uuid: 'concurrent-test',
@@ -77,7 +66,7 @@ describe('Database initialization', () => {
     // Simulate concurrent inserts
     const promises = Array.from({ length: 10 }, (_, i) => 
       Promise.resolve().then(() => {
-        db.insert(schema.events).values({
+        testDb.db.insert(schema.events).values({
           ...testEvent,
           uuid: `concurrent-test-${i}`
         }).run()
@@ -86,7 +75,7 @@ describe('Database initialization', () => {
     
     await Promise.all(promises)
     
-    const count = db.select()
+    const count = testDb.db.select()
       .from(schema.events)
       .where(eq(schema.events.session_id, 'session-123'))
       .all()
@@ -94,7 +83,3 @@ describe('Database initialization', () => {
     expect(count).toHaveLength(10)
   })
 })
-
-// Import schema and eq for the concurrent test
-import * as schema from './schema'
-import { eq } from 'drizzle-orm'

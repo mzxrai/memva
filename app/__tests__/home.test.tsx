@@ -1,7 +1,7 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { createRoutesStub } from 'react-router'
-import Home from './home'
+import Home, { loader as homeLoader } from '../routes/home'
 
 // Mock the database service
 vi.mock('../db/sessions.service', () => ({
@@ -11,18 +11,20 @@ vi.mock('../db/sessions.service', () => ({
 }))
 
 describe('Home Route', () => {
-  it.skip('should render home page with session creation input', async () => {
+  it('should render home page with session creation input', async () => {
     const Stub = createRoutesStub([
       {
         path: '/',
         Component: Home,
-        loader: async () => ({ sessions: [] })
+        loader: homeLoader
       }
     ])
     
     render(<Stub />)
     
-    // expect(screen.getByText('Sessions')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText(/start a new claude code session/i)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Sessions')).toBeInTheDocument()
+      expect(screen.getByPlaceholderText(/start a new claude code session/i)).toBeInTheDocument()
+    })
   })
 })

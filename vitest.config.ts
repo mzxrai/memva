@@ -9,16 +9,8 @@ export default defineConfig({
     environment: 'happy-dom',
     setupFiles: ['./test/setup.ts'],
     include: ['**/*.test.{ts,tsx}'],
-    // Run database tests sequentially to avoid conflicts
-    sequence: {
-      hooks: 'list',
-    },
+    // Parallel execution enabled - database tests now use in-memory SQLite
     pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
     coverage: {
       reporter: ['text', 'json', 'html'],
       exclude: [

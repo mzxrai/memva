@@ -1,14 +1,19 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { setupInMemoryDb, setMockDatabase, type TestDatabase } from '../test-utils/in-memory-db'
 import { action } from '../routes/api.claude-code.$sessionId'
 import type { Route } from '../routes/+types/api.claude-code.$sessionId'
-import { createSession } from '../db/sessions.service'
-import { db, sessions, events } from '../db'
+import { events } from '../db/schema'
 
 describe('Claude Code API Route', () => {
+  let testDb: TestDatabase
+
   beforeEach(async () => {
-    // Clean up database before each test
-    await db.delete(events).execute()
-    await db.delete(sessions).execute()
+    testDb = setupInMemoryDb()
+    await setMockDatabase(testDb.db)
+  })
+
+  afterEach(() => {
+    testDb.cleanup()
   })
 
   it('should return 404 if session not found', async () => {
@@ -30,7 +35,7 @@ describe('Claude Code API Route', () => {
 
   it('should return 400 if prompt is missing', async () => {
     // Create a real session in the database
-    const session = await createSession({
+    const session = testDb.createSession({
       title: 'Test Session',
       project_path: '/test/project'
     })
@@ -66,7 +71,7 @@ describe('Claude Code API Route', () => {
 
   it('should return streaming response for valid request', async () => {
     // Create a real session in the database
-    const session = await createSession({
+    const session = testDb.createSession({
       title: 'Test Session',
       project_path: '/test/project'
     })
@@ -88,17 +93,29 @@ describe('Claude Code API Route', () => {
     expect(response.headers.get('Content-Type')).toBe('text/event-stream')
     expect(response.headers.get('Cache-Control')).toBe('no-cache')
     expect(response.headers.get('Connection')).toBe('keep-alive')
+    
+    // Wait for streaming to complete by checking for stored events
+    let attempts = 0
+    const maxAttempts = 50 // 5 seconds max
+    while (attempts < maxAttempts) {
+      const storedEvents = testDb.getEventsForSession(session.id)
+      if (storedEvents.length > 1) { // Should have user + system + assistant + result
+        break
+      }
+      await new Promise(resolve => setTimeout(resolve, 100))
+      attempts++
+    }
   })
 
   it('should handle session with previous events', async () => {
     // Create a session with some existing events
-    const session = await createSession({
+    const session = testDb.createSession({
       title: 'Test Session',
       project_path: '/test/project'
     })
     
     // Add some events to the database
-    await db.insert(events).values([
+    testDb.db.insert(events).values([
       {
         uuid: 'event-1',
         session_id: 'claude-session-1',
@@ -122,7 +139,7 @@ describe('Claude Code API Route', () => {
         project_name: 'project',
         data: { type: 'assistant', content: 'Previous response' }
       }
-    ]).execute()
+    ]).run()
     
     const formData = new FormData()
     formData.append('prompt', 'Continue our conversation')
@@ -139,5 +156,17 @@ describe('Claude Code API Route', () => {
     expect(response).toBeInstanceOf(Response)
     expect(response.status).toBe(200)
     expect(response.headers.get('Content-Type')).toBe('text/event-stream')
+    
+    // Wait for streaming to complete by checking for stored events
+    let attempts = 0
+    const maxAttempts = 50 // 5 seconds max
+    while (attempts < maxAttempts) {
+      const storedEvents = testDb.getEventsForSession(session.id)
+      if (storedEvents.length > 3) { // Should have user + previous events + new streaming events
+        break
+      }
+      await new Promise(resolve => setTimeout(resolve, 100))
+      attempts++
+    }
   })
 })

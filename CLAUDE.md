@@ -6,7 +6,7 @@
  
 ## Basic World Information/Grounding
 
-- It is currently July of 2025.
+- It is currently July 15, 2025.
 
 ## App Description
 
@@ -30,7 +30,7 @@ To start with, we will build this in a local-only fashion; in other words, it wi
 
 ## Important processes
 
-- IMPORTANT: we have an MCP server called "docs" that you must *always* use when starting new feature development. Use "docs" to pull the latest library documentation down so that the code you write will have the highest chance of working on the first try.
+- IMPORTANT: we have an MCP server called "docs" that you must *always* use when starting new feature development. Use the `mcp__docs__resolve-library-id` and `mcp__docs__get-library-docs` tools to pull the latest library documentation down so that the code you write will have the highest chance of working on the first try.
 - Use the Playwright MCP server to verify functionality works as expected in the Chrome browser. If it does not work as expected, continue to iterate until it does.
 - Do not start webservers or other long-running processes yourself as that will hang the chat. Instead, inform me what command to run, and I will run it in a separate tab for you. Logs for the main webserver will be sent to `dev.log` for you to review.
 
@@ -45,7 +45,7 @@ I follow TDD with behavior-driven testing and functional programming principles.
 **Key Principles:**
 - Write tests first (TDD)
 - Test behavior, not implementation
-- No `any` types or type assertions
+- No `any` types, minimal type assertions
 - Immutable data only
 - Small, pure functions
 - TypeScript strict mode always
@@ -53,7 +53,7 @@ I follow TDD with behavior-driven testing and functional programming principles.
 
 **Preferred Tools:**
 - **Language**: TypeScript (strict mode)
-- **Testing**: Jest/Vitest + React Testing Library
+- **Testing**: Vitest + React Testing Library
 - **State Management**: Immutable patterns
 
 ## Testing Principles
@@ -68,29 +68,40 @@ I follow TDD with behavior-driven testing and functional programming principles.
 
 ### Test Tools & Organization
 
-- **Jest/Vitest** for testing, **React Testing Library** for components, **MSW** for API mocking
+- **Vitest** for test runner and mocking
+- **React Testing Library** for component testing  
+- **MSW (Mock Service Worker)** for HTTP API mocking
+- **In-memory SQLite** for database testing
+- **setupInMemoryDb()** utility for consistent database setup
 - All test code follows same TypeScript strict mode rules as production
 
-### Test Data Pattern
+### Test Data Factory Pattern
 
-Use factory functions with optional overrides:
+Use factory functions with optional overrides for type-safe test data:
 
 ```typescript
-const getMockPaymentRequest = (
-  overrides?: Partial<PaymentRequest>
-): PaymentRequest => ({
-  amount: 100,
-  currency: "GBP",
-  cardId: "card_123",
-  customerId: "cust_456",
+const getMockSession = (
+  overrides?: Partial<Session>
+): Session => ({
+  id: crypto.randomUUID(),
+  title: 'Test Session',
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+  status: 'active',
+  project_path: '/test/project',
+  metadata: null,
   ...overrides,
 });
+
+// Usage in tests
+const session = getMockSession({ title: 'Custom Title' })
 ```
 
 **Key principles:**
-- Complete objects with sensible defaults
-- Accept optional `Partial<T>` overrides
-- Compose factories for complex objects
+- **Type-safe defaults**: Complete objects with sensible defaults
+- **Flexible overrides**: Accept optional `Partial<T>` overrides  
+- **Composable**: Factories can reference other factories
+- **Realistic data**: Use realistic values, not test123
 
 ## TypeScript Guidelines
 
@@ -110,39 +121,53 @@ const getMockPaymentRequest = (
 }
 ```
 
-- **No `any`** - use `unknown` if type is truly unknown
-- **No type assertions** (`as SomeType`) unless absolutely necessary
+- **No `any` types** - use `unknown` for truly unknown types
+- **Type assertions** (`as SomeType`) - acceptable when TypeScript inference fails, especially for:
+  - SQLite results: `(result as { name: string }).name`
+  - JSON parsing: `JSON.parse(data) as ExpectedType`
+  - External library results with poor typing
 - **No `@ts-ignore`** without explicit explanation
-- Rules apply to test code too
+- **Strict mode enforced** in both production and test code
 
 ### Schema-First Development
 
-Always define schemas first, derive types from them:
+We use **Drizzle schemas** for database operations and **Zod schemas** for validation:
 
 ```typescript
-import { z } from "zod";
+// Database schema (Drizzle)
+import { text, integer, sqliteTable } from 'drizzle-orm/sqlite-core';
 
-const PaymentRequestSchema = z.object({
-  amount: z.number().positive(),
-  currency: z.string().length(3),
-  cardId: z.string().min(1),
+export const sessions = sqliteTable('sessions', {
+  id: text('id').primaryKey(),
+  title: text('title'),
+  status: text('status').notNull(),
+  project_path: text('project_path').notNull(),
+  created_at: text('created_at').notNull(),
+  updated_at: text('updated_at').notNull(),
 });
 
-type PaymentRequest = z.infer<typeof PaymentRequestSchema>;
+export type Session = typeof sessions.$inferSelect;
 
-export const parsePaymentRequest = (data: unknown): PaymentRequest => {
-  return PaymentRequestSchema.parse(data);
-};
+// Validation schema (Zod) - for API input validation
+import { z } from "zod";
+
+export const CreateSessionSchema = z.object({
+  title: z.string().optional(),
+  project_path: z.string().min(1),
+});
+
+export type CreateSessionRequest = z.infer<typeof CreateSessionSchema>;
 ```
 
 **CRITICAL**: Tests must use real schemas from shared modules, never redefine them:
 
 ```typescript
 // ❌ WRONG - Defining schemas in test files
-const ProjectSchema = z.object({ id: z.string() });
+const SessionSchema = z.object({ id: z.string() });
 
 // ✅ CORRECT - Import from shared location
-import { ProjectSchema, type Project } from "@your-org/schemas";
+import { sessions, type Session } from '../db/schema';
+import { CreateSessionSchema } from '../schemas/session';
 ```
 
 ## Code Style
@@ -165,8 +190,8 @@ Follow "functional light" approach:
 
 ### Naming & Files
 
-- **Functions**: `camelCase`, verb-based (`calculateTotal`)
-- **Types**: `PascalCase` (`PaymentRequest`)
+- **Functions**: `camelCase`, verb-based (`createSession`, `validateSession`)
+- **Types**: `PascalCase` (`Session`, `CreateSessionRequest`)
 - **Constants**: `UPPER_SNAKE_CASE` for true constants
 - **Files**: `kebab-case.ts`
 - **Tests**: `*.test.ts`
@@ -177,20 +202,19 @@ Code should be self-documenting. Comments indicate unclear code.
 
 ```typescript
 // Avoid: Comments explaining code
-if (customer.tier === "premium") {
-  // Apply 20% discount
-  return price * 0.8;
+if (session.status === "active") {
+  // Allow message sending
+  return true;
 }
 
 // Good: Self-documenting
-const PREMIUM_DISCOUNT_MULTIPLIER = 0.8;
-const isPremiumCustomer = (customer: Customer) => customer.tier === "premium";
+const ACTIVE_SESSION_STATUS = 'active';
+const isActiveSession = (session: Session) => session.status === ACTIVE_SESSION_STATUS;
 
-const discountMultiplier = isPremiumCustomer(customer)
-  ? PREMIUM_DISCOUNT_MULTIPLIER
-  : STANDARD_DISCOUNT_MULTIPLIER;
-
-return price * discountMultiplier;
+const sessionCanReceiveMessages = isActiveSession(session);
+if (!sessionCanReceiveMessages) {
+  throw new Error('Cannot send messages to inactive session');
+}
 ```
 
 ### Prefer Options Objects
@@ -199,26 +223,24 @@ Default to options objects for function parameters:
 
 ```typescript
 // Avoid: Multiple positional parameters
-const createPayment = (amount: number, currency: string, cardId: string) => {};
+const createSession = (title: string, projectPath: string, status: string) => {};
 
 // Good: Options object
-type CreatePaymentOptions = {
-  amount: number;
-  currency: string;
-  cardId: string;
-  description?: string;
+type CreateSessionOptions = {
+  title?: string;
+  project_path: string;
+  status?: string;
 };
 
-const createPayment = (options: CreatePaymentOptions) => {
-  const { amount, currency, cardId, description } = options;
+const createSession = (options: CreateSessionOptions) => {
+  const { title, project_path, status = 'active' } = options;
   // implementation
 };
 
 // Clear at call site
-const payment = createPayment({
-  amount: 100,
-  currency: "GBP", 
-  cardId: "card_123",
+const session = createSession({
+  title: 'My Session',
+  project_path: '/Users/dev/project',
 });
 ```
 
@@ -242,27 +264,35 @@ Follow Red-Green-Refactor strictly:
 
 ```typescript
 // Step 1: Red
-it("should calculate total with shipping", () => {
-  const order = { items: [{ price: 30 }], shippingCost: 5.99 };
-  expect(processOrder(order).total).toBe(35.99);
+it("should create session with active status", () => {
+  const sessionData = { title: 'My Session', project_path: '/test' };
+  expect(createSession(sessionData).status).toBe('active');
 });
 
 // Step 2: Green - minimal implementation
-const processOrder = (order: Order) => ({
-  ...order,
-  total: order.items.reduce((sum, item) => sum + item.price, 0) + order.shippingCost,
+const createSession = (data: CreateSessionRequest) => ({
+  ...data,
+  id: crypto.randomUUID(),
+  status: 'active',
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
 });
 
 // Step 3: Refactor - extract for clarity if valuable
-const FREE_SHIPPING_THRESHOLD = 50;
+const DEFAULT_SESSION_STATUS = 'active';
 
-const calculateItemsTotal = (items: OrderItem[]) => 
-  items.reduce((sum, item) => sum + item.price, 0);
+const generateSessionId = () => crypto.randomUUID();
+const generateTimestamp = () => new Date().toISOString();
 
-const processOrder = (order: Order) => {
-  const itemsTotal = calculateItemsTotal(order.items);
-  const shippingCost = itemsTotal > FREE_SHIPPING_THRESHOLD ? 0 : order.shippingCost;
-  return { ...order, total: itemsTotal + shippingCost };
+const createSession = (data: CreateSessionRequest) => {
+  const timestamp = generateTimestamp();
+  return {
+    ...data,
+    id: generateSessionId(),
+    status: DEFAULT_SESSION_STATUS,
+    created_at: timestamp,
+    updated_at: timestamp,
+  };
 };
 ```
 
@@ -280,7 +310,7 @@ After achieving green, MUST assess refactoring opportunities. Only refactor if i
 
 **1. Commit Before Refactoring**
 ```bash
-git commit -m "feat: add payment validation"
+git commit -m "feat: add session validation"
 # Now safe to refactor
 ```
 
@@ -288,16 +318,16 @@ git commit -m "feat: add payment validation"
 
 ```typescript
 // Similar structure, DIFFERENT meaning - DON'T ABSTRACT
-const validatePaymentAmount = (amount: number) => amount > 0 && amount <= 10000;
-const validateTransferAmount = (amount: number) => amount > 0 && amount <= 10000;
+const validateSessionTitle = (title: string) => title.length > 0 && title.length <= 100;
+const validateProjectPath = (path: string) => path.length > 0 && path.length <= 1000;
 // These represent different business concepts that evolve independently
 
 // Similar structure, SAME meaning - SAFE TO ABSTRACT  
-const formatUserDisplayName = (first: string, last: string) => `${first} ${last}`.trim();
-const formatCustomerDisplayName = (first: string, last: string) => `${first} ${last}`.trim();
-// Same concept: "format person's name for display"
+const formatSessionDisplayName = (title: string, id: string) => `${title} (${id})`.trim();
+const formatEventDisplayName = (type: string, id: string) => `${type} (${id})`.trim();
+// Same concept: "format item name for display"
 
-const formatPersonDisplayName = (first: string, last: string) => `${first} ${last}`.trim();
+const formatItemDisplayName = (name: string, id: string) => `${name} (${id})`.trim();
 ```
 
 **3. DRY is About Knowledge, Not Code**
@@ -315,7 +345,7 @@ Refactoring must never break existing consumers.
 ### Commit Guidelines
 
 ```
-feat: add payment validation
+feat: add session validation
 fix: correct date formatting  
 refactor: extract validation helpers
 test: add edge cases for validation
@@ -350,19 +380,31 @@ type Result<T, E = Error> =
   | { success: true; data: T }
   | { success: false; error: E };
 
-const processPayment = (payment: Payment): Result<ProcessedPayment, PaymentError> => {
-  if (!isValidPayment(payment)) {
-    return { success: false, error: new PaymentError("Invalid payment") };
+type ProcessedSession = Session & {
+  processed_at: string;
+  is_ready: boolean;
+};
+
+class SessionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SessionError';
   }
-  return { success: true, data: executePayment(payment) };
+}
+
+const processSession = (session: Session): Result<ProcessedSession, SessionError> => {
+  if (!isValidSession(session)) {
+    return { success: false, error: new SessionError("Invalid session") };
+  }
+  return { success: true, data: executeSession(session) };
 };
 
 // Early returns with exceptions
-const processPayment = (payment: Payment): ProcessedPayment => {
-  if (!isValidPayment(payment)) {
-    throw new PaymentError("Invalid payment");
+const processSession = (session: Session): ProcessedSession => {
+  if (!isValidSession(session)) {
+    throw new SessionError("Invalid session");
   }
-  return executePayment(payment);
+  return executeSession(session);
 };
 ```
 
@@ -370,20 +412,19 @@ const processPayment = (payment: Payment): ProcessedPayment => {
 
 ```typescript
 // Good - tests behavior through public API
-describe("PaymentProcessor", () => {
-  it("should decline payment when insufficient funds", () => {
-    const payment = getMockPayment({ amount: 1000 });
-    const account = getMockAccount({ balance: 500 });
+describe("SessionProcessor", () => {
+  it("should reject session when project path is invalid", () => {
+    const session = getMockSession({ project_path: '' });
 
-    const result = processPayment(payment, account);
+    const result = processSession(session);
 
     expect(result.success).toBe(false);
-    expect(result.error.message).toBe("Insufficient funds");
+    expect(result.error.message).toBe("Invalid project path");
   });
 });
 
 // Avoid - testing implementation details
-it("should call checkBalance method", () => {
+it("should call validateProjectPath method", () => {
   // Tests implementation, not behavior
 });
 ```
@@ -417,16 +458,16 @@ if (!user || !user.isActive || !user.hasPermission) {
 // do something
 
 // Avoid: Large functions
-const processOrder = (order: Order) => {
+const processSession = (session: Session) => {
   // 100+ lines
 };
 
 // Prefer: Composition
-const processOrder = (order: Order) => {
-  const validated = validateOrder(order);
-  const priced = calculatePricing(validated);
-  const final = applyDiscounts(priced);
-  return submitOrder(final);
+const processSession = (session: Session) => {
+  const validated = validateSession(session);
+  const initialized = initializeSession(validated);
+  const configured = configureSession(initialized);
+  return startSession(configured);
 };
 ```
 
@@ -435,7 +476,7 @@ const processOrder = (order: Order) => {
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/intro.html)
 - [Testing Library Principles](https://testing-library.com/docs/guiding-principles)
 - [Kent C. Dodds Testing JavaScript](https://testingjavascript.com/)
-- [Functional Programming in TypeScript](https://gcanti.github.io/fp-ts/)
+- [Functional Programming Principles](https://mostly-adequate.gitbooks.io/mostly-adequate-guide/)
 
 ## Test Organization and Guidelines
 
@@ -453,8 +494,7 @@ app/
 │       ├── api.claude-code.test.ts      # Tests API endpoints
 │       └── event-storage.test.ts        # Tests system behavior
 ├── db/
-│   └── *.test.ts           # Database integration tests using real SQLite
-│       ├── sessions.service.test.ts     # Tests database operations
+│   └── *.test.ts           # Database integration tests using in-memory SQLite
 │       └── schema.test.ts               # Tests database schema
 └── services/               # NO test files here (implementation details)
 ```
@@ -469,10 +509,11 @@ app/
 2. **Test through public APIs only**
    - API routes: Test HTTP request/response behavior
    - Components: Test user interactions and visible behavior
-   - Database: Test actual database operations with real SQLite
+   - Database: Test actual database operations with in-memory SQLite
 
 3. **Mock external dependencies only**
-   - Use MSW for external API calls (like Claude Code SDK)
+   - Use **Vitest mocks** for external modules (like Claude Code SDK)
+   - Use **MSW** for external HTTP API calls (if any)
    - Never mock internal services or database
    - Mock at the boundary, not internally
 
@@ -498,10 +539,10 @@ vi.mock('../services/events.service', () => ({
   storeEvent: vi.fn()
 }))
 
-// ✅ GOOD - Using real database in tests
-const session = await createSession({ title: 'Test' })
-const events = await getEventsForSession(session.id)
-expect(events).toHaveLength(4)
+// ✅ GOOD - Using DRY utility for database tests
+const session = testDb.createSession({ title: 'Test', project_path: '/test' })
+const events = testDb.getEventsForSession(session.id)
+expect(events).toHaveLength(0)
 
 // ❌ BAD - Testing service internals
 expect(streamClaudeCodeResponse).toHaveBeenCalledWith(...)
@@ -514,26 +555,269 @@ const response = await fetch('/api/claude-code/session-id', {
 expect(response.headers.get('Content-Type')).toBe('text/event-stream')
 ```
 
-### MSW Setup
+### Database Testing Pattern - DRY Utility Approach
 
-For mocking external services, we use MSW (Mock Service Worker):
+**ALWAYS use the `setupInMemoryDb()` utility** for database tests. This ensures consistency and eliminates SQL duplication:
+
+```typescript
+// ✅ EXCELLENT - DRY Utility Pattern (REQUIRED)
+import { setupInMemoryDb, setMockDatabase, type TestDatabase } from '../test-utils/in-memory-db'
+
+describe('Database operations', () => {
+  let testDb: TestDatabase
+
+  beforeEach(async () => {
+    testDb = setupInMemoryDb()
+    // For API tests that need to mock the database module:
+    await setMockDatabase(testDb.db)
+  })
+
+  afterEach(() => {
+    testDb.cleanup()
+  })
+
+  it('should create and retrieve session', () => {
+    const session = testDb.createSession({
+      title: 'Test Session',
+      project_path: '/test/project'
+    })
+    
+    const events = testDb.getEventsForSession(session.id)
+    expect(events).toHaveLength(0)
+  })
+})
+```
+
+**Benefits of DRY utility:**
+- **No SQL duplication**: Single source of truth for schema
+- **Consistent setup**: All tests use identical database structure
+- **Helper functions**: Built-in `createSession()` and `getEventsForSession()`
+- **Proper cleanup**: Automatic database connection management
+- **Parallel-safe**: Each test gets isolated in-memory database
+
+### Database Testing Anti-Patterns
+
+```typescript
+// ❌ NEVER DO THIS - Manual database setup
+beforeEach(() => {
+  sqlite = new Database(':memory:')
+  db = drizzle(sqlite, { schema })
+  sqlite.exec(`CREATE TABLE...`) // Duplicates schema definition
+})
+
+// ❌ NEVER DO THIS - Service imports in API tests
+import { createSession } from '../db/sessions.service'
+const session = await createSession({ title: 'Test' })
+
+// ❌ NEVER DO THIS - Direct database imports in API tests
+import { db, sessions } from '../db'
+await db.delete(sessions).execute()
+```
+
+**Why in-memory SQLite with DRY utility:**
+- **Fast**: No file I/O operations
+- **Isolated**: Each test gets fresh database
+- **Parallel**: No file locking issues
+- **Consistent**: No schema drift between tests
+- **Maintainable**: Single place to update database structure
+- **Reliable**: No race conditions or cleanup issues
+
+### Async Testing Patterns
+
+**For API tests with streaming responses**, use proper completion polling instead of arbitrary timeouts:
+
+```typescript
+// ✅ EXCELLENT - Polling for completion
+it('should handle streaming response', async () => {
+  const response = await action({ request, params })
+  expect(response.status).toBe(200)
+  
+  // Wait for streaming to complete by checking actual state
+  let attempts = 0
+  const maxAttempts = 50 // 5 seconds max
+  while (attempts < maxAttempts) {
+    const storedEvents = testDb.getEventsForSession(session.id)
+    if (storedEvents.length > 1) { // Expected: user + system + assistant + result
+      break
+    }
+    await new Promise(resolve => setTimeout(resolve, 100))
+    attempts++
+  }
+})
+
+// ❌ NEVER DO THIS - Arbitrary timeouts
+it('should handle streaming response', async () => {
+  const response = await action({ request, params })
+  expect(response.status).toBe(200)
+  
+  // This is flaky and unreliable
+  await new Promise(resolve => setTimeout(resolve, 500))
+})
+```
+
+**Key principles for async testing:**
+- **Poll for actual completion** - Check database state, don't guess timing
+- **Use reasonable timeouts** - 5-10 seconds max with clear loop logic
+- **Validate expected behavior** - Ensure the async work actually completed
+- **Clean up properly** - Wait for async operations before test cleanup
+
+### External Dependency Mocking
+
+**For external modules**, use Vitest mocks:
+
+```typescript
+// Mock the Claude Code SDK module
+vi.mock('@anthropic-ai/claude-code', () => ({
+  query: vi.fn().mockImplementation(({ prompt }) => ({
+    async *[Symbol.asyncIterator]() {
+      yield { type: 'system', session_id: 'mock-session-id' }
+      yield { type: 'user', message: { content: prompt } }
+      yield { type: 'assistant', message: { content: 'Test response' } }
+      yield { type: 'result', subtype: 'success' }
+    }
+  }))
+}))
+```
+
+**For external HTTP APIs**, use MSW:
 
 ```typescript
 // app/test-utils/msw-server.ts
 import { setupServer } from 'msw/node'
+import { http, HttpResponse } from 'msw'
 
-// Mock only external dependencies like Claude Code SDK
-vi.mock('@anthropic-ai/claude-code', () => ({
-  query: vi.fn().mockImplementation(/* mock implementation */)
-}))
+export const handlers = [
+  http.get('https://api.external.com/data', () => {
+    return HttpResponse.json({ data: 'mock response' })
+  })
+]
+
+export const server = setupServer(...handlers)
 ```
+
+### TypeScript Testing Patterns
+
+**Always use proper types in tests** - follow strict mode requirements:
+
+```typescript
+// ✅ EXCELLENT - Proper type handling for SQLite results
+const tableInfo = testDb.sqlite.prepare("PRAGMA table_info(events)").all()
+const columnNames = tableInfo.map((col: unknown) => (col as { name: string }).name)
+
+// ❌ NEVER DO THIS - Using any types
+const columnNames = tableInfo.map((col: any) => col.name)
+
+// ✅ EXCELLENT - Proper data type assertions
+const data = result.data as {
+  type: string;
+  message: {
+    role: string;
+    content: Array<{ type: string; name: string; }>;
+  };
+}
+
+// ❌ NEVER DO THIS - Casting to any
+const data = result.data as any
+```
+
+**Use factory functions consistently** - see Test Data Factory Pattern section above for details.
 
 ### Test Execution
 
-- Database tests run sequentially to avoid conflicts
+- Database tests run in parallel using in-memory SQLite
 - Component tests use `happy-dom` environment
 - All tests must pass before committing
 - Coverage based on behavior, not lines of code
+- TypeScript strict mode enforced in all test files
+
+## Testing Troubleshooting Guide
+
+### Common Issues and Solutions
+
+**"Database connection is not open" errors:**
+- **Cause**: Test cleanup happens before async operations complete
+- **Solution**: Use proper completion polling, not arbitrary timeouts
+- **Example**: Check for stored events before cleanup
+
+**"Cannot read properties of undefined" in component tests:**
+- **Cause**: Component state updates not wrapped in `act()`
+- **Solution**: Wrap state-changing operations in React's `act()` helper
+- **Example**: `act(() => { fireEvent.click(button) })`
+
+**Race conditions in parallel tests:**
+- **Cause**: Shared database or global state
+- **Solution**: Always use `setupInMemoryDb()` for isolated test databases
+- **Example**: Each test gets its own in-memory SQLite instance
+
+**TypeScript errors with SQLite results:**
+- **Cause**: SQLite returns `unknown[]` types, not specific interfaces
+- **Solution**: Use proper type assertions, not `any`
+- **Example**: `(result as { name: string }).name`
+
+**Flaky tests that sometimes pass/fail:**
+- **Cause**: Timing dependencies or insufficient waiting
+- **Solution**: Poll for actual completion conditions
+- **Example**: Check database state instead of using `setTimeout`
+
+### Performance Issues
+
+**Slow database tests:**
+- **Cause**: Using file-based SQLite instead of in-memory
+- **Solution**: Ensure all tests use `:memory:` database
+- **Expected**: Database tests should run in <50ms each
+
+**Tests timing out:**
+- **Cause**: Async operations not properly awaited
+- **Solution**: Use completion polling with reasonable timeouts
+- **Expected**: API tests should complete within 5 seconds
+
+### Test Organization Issues
+
+**Duplicate test setup code:**
+- **Cause**: Manual database setup instead of DRY utility
+- **Solution**: Always use `setupInMemoryDb()` utility
+- **Benefit**: Single source of truth for schema
+
+**Tests failing after schema changes:**
+- **Cause**: Hardcoded SQL in individual test files
+- **Solution**: Schema changes only need updating in `setupInMemoryDb()`
+- **Benefit**: All tests automatically get updated schema
+
+## TypeScript Testing Best Practices Summary
+
+### The Golden Rules
+
+1. **Test behavior, not implementation** - Test what the code does, not how it does it
+2. **Use real dependencies internally** - Never mock internal services or database
+3. **Mock only external boundaries** - Mock external APIs and modules at the boundary
+4. **Follow TypeScript strict mode** - No `any` types, proper type assertions when needed
+5. **Use factories for test data** - Type-safe, composable, realistic test data
+6. **Consistent database setup** - Always use `setupInMemoryDb()` utility
+7. **Poll for async completion** - Don't use arbitrary timeouts, check actual state
+
+### Test Architecture Patterns
+
+**Database Tests**: Use in-memory SQLite with DRY utility
+**API Tests**: Test HTTP endpoints with proper async polling
+**Component Tests**: Test user interactions with React Testing Library
+**External Mocks**: Vitest mocks for modules, MSW for HTTP APIs
+
+### Quality Indicators
+
+- **Fast**: Database tests <50ms, API tests <5s
+- **Reliable**: No race conditions, no flaky tests
+- **Maintainable**: Single source of truth for schema and test data
+- **Type-safe**: No `any` types, proper assertions when needed
+- **Behavior-focused**: Tests document expected business behavior
+
+### Red Flags to Avoid
+
+- ❌ Testing internal service methods
+- ❌ Mocking internal dependencies  
+- ❌ Using `any` types in tests
+- ❌ Hardcoded SQL in individual test files
+- ❌ Arbitrary timeouts for async operations
+- ❌ Shared mutable state between tests
 
 ## Summary
 

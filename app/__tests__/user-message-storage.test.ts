@@ -1,9 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { setupInMemoryDb, setMockDatabase, type TestDatabase } from '../test-utils/in-memory-db'
 import { action } from '../routes/api.claude-code.$sessionId'
 import type { Route } from '../routes/+types/api.claude-code.$sessionId'
-import { createSession } from '../db/sessions.service'
-import { getEventsForSession } from '../db/event-session.service'
-import { db, sessions, events } from '../db'
 
 // Mock Claude Code SDK
 vi.mock('@anthropic-ai/claude-code', () => ({
@@ -25,14 +23,20 @@ vi.mock('@anthropic-ai/claude-code', () => ({
 }))
 
 describe('User Message Storage', () => {
+  let testDb: TestDatabase
+
   beforeEach(async () => {
-    await db.delete(events).execute()
-    await db.delete(sessions).execute()
+    testDb = setupInMemoryDb()
+    await setMockDatabase(testDb.db)
+  })
+
+  afterEach(() => {
+    testDb.cleanup()
   })
 
   it('should store user prompt as an event when submitted', async () => {
     // Create a test session
-    const session = await createSession({
+    const session = testDb.createSession({
       title: 'User Message Test',
       project_path: '/test/project'
     })
@@ -64,7 +68,7 @@ describe('User Message Storage', () => {
     }
     
     // Check that user message was stored
-    const storedEvents = await getEventsForSession(session.id)
+    const storedEvents = testDb.getEventsForSession(session.id)
     const userEvents = storedEvents.filter(e => e.event_type === 'user')
     
     expect(userEvents).toHaveLength(1)
@@ -93,7 +97,7 @@ describe('User Message Storage', () => {
   })
 
   it('should store user message before Claude Code messages', async () => {
-    const session = await createSession({
+    const session = testDb.createSession({
       title: 'Message Order Test',
       project_path: '/test/project'
     })
@@ -122,7 +126,7 @@ describe('User Message Storage', () => {
     }
     
     // Check event order
-    const storedEvents = await getEventsForSession(session.id)
+    const storedEvents = testDb.getEventsForSession(session.id)
     
     // Should have at least 3 events: user, system, result
     expect(storedEvents.length).toBeGreaterThanOrEqual(3)
@@ -151,7 +155,7 @@ describe('User Message Storage', () => {
   })
 
   it('should handle empty or whitespace-only prompts', async () => {
-    const session = await createSession({
+    const session = testDb.createSession({
       title: 'Empty Prompt Test',
       project_path: '/test/project'
     })
@@ -173,7 +177,7 @@ describe('User Message Storage', () => {
     expect(response.status).toBe(400)
     
     // No events should be stored
-    const storedEvents = await getEventsForSession(session.id)
+    const storedEvents = testDb.getEventsForSession(session.id)
     expect(storedEvents).toHaveLength(0)
   })
 })

@@ -1,9 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { setupInMemoryDb, setMockDatabase, type TestDatabase } from '../test-utils/in-memory-db'
 import { action } from '../routes/api.claude-code.$sessionId'
 import type { Route } from '../routes/+types/api.claude-code.$sessionId'
-import { createSession } from '../db/sessions.service'
-import { getEventsForSession } from '../db/event-session.service'
-import { db, sessions, events } from '../db'
 
 // We need to modify the Claude Code mock to support cancellation testing
 let shouldContinueGenerating = true
@@ -56,17 +54,22 @@ vi.mock('@anthropic-ai/claude-code', () => ({
 }))
 
 describe('Stop Functionality', () => {
+  let testDb: TestDatabase
+
   beforeEach(async () => {
-    // Clean up database before each test
-    await db.delete(events).execute()
-    await db.delete(sessions).execute()
+    testDb = setupInMemoryDb()
+    await setMockDatabase(testDb.db)
     
     // Reset mock state
     shouldContinueGenerating = true
   })
 
+  afterEach(() => {
+    testDb.cleanup()
+  })
+
   it('should store a cancellation event when request is cancelled', async () => {
-    const session = await createSession({
+    const session = testDb.createSession({
       title: 'Cancel Event Test',
       project_path: '/test/project'
     })
@@ -95,7 +98,7 @@ describe('Stop Functionality', () => {
     expect(response.status).toBe(200)
     
     // Check stored events
-    const storedEvents = await getEventsForSession(session.id)
+    const storedEvents = testDb.getEventsForSession(session.id)
     
     // Should have multiple event types
     const eventTypes = storedEvents.map(e => e.event_type)
@@ -115,7 +118,7 @@ describe('Stop Functionality', () => {
   })
 
   it('should handle abort signal from client without showing error', async () => {
-    const session = await createSession({
+    const session = testDb.createSession({
       title: 'Abort Signal Test',
       project_path: '/test/project'
     })
@@ -146,7 +149,7 @@ describe('Stop Functionality', () => {
     expect(response.status).toBe(200)
     
     // Check that some events were stored before abort
-    const storedEvents = await getEventsForSession(session.id)
+    const storedEvents = testDb.getEventsForSession(session.id)
     expect(storedEvents.length).toBeGreaterThan(0)
     
     // Should not have an error event from the abort
@@ -159,7 +162,7 @@ describe('Stop Functionality', () => {
   })
 
   it('should continue streaming even if client disconnects', async () => {
-    const session = await createSession({
+    const session = testDb.createSession({
       title: 'Stream Continue Test', 
       project_path: '/test/project'
     })
@@ -214,7 +217,7 @@ describe('Stop Functionality', () => {
     await new Promise(resolve => setTimeout(resolve, 200))
     
     // Check that events were still stored
-    const storedEvents = await getEventsForSession(session.id)
+    const storedEvents = testDb.getEventsForSession(session.id)
     // Since we might have continued processing after disconnect, we expect at least 1 event
     expect(storedEvents.length).toBeGreaterThanOrEqual(1)
     

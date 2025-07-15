@@ -1,20 +1,25 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { createSession } from '../db/sessions.service'
-import { db, sessions, events } from '../db'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { setupInMemoryDb, setMockDatabase, type TestDatabase } from '../test-utils/in-memory-db'
+import { eq, desc } from 'drizzle-orm'
+import { events } from '../db/schema'
 import { action } from '../routes/api.claude-code.$sessionId'
 import type { Route } from '../routes/+types/api.claude-code.$sessionId'
-import { eq, desc } from 'drizzle-orm'
 
 describe('Session Resumption Behavior', () => {
+  let testDb: TestDatabase
+
   beforeEach(async () => {
-    // Clean up database before each test
-    await db.delete(events).execute()
-    await db.delete(sessions).execute()
+    testDb = setupInMemoryDb()
+    await setMockDatabase(testDb.db)
+  })
+
+  afterEach(() => {
+    testDb.cleanup()
   })
 
   it('should resume conversation using previous Claude session ID', async () => {
     // Create a session
-    const session = await createSession({
+    const session = testDb.createSession({
       title: 'Resumption Test',
       project_path: '/test/project'
     })
@@ -39,9 +44,9 @@ describe('Session Resumption Behavior', () => {
     await new Promise(resolve => setTimeout(resolve, 100))
     
     // Check that events were stored with Claude session ID
-    const storedEvents = await db.select().from(events)
+    const storedEvents = await testDb.db.select().from(events)
       .where(eq(events.memva_session_id, session.id))
-      .execute()
+      .all()
     
     expect(storedEvents.length).toBeGreaterThan(0)
     // Find the first non-user event or user event with session_id
@@ -71,13 +76,13 @@ describe('Session Resumption Behavior', () => {
   })
 
   it('should maintain event threading across conversations', async () => {
-    const session = await createSession({
+    const session = testDb.createSession({
       title: 'Threading Test',
       project_path: '/test/project'
     })
 
     // Simulate first conversation with stored events
-    await db.insert(events).values([
+    testDb.db.insert(events).values([
       {
         uuid: 'event-1',
         session_id: 'claude-session-1',
@@ -101,7 +106,7 @@ describe('Session Resumption Behavior', () => {
         project_name: 'project',
         data: { type: 'assistant', content: 'First response' }
       }
-    ]).execute()
+    ]).run()
 
     // Send new message in the conversation
     const formData = new FormData()
@@ -123,10 +128,10 @@ describe('Session Resumption Behavior', () => {
     await new Promise(resolve => setTimeout(resolve, 100))
     
     // Check that new events maintain threading
-    const allEvents = await db.select().from(events)
+    const allEvents = await testDb.db.select().from(events)
       .where(eq(events.memva_session_id, session.id))
       .orderBy(desc(events.timestamp))
-      .execute()
+      .all()
     
     // Should have original 2 events plus new ones
     expect(allEvents.length).toBeGreaterThan(2)
@@ -137,7 +142,7 @@ describe('Session Resumption Behavior', () => {
   })
 
   it('should handle first message in a session (no resumption)', async () => {
-    const session = await createSession({
+    const session = testDb.createSession({
       title: 'New Session Test',
       project_path: '/test/project'
     })
@@ -162,9 +167,9 @@ describe('Session Resumption Behavior', () => {
     await new Promise(resolve => setTimeout(resolve, 100))
     
     // Check that events were stored
-    const storedEvents = await db.select().from(events)
+    const storedEvents = await testDb.db.select().from(events)
       .where(eq(events.memva_session_id, session.id))
-      .execute()
+      .all()
     
     expect(storedEvents.length).toBeGreaterThan(0)
     // First conversation should not have resumed anything

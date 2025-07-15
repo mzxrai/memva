@@ -1,64 +1,23 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import Database from 'better-sqlite3'
-import { drizzle } from 'drizzle-orm/better-sqlite3'
+import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { eq, asc } from 'drizzle-orm'
 import * as schema from './schema'
 
 describe('Database Schema', () => {
-  let db: ReturnType<typeof drizzle>
-  let sqlite: Database.Database
+  let testDb: TestDatabase
 
   beforeEach(() => {
-    // Use in-memory database for tests
-    sqlite = new Database(':memory:')
-    db = drizzle(sqlite, { schema })
-    
-    // Create tables using raw SQL for now (will use migrations later)
-    sqlite.exec(`
-      CREATE TABLE IF NOT EXISTS sessions (
-        id TEXT PRIMARY KEY,
-        title TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        status TEXT NOT NULL,
-        project_path TEXT NOT NULL,
-        metadata TEXT
-      )
-    `)
-    
-    sqlite.exec(`
-      CREATE TABLE IF NOT EXISTS events (
-        uuid TEXT PRIMARY KEY,
-        session_id TEXT NOT NULL,
-        event_type TEXT NOT NULL,
-        timestamp TEXT NOT NULL,
-        is_sidechain INTEGER DEFAULT 0,
-        parent_uuid TEXT,
-        cwd TEXT NOT NULL,
-        project_name TEXT NOT NULL,
-        data TEXT NOT NULL,
-        memva_session_id TEXT
-      )
-    `)
-    
-    // Create indexes
-    sqlite.exec(`
-      CREATE INDEX idx_session_id ON events(session_id);
-      CREATE INDEX idx_timestamp ON events(timestamp);
-      CREATE INDEX idx_project_name ON events(project_name);
-      CREATE INDEX idx_event_type ON events(event_type);
-      CREATE INDEX idx_parent_uuid ON events(parent_uuid);
-    `)
+    testDb = setupInMemoryDb()
   })
 
   afterEach(() => {
-    sqlite.close()
+    testDb.cleanup()
   })
 
   it('should create events table with correct schema', () => {
-    const tableInfo = sqlite.prepare("PRAGMA table_info(events)").all()
+    const tableInfo = testDb.sqlite.prepare("PRAGMA table_info(events)").all()
     
-    const columnNames = tableInfo.map((col: any) => col.name)
+    const columnNames = tableInfo.map((col: unknown) => (col as { name: string }).name)
     expect(columnNames).toEqual([
       'uuid',
       'session_id',
@@ -90,10 +49,10 @@ describe('Database Schema', () => {
     }
 
     // Insert using Drizzle
-    db.insert(schema.events).values(testEvent).run()
+    testDb.db.insert(schema.events).values(testEvent).run()
 
     // Query using Drizzle
-    const results = db.select().from(schema.events).where(eq(schema.events.uuid, testEvent.uuid)).all()
+    const results = testDb.db.select().from(schema.events).where(eq(schema.events.uuid, testEvent.uuid)).all()
     
     expect(results).toHaveLength(1)
     const result = results[0]
@@ -128,15 +87,26 @@ describe('Database Schema', () => {
       }
     }
 
-    db.insert(schema.events).values(assistantEvent).run()
+    testDb.db.insert(schema.events).values(assistantEvent).run()
 
-    const results = db.select().from(schema.events).where(eq(schema.events.uuid, assistantEvent.uuid)).all()
+    const results = testDb.db.select().from(schema.events).where(eq(schema.events.uuid, assistantEvent.uuid)).all()
     const result = results[0]
     
     expect(result.event_type).toBe('assistant')
     expect(result.parent_uuid).toBe('test-uuid-123')
     
-    const data = result.data as any
+    const data = result.data as {
+      type: string;
+      message: {
+        role: string;
+        content: Array<{
+          type: string;
+          id: string;
+          name: string;
+          input: Record<string, unknown>;
+        }>;
+      };
+    }
     expect(data.message.content[0].type).toBe('tool_use')
     expect(data.message.content[0].name).toBe('Read')
   })
@@ -163,10 +133,10 @@ describe('Database Schema', () => {
     }))
 
     eventsToInsert.forEach(event => {
-      db.insert(schema.events).values(event).run()
+      testDb.db.insert(schema.events).values(event).run()
     })
 
-    const results = db.select()
+    const results = testDb.db.select()
       .from(schema.events)
       .where(eq(schema.events.session_id, sessionId))
       .orderBy(asc(schema.events.timestamp))
@@ -193,9 +163,9 @@ describe('Database Schema', () => {
       }
     }
 
-    db.insert(schema.events).values(sidechainEvent).run()
+    testDb.db.insert(schema.events).values(sidechainEvent).run()
 
-    const results = db.select().from(schema.events).where(eq(schema.events.uuid, sidechainEvent.uuid)).all()
+    const results = testDb.db.select().from(schema.events).where(eq(schema.events.uuid, sidechainEvent.uuid)).all()
     const result = results[0]
     
     expect(result.is_sidechain).toBe(true)

@@ -1,16 +1,22 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { db, sessions, type NewSession } from './index'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { eq } from 'drizzle-orm'
+import { sessions } from './schema'
 
 describe('Sessions table operations', () => {
-  beforeEach(async () => {
-    // Clean up sessions table before each test
-    await db.delete(sessions).execute()
+  let testDb: TestDatabase
+
+  beforeEach(() => {
+    testDb = setupInMemoryDb()
+  })
+
+  afterEach(() => {
+    testDb.cleanup()
   })
 
   describe('Session CRUD operations', () => {
-    it('should create a new session', async () => {
-      const newSession: NewSession = {
+    it('should create a new session', () => {
+      const newSession = {
         id: 'test-session-123',
         title: 'My Test Session',
         created_at: new Date().toISOString(),
@@ -23,9 +29,9 @@ describe('Sessions table operations', () => {
         }
       }
 
-      await db.insert(sessions).values(newSession).execute()
+      testDb.db.insert(sessions).values(newSession).run()
 
-      const result = await db.select().from(sessions).where(eq(sessions.id, 'test-session-123')).execute()
+      const result = testDb.db.select().from(sessions).where(eq(sessions.id, 'test-session-123')).all()
       expect(result).toHaveLength(1)
       expect(result[0]).toMatchObject({
         id: 'test-session-123',
@@ -39,55 +45,55 @@ describe('Sessions table operations', () => {
       })
     })
 
-    it('should retrieve a session by ID', async () => {
+    it('should retrieve a session by ID', () => {
       const sessionId = 'retrieve-test-123'
-      await db.insert(sessions).values({
+      testDb.db.insert(sessions).values({
         id: sessionId,
         title: 'Retrieve Test',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         status: 'active',
         project_path: '/test/path'
-      }).execute()
+      }).run()
 
-      const result = await db.select().from(sessions).where(eq(sessions.id, sessionId)).execute()
+      const result = testDb.db.select().from(sessions).where(eq(sessions.id, sessionId)).all()
       expect(result).toHaveLength(1)
       expect(result[0].id).toBe(sessionId)
       expect(result[0].title).toBe('Retrieve Test')
     })
 
-    it('should update a session', async () => {
+    it('should update a session', () => {
       const sessionId = 'update-test-123'
       const originalTime = new Date().toISOString()
       
-      await db.insert(sessions).values({
+      testDb.db.insert(sessions).values({
         id: sessionId,
         title: 'Original Title',
         created_at: originalTime,
         updated_at: originalTime,
         status: 'active',
         project_path: '/test/path'
-      }).execute()
+      }).run()
 
       const newTime = new Date().toISOString()
-      await db.update(sessions)
+      testDb.db.update(sessions)
         .set({ 
           title: 'Updated Title',
           status: 'archived',
           updated_at: newTime
         })
         .where(eq(sessions.id, sessionId))
-        .execute()
+        .run()
 
-      const result = await db.select().from(sessions).where(eq(sessions.id, sessionId)).execute()
+      const result = testDb.db.select().from(sessions).where(eq(sessions.id, sessionId)).all()
       expect(result[0].title).toBe('Updated Title')
       expect(result[0].status).toBe('archived')
       expect(result[0].updated_at).toBe(newTime)
       expect(result[0].created_at).toBe(originalTime)
     })
 
-    it('should list all sessions', async () => {
-      await db.insert(sessions).values([
+    it('should list all sessions', () => {
+      testDb.db.insert(sessions).values([
         {
           id: 'list-test-1',
           title: 'Session 1',
@@ -104,16 +110,16 @@ describe('Sessions table operations', () => {
           status: 'archived',
           project_path: '/test/path2'
         }
-      ]).execute()
+      ]).run()
 
-      const result = await db.select().from(sessions).execute()
+      const result = testDb.db.select().from(sessions).all()
       expect(result).toHaveLength(2)
       expect(result.map(s => s.id)).toContain('list-test-1')
       expect(result.map(s => s.id)).toContain('list-test-2')
     })
 
-    it('should filter sessions by status', async () => {
-      await db.insert(sessions).values([
+    it('should filter sessions by status', () => {
+      testDb.db.insert(sessions).values([
         {
           id: 'filter-active',
           title: 'Active Session',
@@ -130,28 +136,28 @@ describe('Sessions table operations', () => {
           status: 'archived',
           project_path: '/test/archived'
         }
-      ]).execute()
+      ]).run()
 
-      const activeOnly = await db.select().from(sessions).where(eq(sessions.status, 'active')).execute()
+      const activeOnly = testDb.db.select().from(sessions).where(eq(sessions.status, 'active')).all()
       expect(activeOnly).toHaveLength(1)
       expect(activeOnly[0].id).toBe('filter-active')
     })
 
-    it('should handle nullable title', async () => {
+    it('should handle nullable title', () => {
       const sessionId = 'no-title-test'
-      await db.insert(sessions).values({
+      testDb.db.insert(sessions).values({
         id: sessionId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         status: 'active',
         project_path: '/test/path'
-      }).execute()
+      }).run()
 
-      const result = await db.select().from(sessions).where(eq(sessions.id, sessionId)).execute()
+      const result = testDb.db.select().from(sessions).where(eq(sessions.id, sessionId)).all()
       expect(result[0].title).toBeNull()
     })
 
-    it('should store and retrieve complex metadata', async () => {
+    it('should store and retrieve complex metadata', () => {
       const complexMetadata = {
         user_preferences: {
           theme: 'dark',
@@ -164,16 +170,16 @@ describe('Sessions table operations', () => {
         }
       }
 
-      await db.insert(sessions).values({
+      testDb.db.insert(sessions).values({
         id: 'metadata-test',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         status: 'active',
         project_path: '/test/path',
         metadata: complexMetadata
-      }).execute()
+      }).run()
 
-      const result = await db.select().from(sessions).where(eq(sessions.id, 'metadata-test')).execute()
+      const result = testDb.db.select().from(sessions).where(eq(sessions.id, 'metadata-test')).all()
       expect(result[0].metadata).toEqual(complexMetadata)
     })
   })
