@@ -156,6 +156,9 @@ export default function SessionDetail() {
     return () => clearTimeout(timeoutId);
   }, [messages, checkContentOverflow]);
 
+  // Debounced auto-scroll during streaming to prevent bouncing
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Auto-scroll logic (respects user intent to review history)
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -187,13 +190,59 @@ export default function SessionDetail() {
       // Loading existing history: ALWAYS scroll to bottom to show newest message
       setTimeout(() => performScroll('auto'), 0);
     } else if (hasNewMessages && previousCount > 0) {
-      // New messages streaming in: scroll to show them
-      performScroll('smooth');
+      // During active streaming, debounce scroll updates to prevent bouncing
+      if (isLoading) {
+        // Clear any pending scroll
+        if (scrollTimeoutRef.current) {
+          clearTimeout(scrollTimeoutRef.current);
+        }
+        
+        // Schedule a debounced scroll - only execute if no new messages arrive within 150ms
+        scrollTimeoutRef.current = setTimeout(() => {
+          performScroll('smooth');
+          scrollTimeoutRef.current = null;
+        }, 150);
+      } else {
+        // Not actively streaming, scroll immediately
+        performScroll('smooth');
+      }
     }
     // For fresh sessions (no initial history), first message naturally appears at top via justify-start
 
     previousMessageCountRef.current = currentMessageCount;
-  }, [messages, isInitialHistoryLoad, contentOverflows, autoScrollDisabled]);
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = null;
+      }
+    };
+  }, [messages, isInitialHistoryLoad, contentOverflows, autoScrollDisabled, isLoading]);
+
+  // Ensure final scroll when streaming ends
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container || autoScrollDisabled) return;
+
+    // When streaming stops, ensure we're scrolled to the very bottom
+    if (!isLoading && messages.length > 0) {
+      // Clear any pending debounced scroll
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = null;
+      }
+      
+      // Perform final scroll to bottom after a brief delay to allow any final renders
+      setTimeout(() => {
+        if (!autoScrollDisabled) {
+          setIsProgrammaticScroll(true);
+          container.scrollTop = container.scrollHeight;
+          setTimeout(() => setIsProgrammaticScroll(false), 100);
+        }
+      }, 100);
+    }
+  }, [isLoading, autoScrollDisabled, messages.length]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

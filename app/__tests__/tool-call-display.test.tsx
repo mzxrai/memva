@@ -77,7 +77,9 @@ describe('ToolCallDisplay component', () => {
     
     render(
       <ToolCallDisplay 
-        toolCall={{ ...basicToolCall, name: 'Edit', input: complexInput }} 
+        toolCall={{ ...basicToolCall, name: 'Edit', input: complexInput }}
+        hasResult={true}
+        result="The file /path/to/file.ts has been updated. Here's the result of running `cat -n` on a snippet of the edited file:\n   1→const x = 2"
       />
     )
     
@@ -107,7 +109,9 @@ describe('ToolCallDisplay component', () => {
     
     render(
       <ToolCallDisplay 
-        toolCall={{ ...basicToolCall, name: 'MultiEdit', input: multiEditInput }} 
+        toolCall={{ ...basicToolCall, name: 'MultiEdit', input: multiEditInput }}
+        hasResult={true}
+        result="The file /path/to/file.ts has been updated. Here's the result of running `cat -n` on a snippet of the edited file:\n   1→const x = 2\n   2→const y = 4"
       />
     )
     

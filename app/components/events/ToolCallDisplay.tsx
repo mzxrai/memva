@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from 'react'
+import { useState, useEffect, memo, useMemo } from 'react'
 import type { ComponentType } from 'react'
 import {
   RiFileTextLine,
@@ -26,6 +26,7 @@ interface ToolCallDisplayProps {
   hasResult?: boolean
   result?: unknown
   className?: string
+  isStreaming?: boolean
 }
 
 // Map tool names to appropriate icons
@@ -200,30 +201,135 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
   return { status: 'success', brief: JSON.stringify(result).substring(0, 50) + '...', full: JSON.stringify(result, null, 2) }
 }
 
-export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, className }: ToolCallDisplayProps) => {
-  // Auto-expand Edit/MultiEdit tools to show diff by default
+export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, className, isStreaming = false }: ToolCallDisplayProps) => {
+  // Auto-expand Edit/MultiEdit tools to show diff by default, but NOT during streaming
   const isEditTool = toolCall.name === 'Edit' || toolCall.name === 'MultiEdit'
-  const [isExpanded, setIsExpanded] = useState(isEditTool)
+  const [isExpanded, setIsExpanded] = useState(isEditTool && !isStreaming)
   const [showFullResult, setShowFullResult] = useState(false)
-  const [hasAnimated, setHasAnimated] = useState(!isEditTool)
   
-  // Trigger animation after mount for Edit tools
+  // Debug logging
+  if (isEditTool) {
+    console.log('=== EDIT TOOL DEBUG ===')
+    console.log('Tool name:', toolCall.name)
+    console.log('Has result:', !!result)
+    console.log('Result type:', typeof result)
+    console.log('Result preview:', typeof result === 'string' ? result.substring(0, 200) : result)
+    console.log('isStreaming:', isStreaming)
+  }
+  
+  // Auto-expand Edit tools when streaming completes
   useEffect(() => {
-    if (isEditTool && !hasAnimated) {
-      // Small delay to allow initial render, then trigger animation
-      const timer = setTimeout(() => setHasAnimated(true), 50)
-      return () => clearTimeout(timer)
+    if (isEditTool && !isStreaming && !isExpanded) {
+      setIsExpanded(true)
     }
-  }, [isEditTool, hasAnimated])
+  }, [isEditTool, isStreaming, isExpanded])
   
   const Icon = toolIcons[toolCall.name] || RiToolsLine
   const primaryParam = getPrimaryParam(toolCall.name, toolCall.input)
   const formattedResult = result ? formatResult(toolCall.name, result) : null
   
-  // Check if this is an Edit tool with diff data
+  // Extract line number information from tool result if available (memoized)
+  const lineInfo = useMemo(() => {
+    if (!result || typeof result !== 'string') {
+      return null
+    }
+    
+    // For Edit tools, intelligently find the line number by matching the actual edit content
+    if (isEditTool && toolCall.input && typeof toolCall.input === 'object') {
+      try {
+        let firstMeaningfulLine: string | null = null
+        
+        if (toolCall.name === 'Edit') {
+          // For single Edit, get first non-empty line from new_string or old_string
+          const input = toolCall.input as { new_string?: string; old_string?: string }
+          const editContent = input.new_string || input.old_string || ''
+          const lines = editContent.split('\n')
+          firstMeaningfulLine = lines.find(line => line.trim().length > 0) || null
+        } else if (toolCall.name === 'MultiEdit') {
+          // For MultiEdit, use the first edit's content
+          const input = toolCall.input as { edits?: Array<{ new_string?: string; old_string?: string }> }
+          if (Array.isArray(input.edits) && input.edits.length > 0) {
+            const firstEdit = input.edits[0]
+            const editContent = firstEdit.new_string || firstEdit.old_string || ''
+            const lines = editContent.split('\n')
+            firstMeaningfulLine = lines.find(line => line.trim().length > 0) || null
+          }
+        }
+        
+        if (firstMeaningfulLine) {
+          console.log('DEBUG: Looking for first meaningful line:', firstMeaningfulLine)
+          
+          // More robust approach: normalize whitespace and try to find the line
+          // This handles tabs vs spaces, trailing whitespace, etc.
+          const normalizedSearchLine = firstMeaningfulLine.trim()
+          
+          // Split content into lines and search for matching line
+          const contentLines = result.split('\n')
+          for (let i = 0; i < contentLines.length; i++) {
+            const line = contentLines[i]
+            const lineNumberMatch = line.match(/^(\d+)→(.*)$/)
+            if (lineNumberMatch) {
+              const lineNumber = parseInt(lineNumberMatch[1], 10)
+              const lineContent = lineNumberMatch[2].trim()
+              
+              // Compare normalized content
+              if (lineContent === normalizedSearchLine) {
+                console.log('DEBUG: Found exact line match at:', lineNumber)
+                return {
+                  startLine: lineNumber,
+                  showLineNumbers: true
+                }
+              }
+            }
+          }
+          
+          console.log('DEBUG: No exact match found for line:', firstMeaningfulLine)
+          
+          // Try a more flexible regex approach as fallback
+          try {
+            // Escape special regex characters and allow flexible whitespace
+            const escapedLine = firstMeaningfulLine
+              .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+              .replace(/\s+/g, '\\s+') // Allow flexible whitespace
+            
+            const lineMatch = result.match(new RegExp(`(\\d+)→\\s*${escapedLine}`, 'm'))
+            if (lineMatch) {
+              const startLine = parseInt(lineMatch[1], 10)
+              console.log('DEBUG: Found flexible match at:', startLine)
+              return {
+                startLine,
+                showLineNumbers: true
+              }
+            }
+          } catch (regexError) {
+            console.error('Regex fallback failed:', regexError)
+          }
+        }
+      } catch (e) {
+        console.error('Error extracting line number:', e)
+      }
+    }
+    
+    // Fallback: just find the first line number in the content
+    const lineNumberMatch = result.match(/(\d+)→/)
+    if (lineNumberMatch) {
+      const startLine = parseInt(lineNumberMatch[1], 10)
+      console.log('DEBUG: Using fallback line number:', startLine)
+      return {
+        startLine,
+        showLineNumbers: true
+      }
+    }
+    
+    return null
+  }, [result, isEditTool, toolCall])
+  
+  // Check if this is an Edit tool with diff data AND we have the tool result
   const isEditWithDiff = isEditTool && 
     toolCall.input && 
-    typeof toolCall.input === 'object' && (
+    typeof toolCall.input === 'object' &&
+    result && // Must have tool result to show diffs
+    (
       // Single Edit tool format
       ('old_string' in toolCall.input && 
        'new_string' in toolCall.input &&
@@ -339,12 +445,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       <div 
         className={clsx(
           'overflow-hidden',
-          isEditTool && 'transition-all duration-300 ease-in-out',
-          isExpanded ? (
-            isEditTool ? (
-              hasAnimated ? 'max-h-[2000px] opacity-100' : 'max-h-[2000px] opacity-0'
-            ) : 'max-h-[2000px] opacity-100'
-          ) : 'max-h-0 opacity-0'
+          isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
         )}
       >
         <div className="py-2">
@@ -359,6 +460,8 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
                     oldString={input.old_string as string}
                     newString={input.new_string as string}
                     fileName={input.file_path as string}
+                    startLineNumber={lineInfo?.startLine || 1}
+                    showLineNumbers={lineInfo?.showLineNumbers ?? true}
                   />
                 )
               }
@@ -377,6 +480,8 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
                       oldString={originalContent}
                       newString={finalContent}
                       fileName={input.file_path as string}
+                      startLineNumber={lineInfo?.startLine || 1}
+                      showLineNumbers={lineInfo?.showLineNumbers ?? true}
                     />
                   </div>
                 )
