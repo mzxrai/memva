@@ -1,4 +1,4 @@
-import { useState, memo } from 'react'
+import { useState, useEffect, memo } from 'react'
 import type { ComponentType } from 'react'
 import {
   RiFileTextLine,
@@ -205,6 +205,16 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
   const isEditTool = toolCall.name === 'Edit' || toolCall.name === 'MultiEdit'
   const [isExpanded, setIsExpanded] = useState(isEditTool)
   const [showFullResult, setShowFullResult] = useState(false)
+  const [hasAnimated, setHasAnimated] = useState(!isEditTool)
+  
+  // Trigger animation after mount for Edit tools
+  useEffect(() => {
+    if (isEditTool && !hasAnimated) {
+      // Small delay to allow initial render, then trigger animation
+      const timer = setTimeout(() => setHasAnimated(true), 50)
+      return () => clearTimeout(timer)
+    }
+  }, [isEditTool, hasAnimated])
   
   const Icon = toolIcons[toolCall.name] || RiToolsLine
   const primaryParam = getPrimaryParam(toolCall.name, toolCall.input)
@@ -326,7 +336,17 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       </button>
       
       {/* Parameters (collapsible) - show diff for Edit tools */}
-      {isExpanded && (
+      <div 
+        className={clsx(
+          'overflow-hidden',
+          isEditTool && 'transition-all duration-300 ease-in-out',
+          isExpanded ? (
+            isEditTool ? (
+              hasAnimated ? 'max-h-[2000px] opacity-100' : 'max-h-[2000px] opacity-0'
+            ) : 'max-h-[2000px] opacity-100'
+          ) : 'max-h-0 opacity-0'
+        )}
+      >
         <div className="py-2">
           {isEditWithDiff ? (
             (() => {
@@ -373,7 +393,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
             />
           )}
         </div>
-      )}
+      </div>
       
       {/* Result section - minimal inline display */}
       {formattedResult && (
