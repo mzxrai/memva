@@ -1,5 +1,5 @@
 import { db, jobs, type Job, type NewJob } from './index'
-import { eq, desc, and } from 'drizzle-orm'
+import { eq, desc, and, or, isNull, lt } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 
 export type JobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
@@ -119,4 +119,67 @@ export async function listJobs(options: ListJobsOptions = {}): Promise<Job[]> {
   }
   
   return query.execute()
+}
+
+export async function claimNextJob(): Promise<Job | null> {
+  const now = new Date().toISOString()
+  
+  // Find the next available job
+  const [availableJob] = await db
+    .select()
+    .from(jobs)
+    .where(
+      and(
+        eq(jobs.status, 'pending'),
+        or(
+          isNull(jobs.scheduled_at),
+          lt(jobs.scheduled_at, now)
+        )
+      )
+    )
+    .orderBy(desc(jobs.priority), jobs.created_at)
+    .limit(1)
+    .execute()
+  
+  if (!availableJob) {
+    return null
+  }
+  
+  // Claim the job by setting it to running
+  const claimed = await updateJob(availableJob.id, {
+    status: 'running',
+    started_at: now,
+    attempts: availableJob.attempts + 1
+  })
+  
+  return claimed
+}
+
+export async function completeJob(id: string, result?: Record<string, unknown>): Promise<Job | null> {
+  return updateJob(id, {
+    status: 'completed',
+    result,
+    completed_at: new Date().toISOString()
+  })
+}
+
+export async function failJob(id: string, error: string, shouldRetry = true): Promise<Job | null> {
+  const job = await getJob(id)
+  if (!job) return null
+  
+  const canRetry = shouldRetry && job.attempts < job.max_attempts
+  const finalStatus = canRetry ? 'pending' : 'failed'
+  
+  return updateJob(id, {
+    status: finalStatus,
+    error,
+    completed_at: canRetry ? null : new Date().toISOString()
+  })
+}
+
+export async function cancelJob(id: string): Promise<Job | null> {
+  return updateJob(id, {
+    status: 'cancelled',
+    completed_at: new Date().toISOString()
+  })
 }
