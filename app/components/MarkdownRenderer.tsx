@@ -114,7 +114,7 @@ const components: Components = {
               borderRadius: '0.5rem',
               fontSize: '0.9375rem', // 15px to get closer to 14px target
               padding: '1rem',
-              background: 'rgba(255, 255, 255, 0.02)', // very subtle white frost on black
+              background: 'rgba(255, 255, 255, 0)', // transparent background
             }}
           >
             {String(children).replace(/\n$/, '')}
