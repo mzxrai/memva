@@ -45,7 +45,7 @@ describe('Jobs API Routes', () => {
         }),
       })
       
-      const response = await action({ request, params: {} })
+      const response = await action({ request, params: {}, context: {} })
       
       expect(response.status).toBe(201)
       
@@ -77,7 +77,7 @@ describe('Jobs API Routes', () => {
         }),
       })
       
-      const response = await action({ request, params: {} })
+      const response = await action({ request, params: {}, context: {} })
       
       expect(response.status).toBe(201)
       
@@ -106,7 +106,7 @@ describe('Jobs API Routes', () => {
         }),
       })
       
-      const response = await action({ request, params: {} })
+      const response = await action({ request, params: {}, context: {} })
       
       expect(response.status).toBe(400)
       
@@ -132,7 +132,7 @@ describe('Jobs API Routes', () => {
         }),
       })
       
-      const response = await action({ request, params: {} })
+      const response = await action({ request, params: {}, context: {} })
       
       expect(response.status).toBe(400)
       
@@ -161,7 +161,7 @@ describe('Jobs API Routes', () => {
         }),
       })
       
-      const response = await action({ request, params: {} })
+      const response = await action({ request, params: {}, context: {} })
       
       expect(response.status).toBe(404)
       
@@ -183,7 +183,7 @@ describe('Jobs API Routes', () => {
       
       const request = new Request('http://localhost:3000/api/jobs')
       
-      const response = await loader({ request, params: {} })
+      const response = await loader({ request, params: {}, context: {} })
       
       expect(response.status).toBe(200)
       
@@ -206,7 +206,7 @@ describe('Jobs API Routes', () => {
       
       const request = new Request('http://localhost:3000/api/jobs?type=session-runner')
       
-      const response = await loader({ request, params: {} })
+      const response = await loader({ request, params: {}, context: {} })
       
       expect(response.status).toBe(200)
       
@@ -222,7 +222,7 @@ describe('Jobs API Routes', () => {
       
       const request = new Request('http://localhost:3000/api/jobs?status=pending')
       
-      const response = await loader({ request, params: {} })
+      const response = await loader({ request, params: {}, context: {} })
       
       expect(response.status).toBe(200)
       
@@ -238,7 +238,7 @@ describe('Jobs API Routes', () => {
       
       const request = new Request('http://localhost:3000/api/jobs?action=stats')
       
-      const response = await loader({ request, params: {} })
+      const response = await loader({ request, params: {}, context: {} })
       
       expect(response.status).toBe(200)
       
@@ -262,7 +262,7 @@ describe('Jobs API Routes', () => {
       
       const request = new Request('http://localhost:3000/api/jobs?page=2&limit=10')
       
-      const response = await loader({ request, params: {} })
+      const response = await loader({ request, params: {}, context: {} })
       
       expect(response.status).toBe(200)
       
@@ -282,7 +282,7 @@ describe('Jobs API Routes', () => {
         method: 'DELETE'
       })
       
-      const response = await action({ request, params: {} })
+      const response = await action({ request, params: {}, context: {} })
       
       expect(response.status).toBe(200)
       
@@ -302,7 +302,7 @@ describe('Jobs API Routes', () => {
         method: 'DELETE'
       })
       
-      const response = await action({ request, params: {} })
+      const response = await action({ request, params: {}, context: {} })
       
       expect(response.status).toBe(200)
       
@@ -323,7 +323,7 @@ describe('Jobs API Routes', () => {
         method: 'DELETE'
       })
       
-      const response = await action({ request, params: {} })
+      const response = await action({ request, params: {}, context: {} })
       
       // Should succeed even with invalid filters, just ignore them
       expect(response.status).toBe(200)
@@ -346,7 +346,7 @@ describe('Jobs API Routes', () => {
         body: 'invalid json{',
       })
       
-      const response = await action({ request, params: {} })
+      const response = await action({ request, params: {}, context: {} })
       
       expect(response.status).toBe(400)
       
@@ -366,7 +366,7 @@ describe('Jobs API Routes', () => {
         body: JSON.stringify({ type: 'maintenance', data: {} }),
       })
       
-      const response = await action({ request, params: {} })
+      const response = await action({ request, params: {}, context: {} })
       
       expect(response.status).toBe(400)
       
@@ -385,7 +385,7 @@ describe('Jobs API Routes', () => {
         method: 'PATCH'
       })
       
-      const response = await action({ request, params: {} })
+      const response = await action({ request, params: {}, context: {} })
       
       expect(response.status).toBe(405)
       

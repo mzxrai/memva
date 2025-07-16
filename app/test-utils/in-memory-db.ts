@@ -7,7 +7,7 @@ import { sessions, events } from '../db/schema'
 export type TestDatabase = {
   db: ReturnType<typeof drizzle>
   sqlite: Database.Database
-  createSession: (input: { id?: string; title?: string; project_path: string; claude_status?: string }) => typeof sessions.$inferInsert & { id: string }
+  createSession: (input: { id?: string; title?: string; project_path: string; claude_status?: string; metadata?: Record<string, unknown> | null }) => typeof sessions.$inferInsert & { id: string }
   getSession: (sessionId: string) => typeof sessions.$inferSelect | undefined
   insertEvent: (event: typeof events.$inferInsert) => void
   getEventsForSession: (sessionId: string) => Array<typeof events.$inferSelect>
@@ -85,7 +85,7 @@ export function setupInMemoryDb(): TestDatabase {
   `)
   
   // Helper functions
-  const createSession = (input: { id?: string; title?: string; project_path: string; claude_status?: string }) => {
+  const createSession = (input: { id?: string; title?: string; project_path: string; claude_status?: string; metadata?: Record<string, unknown> | null }) => {
     const session = {
       id: input.id || crypto.randomUUID(),
       title: input.title || null,
@@ -93,7 +93,7 @@ export function setupInMemoryDb(): TestDatabase {
       updated_at: new Date().toISOString(),
       status: 'active',
       project_path: input.project_path,
-      metadata: null,
+      metadata: input.metadata || null,
       claude_status: input.claude_status || 'not_started'
     }
     db.insert(sessions).values(session).run()

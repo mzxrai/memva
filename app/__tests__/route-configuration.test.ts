@@ -207,7 +207,7 @@ describe('Route Configuration', () => {
         })
       })
       
-      const postResponse = await action({ request: postRequest, params: {} })
+      const postResponse = await action({ request: postRequest, params: {}, context: {} })
       expect(postResponse.status).toBe(201)
       
       // Test GET (list jobs)
@@ -219,7 +219,7 @@ describe('Route Configuration', () => {
       const deleteRequest = new Request('http://localhost:3000/api/jobs', {
         method: 'DELETE'
       })
-      const deleteResponse = await action({ request: deleteRequest, params: {} })
+      const deleteResponse = await action({ request: deleteRequest, params: {}, context: {} })
       expect(deleteResponse.status).toBe(200)
     })
 

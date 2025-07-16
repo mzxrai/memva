@@ -98,7 +98,7 @@ export function setupDatabaseMocks(vi: { mock: typeof import('vitest').vi.mock; 
 
   // Mock database service modules to use the test database
   vi.mock('../db/event-session.service', async () => {
-    const actual = await vi.importActual('../db/event-session.service') as any
+    const actual = await vi.importActual('../db/event-session.service') as Record<string, unknown>
     return {
       ...actual,
       getEventsForSession: vi.fn(async (sessionId: string) => {
@@ -122,18 +122,18 @@ export function setupDatabaseMocks(vi: { mock: typeof import('vitest').vi.mock; 
 
   // Mock sessions service to use test database
   vi.mock('../db/sessions.service', async () => {
-    const actual = await vi.importActual('../db/sessions.service') as any
+    const actual = await vi.importActual('../db/sessions.service') as Record<string, unknown>
     return {
       ...actual,
       getSession: vi.fn(async (sessionId: string) => {
         if (!currentTestDb) return null
         return currentTestDb.getSession(sessionId)
       }),
-      createSession: vi.fn(async (sessionData: any) => {
+      createSession: vi.fn(async (sessionData: Record<string, unknown>) => {
         if (!currentTestDb) return sessionData
-        return currentTestDb.createSession(sessionData)
+        return currentTestDb.createSession(sessionData as Parameters<typeof currentTestDb.createSession>[0])
       }),
-      updateSession: vi.fn(async (sessionId: string, updates: any) => {
+      updateSession: vi.fn(async (sessionId: string, updates: Record<string, unknown>) => {
         if (!currentTestDb) return sessionId
         // Use the actual implementation but with test database
         const { updateSession } = actual

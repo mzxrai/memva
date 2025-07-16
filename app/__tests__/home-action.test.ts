@@ -29,7 +29,7 @@ describe('Home Action', () => {
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
-    } as any
+    } as unknown as Request
 
     // Test the action behavior
     const result = await action({ request: mockRequest, params: {}, context: {} })
@@ -61,7 +61,7 @@ describe('Home Action', () => {
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
-    } as any
+    } as unknown as Request
 
     // Test the action behavior
     const result = await action({ request: mockRequest, params: {}, context: {} })
@@ -84,7 +84,7 @@ describe('Home Action', () => {
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
-    } as any
+    } as unknown as Request
 
     // Test the action behavior
     const result = await action({ request: mockRequest, params: {}, context: {} })
@@ -104,7 +104,7 @@ describe('Home Action', () => {
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
-    } as any
+    } as unknown as Request
 
     // Test the action behavior
     const result = await action({ request: mockRequest, params: {}, context: {} })
@@ -123,7 +123,7 @@ describe('Home Action', () => {
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
-    } as any
+    } as unknown as Request
 
     // Test the action behavior
     const result = await action({ request: mockRequest, params: {}, context: {} })
@@ -144,7 +144,7 @@ describe('Home Action', () => {
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
-    } as any
+    } as unknown as Request
 
     // Test the action behavior
     await action({ request: mockRequest, params: {}, context: {} })

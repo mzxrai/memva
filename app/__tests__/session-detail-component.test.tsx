@@ -225,19 +225,23 @@ describe('SessionDetail Component', () => {
     // Simulate Claude response with result message wrapped in act
     if (onMessageCallback) {
       await act(async () => {
-        onMessageCallback!({
-          type: 'assistant',
-          content: 'Hello! How can I help you?',
-          timestamp: new Date().toISOString()
-        })
+        if (onMessageCallback) {
+          onMessageCallback({
+            type: 'assistant',
+            content: 'Hello! How can I help you?',
+            timestamp: new Date().toISOString()
+          })
+        }
       })
 
       await act(async () => {
-        onMessageCallback!({
-          type: 'result',
-          subtype: 'success',
-          timestamp: new Date().toISOString()
-        })
+        if (onMessageCallback) {
+          onMessageCallback({
+            type: 'result',
+            subtype: 'success',
+            timestamp: new Date().toISOString()
+          })
+        }
       })
     }
 

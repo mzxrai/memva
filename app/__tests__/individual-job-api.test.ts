@@ -36,7 +36,8 @@ describe('Individual Job API Routes', () => {
       
       const response = await loader({ 
         request, 
-        params: { jobId: job.id } 
+        params: { jobId: job.id },
+        context: {}
       })
       
       expect(response.status).toBe(200)
@@ -71,7 +72,8 @@ describe('Individual Job API Routes', () => {
       
       const response = await loader({ 
         request, 
-        params: { jobId: 'non-existent-job-id' } 
+        params: { jobId: 'non-existent-job-id' },
+        context: {}
       })
       
       expect(response.status).toBe(404)
@@ -92,7 +94,8 @@ describe('Individual Job API Routes', () => {
       
       const response = await loader({ 
         request, 
-        params: { jobId: 'invalid-job-id' } 
+        params: { jobId: 'invalid-job-id' },
+        context: {}
       })
       
       expect(response.status).toBe(404)
@@ -122,7 +125,8 @@ describe('Individual Job API Routes', () => {
       
       const response = await loader({ 
         request, 
-        params: { jobId: job.id } 
+        params: { jobId: job.id },
+        context: {}
       })
       
       expect(response.status).toBe(200)
@@ -158,7 +162,8 @@ describe('Individual Job API Routes', () => {
       
       const response = await action({ 
         request, 
-        params: { jobId: job.id } 
+        params: { jobId: job.id },
+        context: {}
       })
       
       expect(response.status).toBe(200)
@@ -198,7 +203,8 @@ describe('Individual Job API Routes', () => {
       
       const response = await action({ 
         request, 
-        params: { jobId: job.id } 
+        params: { jobId: job.id },
+        context: {}
       })
       
       expect(response.status).toBe(200)
@@ -229,7 +235,8 @@ describe('Individual Job API Routes', () => {
       
       const response = await action({ 
         request, 
-        params: { jobId: job.id } 
+        params: { jobId: job.id },
+        context: {}
       })
       
       expect(response.status).toBe(400)
@@ -257,7 +264,8 @@ describe('Individual Job API Routes', () => {
       
       const response = await action({ 
         request, 
-        params: { jobId: 'non-existent-job' } 
+        params: { jobId: 'non-existent-job' },
+        context: {}
       })
       
       expect(response.status).toBe(404)
@@ -294,7 +302,8 @@ describe('Individual Job API Routes', () => {
       
       const response = await action({ 
         request, 
-        params: { jobId: job.id } 
+        params: { jobId: job.id },
+        context: {}
       })
       
       // Should succeed for now since job isn't actually completed in test
@@ -320,7 +329,8 @@ describe('Individual Job API Routes', () => {
       
       const response = await action({ 
         request, 
-        params: { jobId: job.id } 
+        params: { jobId: job.id },
+        context: {}
       })
       
       expect(response.status).toBe(200)
@@ -347,7 +357,8 @@ describe('Individual Job API Routes', () => {
       
       const response = await action({ 
         request, 
-        params: { jobId: 'non-existent-job' } 
+        params: { jobId: 'non-existent-job' },
+        context: {}
       })
       
       expect(response.status).toBe(404)
@@ -376,7 +387,8 @@ describe('Individual Job API Routes', () => {
       
       const response = await action({ 
         request, 
-        params: { jobId: job.id } 
+        params: { jobId: job.id },
+        context: {}
       })
       
       // Should succeed for now since job state isn't fully implemented
@@ -404,7 +416,8 @@ describe('Individual Job API Routes', () => {
       
       const response = await action({ 
         request, 
-        params: { jobId: job.id } 
+        params: { jobId: job.id },
+        context: {}
       })
       
       expect(response.status).toBe(200)
@@ -435,7 +448,8 @@ describe('Individual Job API Routes', () => {
       
       const response = await action({ 
         request, 
-        params: { jobId: job.id } 
+        params: { jobId: job.id },
+        context: {}
       })
       
       expect(response.status).toBe(400)
@@ -462,7 +476,8 @@ describe('Individual Job API Routes', () => {
       
       const response = await action({ 
         request, 
-        params: { jobId: job.id } 
+        params: { jobId: job.id },
+        context: {}
       })
       
       expect(response.status).toBe(405)
@@ -490,7 +505,8 @@ describe('Individual Job API Routes', () => {
       
       const response = await action({ 
         request, 
-        params: { jobId: job.id } 
+        params: { jobId: job.id },
+        context: {}
       })
       
       expect(response.status).toBe(400)

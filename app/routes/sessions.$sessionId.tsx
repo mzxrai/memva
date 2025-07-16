@@ -1,10 +1,12 @@
 import type { Route } from "./+types/sessions.$sessionId";
-import { useParams, useActionData, useNavigation, Form } from "react-router";
+import { useParams, Form } from "react-router";
 import { useSessionStatus } from "../hooks/useSessionStatus";
 import { useEventPolling } from "../hooks/useEventPolling";
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { RiSendPlaneFill } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
+import { getSession } from "../db/sessions.service";
+import { getEventsForSession } from "../db/event-session.service";
 
 export async function loader({ params }: Route.LoaderArgs) {
   const session = await getSession(params.sessionId);
@@ -49,92 +51,13 @@ export async function action({ request, params }: Route.ActionArgs) {
 
 // The EventRenderer component is already memoized and handles all event types
 
-// Helper function to estimate tokens from text (rough approximation)
-function estimateTokens(text: string): number {
-  // Rough estimate: 1 token ≈ 4 characters for English text
-  // This is a simplified heuristic but works reasonably well
-  return Math.ceil(text.length / 4)
-}
-
-// Helper function to generate stable keys for message components
-const getMessageKey = (message: Record<string, unknown>, index: number): string => {
-  if (message.uuid && typeof message.uuid === 'string') {
-    return message.uuid;
-  }
-  // Fallback to stable identifier based on content and timestamp
-  if (message.timestamp && message.type && typeof message.timestamp === 'string' && typeof message.type === 'string') {
-    return `${message.type}-${message.timestamp}-${index}`;
-  }
-  // Last resort fallback
-  return `message-${index}-${JSON.stringify(message).slice(0, 50)}`;
-};
-
-// Helper function to check if a message is a tool result
-const isToolResultMessage = (message: Record<string, unknown>): boolean => {
-  if (message.type !== 'user') return false;
-  
-  // Check if message content contains tool_result
-  if (message.message && typeof message.message === 'object' && 'content' in message.message) {
-    const content = (message.message as { content: unknown }).content;
-    if (Array.isArray(content) && content.length > 0) {
-      return content.some(item => 
-        typeof item === 'object' && 
-        item !== null && 
-        'type' in item && 
-        item.type === 'tool_result'
-      );
-    }
-  }
-  
-  return false;
-};
-
-// Helper function to extract tool result data
-const extractToolResult = (message: Record<string, unknown>): { toolUseId: string; result: unknown; isError?: boolean } | null => {
-  if (!isToolResultMessage(message)) return null;
-  
-  if (message.message && typeof message.message === 'object' && 'content' in message.message) {
-    const content = (message.message as { content: unknown }).content;
-    if (Array.isArray(content)) {
-      const toolResult = content.find(item => 
-        typeof item === 'object' && 
-        item !== null && 
-        'type' in item && 
-        item.type === 'tool_result'
-      );
-      
-      if (toolResult && 'tool_use_id' in toolResult) {
-        // Extract is_error flag
-        const isError = 'is_error' in toolResult && toolResult.is_error === true;
-        
-        // Check if we have the actual result in toolUseResult field
-        if ('toolUseResult' in message && message.toolUseResult) {
-          return {
-            toolUseId: toolResult.tool_use_id as string,
-            result: message.toolUseResult,
-            isError
-          };
-        }
-        // Otherwise use the content field
-        return {
-          toolUseId: toolResult.tool_use_id as string,
-          result: 'content' in toolResult ? toolResult.content : null,
-          isError
-        };
-      }
-    }
-  }
-  
-  return null;
-};
-
 export default function SessionDetail() {
   const params = useParams();
   const sessionId = params.sessionId as string;
   
   // Use hooks for polling session status and events
-  const { session, error: sessionError } = useSessionStatus(sessionId);
-  const { events, error: eventsError } = useEventPolling(sessionId);
+  const { session } = useSessionStatus(sessionId);
+  const { events } = useEventPolling(sessionId);
   
   const [prompt, setPrompt] = useState("");
   
@@ -152,7 +75,6 @@ export default function SessionDetail() {
   // Determine UI state based on claude_status
   const isProcessing = session.claude_status === 'processing';
   const hasError = session.claude_status === 'error';
-  const isReady = ['not_started', 'waiting_for_input', 'completed'].includes(session.claude_status || 'not_started');
 
   return (
     <div className="h-screen bg-zinc-950 flex flex-col overflow-hidden">
@@ -185,10 +107,10 @@ export default function SessionDetail() {
           </div>
         ) : (
           <div className="min-h-full flex flex-col justify-start pt-6 pb-32">
-            {events.map((event, index) => (
+            {events.map((event) => (
               <EventRenderer
                 key={event.uuid}
-                event={event.data}
+                event={event.data as Record<string, unknown>}
                 toolResults={new Map()}
                 isStreaming={false}
               />
