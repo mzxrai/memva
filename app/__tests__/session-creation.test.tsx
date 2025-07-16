@@ -47,9 +47,6 @@ describe('Session Creation', () => {
     await waitFor(() => {
       const input = screen.getByPlaceholderText(/start a new claude code session/i)
       expect(input).toBeInTheDocument()
-      
-      const button = screen.getByRole('button', { name: /start/i })
-      expect(button).toBeInTheDocument()
     })
   })
 
@@ -85,7 +82,8 @@ describe('Session Creation', () => {
     })
   })
 
-  it('should create a new session when Start button is clicked', async () => {
+
+  it('should not create session with empty input on Enter press', async () => {
     const user = userEvent.setup()
     
     const Stub = createRoutesStub([
@@ -94,11 +92,6 @@ describe('Session Creation', () => {
         Component: Home,
         loader: homeLoader,
         action: homeAction
-      },
-      {
-        path: '/sessions/:sessionId',
-        Component: SessionDetail,
-        loader: sessionDetailLoader as any
       }
     ])
 
@@ -107,42 +100,11 @@ describe('Session Creation', () => {
     await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
 
     const input = screen.getByPlaceholderText(/start a new claude code session/i)
-    const button = screen.getByRole('button', { name: /start/i })
-    
-    await user.type(input, 'Implement new feature')
-    await user.click(button)
-
-    // Should redirect to session page and display session details
-    await waitFor(() => {
-      expect(screen.getByText('Implement new feature')).toBeInTheDocument()
-      expect(screen.getByText('Status: active')).toBeInTheDocument()
-      expect(screen.getByText('Project: /Users/mbm-premva/dev/memva')).toBeInTheDocument()
-    })
-  })
-
-  it('should not create session with empty input', async () => {
-    const user = userEvent.setup()
-    
-    const Stub = createRoutesStub([
-      {
-        path: '/',
-        Component: Home,
-        loader: homeLoader,
-        action: homeAction
-      }
-    ])
-
-    render(<Stub />)
-
-    await waitFor(() => screen.getByRole('button', { name: /start/i }))
-
-    const button = screen.getByRole('button', { name: /start/i })
-    await user.click(button)
+    await user.type(input, '{Enter}')
 
     // Should not redirect - stays on same page
     await new Promise(resolve => setTimeout(resolve, 100))
     
-    const input = screen.getByPlaceholderText(/start a new claude code session/i)
     expect(input).toBeInTheDocument()
     expect(screen.getByText('Sessions')).toBeInTheDocument()
   })
@@ -168,44 +130,5 @@ describe('Session Creation', () => {
     expect(input).toHaveValue('Test session title')
   })
 
-  it('should disable Start button when input is empty', async () => {
-    const Stub = createRoutesStub([
-      {
-        path: '/',
-        Component: Home,
-        loader: homeLoader
-      }
-    ])
 
-    render(<Stub />)
-
-    await waitFor(() => screen.getByRole('button', { name: /start/i }))
-    
-    const button = screen.getByRole('button', { name: /start/i })
-    expect(button).toBeDisabled()
-  })
-
-  it('should enable Start button when input has text', async () => {
-    const user = userEvent.setup()
-    
-    const Stub = createRoutesStub([
-      {
-        path: '/',
-        Component: Home,
-        loader: homeLoader
-      }
-    ])
-
-    render(<Stub />)
-
-    await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
-    
-    const input = screen.getByPlaceholderText(/start a new claude code session/i)
-    const button = screen.getByRole('button', { name: /start/i })
-    
-    expect(button).toBeDisabled()
-    
-    await user.type(input, 'Test session')
-    expect(button).not.toBeDisabled()
-  })
 })

@@ -4,7 +4,7 @@ import { getSession } from "../db/sessions.service";
 import { getEventsForSession } from "../db/event-session.service";
 import { sendPromptToClaudeCode } from "../services/claude-code.service";
 import { useState, useRef, useEffect, useCallback, type FormEvent } from "react";
-import { RiSendPlaneFill, RiStopCircleLine } from "react-icons/ri";
+import { RiStopCircleLine } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
 import { PendingMessage } from "../components/PendingMessage";
 
@@ -788,7 +788,7 @@ export default function SessionDetail() {
                   className="flex-1 bg-transparent text-zinc-100 focus:outline-none disabled:opacity-50 font-mono text-[0.9375rem]"
                 />
               </div>
-              {isLoading ? (
+              {isLoading && (
                 <button
                   type="button"
                   onClick={handleStop}
@@ -797,15 +797,6 @@ export default function SessionDetail() {
                 >
                   <RiStopCircleLine className="w-5 h-5" />
                   Stop
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  disabled={!prompt.trim()}
-                  className="px-6 py-3.5 bg-zinc-700/90 hover:bg-zinc-600/90 text-zinc-100 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:bg-zinc-600/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg font-mono text-[0.9375rem]"
-                >
-                  <RiSendPlaneFill className="w-5 h-5" />
-                  Send
                 </button>
               )}
                 </form>

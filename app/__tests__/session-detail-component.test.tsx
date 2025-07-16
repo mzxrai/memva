@@ -18,6 +18,9 @@ vi.mock('../services/claude-code.service', () => ({
 }))
 
 describe('SessionDetail Component', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
   it('should display session details with proper semantic structure', () => {
     const mockSession = createMockSession({
       title: 'Test Session',
@@ -64,7 +67,6 @@ describe('SessionDetail Component', () => {
     render(<SessionDetail />)
 
     expect(screen.getByRole('textbox')).toBeInTheDocument()
-    expect(screen.getByText(/send/i)).toBeInTheDocument()
   })
 
   it('should show empty state for new sessions', () => {
@@ -82,15 +84,17 @@ describe('SessionDetail Component', () => {
 
     expect(screen.getByText('No messages yet. Start by asking Claude Code something!')).toBeInTheDocument()
     expect(screen.getByRole('textbox')).toBeInTheDocument()
-    expect(screen.getByText(/send/i)).toBeInTheDocument()
   })
 
-  it('should enable/disable send button based on input', async () => {
+  it('should submit message when Enter key is pressed', async () => {
     const user = userEvent.setup()
     const mockSession = createMockSession({
       title: 'Test Session',
       project_path: '/Users/test/project'
     })
+
+    const { sendPromptToClaudeCode } = await import('../services/claude-code.service')
+    vi.mocked(sendPromptToClaudeCode).mockImplementation(() => {})
 
     vi.mocked(useLoaderData).mockReturnValue({ 
       session: mockSession, 
@@ -100,18 +104,47 @@ describe('SessionDetail Component', () => {
     render(<SessionDetail />)
 
     const input = screen.getByRole('textbox')
-    const sendButton = screen.getByText(/send/i) as HTMLButtonElement
 
-    // Button should be disabled initially (no text)
-    expect(sendButton.disabled).toBe(true)
+    // Type message and press Enter
+    await user.type(input, 'Test message{enter}')
 
-    // Type text, button should be enabled
-    await user.type(input, 'Test message')
-    expect(sendButton.disabled).toBe(false)
+    // Should call the service
+    expect(sendPromptToClaudeCode).toHaveBeenCalledWith({
+      prompt: 'Test message',
+      sessionId: mockSession.id,
+      onMessage: expect.any(Function),
+      onError: expect.any(Function),
+      signal: expect.any(AbortSignal)
+    })
 
-    // Clear text, button should be disabled again
-    await user.clear(input)
-    expect(sendButton.disabled).toBe(true)
+    // Input should be cleared after submission
+    expect(input).toHaveValue('')
+  })
+
+  it('should not submit empty messages', async () => {
+    const user = userEvent.setup()
+    const mockSession = createMockSession({
+      title: 'Test Session',
+      project_path: '/Users/test/project'
+    })
+
+    const { sendPromptToClaudeCode } = await import('../services/claude-code.service')
+    vi.mocked(sendPromptToClaudeCode).mockImplementation(() => {})
+
+    vi.mocked(useLoaderData).mockReturnValue({ 
+      session: mockSession, 
+      events: [] 
+    })
+
+    render(<SessionDetail />)
+
+    const input = screen.getByRole('textbox')
+
+    // Press Enter with empty input
+    await user.type(input, '{enter}')
+
+    // Should not call the service
+    expect(sendPromptToClaudeCode).not.toHaveBeenCalled()
   })
 
   it('should display streaming messages when provided', () => {
@@ -162,7 +195,7 @@ describe('SessionDetail Component', () => {
     expect(screen.queryByText('No messages yet')).not.toBeInTheDocument()
   })
 
-  it('should show stop button when loading prop is simulated', async () => {
+  it('should show stop button when loading and disable input', async () => {
     const mockSession = createMockSession({
       title: 'Test Session',
       project_path: '/Users/test/project'
@@ -184,10 +217,7 @@ describe('SessionDetail Component', () => {
     render(<SessionDetail />)
 
     const input = screen.getByRole('textbox')
-    await user.type(input, 'Test message')
-    
-    const sendButton = screen.getByText(/send/i)
-    await user.click(sendButton)
+    await user.type(input, 'Test message{enter}')
 
     // Should show stop button during loading
     await waitFor(() => {

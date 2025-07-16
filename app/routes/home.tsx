@@ -2,7 +2,7 @@ import type { Route } from "./+types/home";
 import { Link, useLoaderData, Form, redirect } from "react-router";
 import { listSessions, getSessionWithStats, createSession, type SessionWithStats } from "../db/sessions.service";
 import { formatDistanceToNow } from "date-fns";
-import { RiFolder3Line, RiTimeLine, RiPulseLine, RiArchiveLine, RiPlayFill } from "react-icons/ri";
+import { RiFolder3Line, RiTimeLine, RiPulseLine, RiArchiveLine } from "react-icons/ri";
 import clsx from "clsx";
 import { useState, type FormEvent } from "react";
 
@@ -76,7 +76,7 @@ export default function Home() {
           <Form 
             method="post" 
             onSubmit={handleSubmit}
-            className="flex gap-3 p-4 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-xl"
+            className="p-4 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-xl"
           >
             <input
               type="text"
@@ -84,16 +84,8 @@ export default function Home() {
               value={sessionTitle}
               onChange={(e) => setSessionTitle(e.target.value)}
               placeholder="Start a new Claude Code session: ask, brainstorm, build"
-              className="flex-1 px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem]"
+              className="w-full px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem]"
             />
-            <button
-              type="submit"
-              disabled={!sessionTitle.trim()}
-              className="pl-5 pr-7 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium rounded-lg transition-colors focus:outline-none focus:bg-zinc-700 flex items-center gap-2 font-mono text-[0.9375rem] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-zinc-800"
-            >
-              <RiPlayFill className="w-5 h-5" />
-              Start
-            </button>
           </Form>
         </div>
 
