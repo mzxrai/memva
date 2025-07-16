@@ -25,7 +25,7 @@ describe('Job Type Registry', () => {
       const { JOB_TYPES } = await import('../workers/job-types')
       
       expect(JOB_TYPES).toBeDefined()
-      expect(JOB_TYPES.SESSION_SYNC).toBe('session-sync')
+      expect(JOB_TYPES.SESSION_RUNNER).toBe('session-runner')
       expect(JOB_TYPES.MAINTENANCE).toBe('maintenance')
       expect(JOB_TYPES.DATABASE_VACUUM).toBe('database-vacuum')
       expect(JOB_TYPES.DATABASE_BACKUP).toBe('database-backup')
@@ -37,7 +37,7 @@ describe('Job Type Registry', () => {
       
       expect(ALL_JOB_TYPES).toBeDefined()
       expect(Array.isArray(ALL_JOB_TYPES)).toBe(true)
-      expect(ALL_JOB_TYPES).toContain(JOB_TYPES.SESSION_SYNC)
+      expect(ALL_JOB_TYPES).toContain(JOB_TYPES.SESSION_RUNNER)
       expect(ALL_JOB_TYPES).toContain(JOB_TYPES.MAINTENANCE)
       expect(ALL_JOB_TYPES).toContain(JOB_TYPES.DATABASE_VACUUM)
       expect(ALL_JOB_TYPES).toContain(JOB_TYPES.DATABASE_BACKUP)
@@ -53,21 +53,23 @@ describe('Job Type Registry', () => {
   })
 
   describe('Type-Safe Job Creation Helpers', () => {
-    it('should provide type-safe helper for session sync jobs', async () => {
+    it('should provide type-safe helper for session runner jobs', async () => {
       // This test will fail until we implement job creation helpers
-      const { createSessionSyncJob } = await import('../workers/job-types')
+      const { createSessionRunnerJob } = await import('../workers/job-types')
       
-      const job = createSessionSyncJob({
+      const job = createSessionRunnerJob({
         sessionId: 'test-session-123',
-        lastSyncTime: '2025-01-01T00:00:00Z'
+        prompt: 'Hello Claude, please help with this task',
+        userId: 'user-456'
       })
       
-      expect(job.type).toBe('session-sync')
+      expect(job.type).toBe('session-runner')
       expect(job.data).toEqual({
         sessionId: 'test-session-123',
-        lastSyncTime: '2025-01-01T00:00:00Z'
+        prompt: 'Hello Claude, please help with this task',
+        userId: 'user-456'
       })
-      expect(job.priority).toBe(5) // Medium priority for session sync
+      expect(job.priority).toBe(8) // High priority for user interactions
     })
 
     it('should provide type-safe helper for maintenance jobs', async () => {
@@ -184,7 +186,7 @@ describe('Job Type Registry', () => {
       
       // Should succeed for valid job type
       expect(() => {
-        registry.register('session-sync', validHandler)
+        registry.register('session-runner', validHandler)
       }).not.toThrow()
       
       // Should warn or throw for unknown job type

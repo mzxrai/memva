@@ -2,7 +2,7 @@ import type { JobHandler } from './job-worker'
 
 // Job Type Constants
 export const JOB_TYPES = {
-  SESSION_SYNC: 'session-sync',
+  SESSION_RUNNER: 'session-runner',
   MAINTENANCE: 'maintenance', 
   DATABASE_VACUUM: 'database-vacuum',
   DATABASE_BACKUP: 'database-backup'
@@ -13,9 +13,10 @@ export type JobType = typeof JOB_TYPES[keyof typeof JOB_TYPES]
 export const ALL_JOB_TYPES: JobType[] = Object.values(JOB_TYPES)
 
 // Job Data Types
-export type SessionSyncJobData = {
+export type SessionRunnerJobData = {
   sessionId: string
-  lastSyncTime?: string
+  prompt: string
+  userId?: string
 }
 
 export type MaintenanceJobData = {
@@ -37,11 +38,11 @@ export type JobInput = {
 }
 
 // Type-Safe Job Creation Helpers
-export function createSessionSyncJob(data: SessionSyncJobData): JobInput {
+export function createSessionRunnerJob(data: SessionRunnerJobData): JobInput {
   return {
-    type: JOB_TYPES.SESSION_SYNC,
+    type: JOB_TYPES.SESSION_RUNNER,
     data,
-    priority: 5 // Medium priority
+    priority: 8 // High priority for user interactions
   }
 }
 
