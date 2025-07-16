@@ -4,6 +4,7 @@ import { listSessions, getSessionWithStats, createSession, type SessionWithStats
 import { formatDistanceToNow } from "date-fns";
 import { RiFolder3Line, RiTimeLine, RiPulseLine } from "react-icons/ri";
 import StatusIndicator from "../components/StatusIndicator";
+import MessageCarousel from "../components/MessageCarousel";
 import clsx from "clsx";
 import { useState, type FormEvent } from "react";
 
@@ -138,8 +139,8 @@ export default function Home() {
                   "transform hover:scale-[1.02]",
                   "transition-all duration-150",
                   "cursor-pointer",
-                  "min-h-[200px]",
-                  "grid grid-rows-[1fr_auto_auto_auto]",
+                  "min-h-[240px]",
+                  "grid grid-rows-[1fr_auto_auto_auto_auto]",
                   "gap-4"
                 )}
               >
@@ -177,6 +178,11 @@ export default function Home() {
                     const count = isSessionWithStats(session) ? session.event_count : 0;
                     return `${count} event${count !== 1 ? "s" : ""}`;
                   })()}
+                </div>
+
+                {/* Message Carousel */}
+                <div className="min-h-[60px]">
+                  <MessageCarousel sessionId={session.id} maxMessages={3} />
                 </div>
 
                 {/* Hover Gradient */}

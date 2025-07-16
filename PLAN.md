@@ -184,15 +184,15 @@ Implement a SQLite-based background job queue using Better Queue for concurrent 
 - [x] Commit: Session status UI integration
 
 ### Phase 7e: Real-time Homepage Dashboard
-- [ ] Test: Should display grey dot for not_started sessions
-- [ ] Test: Should display green pulsing dot for processing sessions
-- [ ] Test: Should display green dot + "Needs Input" badge for ready states
-- [ ] Test: Should display red dot for error sessions
-- [ ] Test: Should update status indicators in real-time
-- [ ] Implementation: Create StatusIndicator component with dot + badge
-- [ ] Implementation: Add status mapping logic (internal → UI display)
-- [ ] Implementation: Use Linear-inspired design with color usage
-- [ ] Commit: Homepage status indicators
+- [x] Test: Should display grey dot for not_started sessions
+- [x] Test: Should display green pulsing dot for processing sessions
+- [x] Test: Should display green dot + "Needs Input" badge for ready states
+- [x] Test: Should display red dot for error sessions
+- [x] Test: Should update status indicators in real-time
+- [x] Implementation: Create StatusIndicator component with dot + badge
+- [x] Implementation: Add status mapping logic (internal → UI display)
+- [x] Implementation: Use Linear-inspired design with color usage
+- [x] Commit: Homepage status indicators
 
 - [ ] Test: Should show preview of most recent assistant message
 - [ ] Test: Should extract meaningful content (skip system messages)
@@ -319,10 +319,10 @@ CREATE INDEX idx_events_session_type_timestamp ON events(session_id, event_type,
 ```
 
 ## Current Status
-**Phase**: Phase 7d - Database-Driven Session Updates Complete ✅
-**Last Commit**: Database access standardization - All direct database access replaced with service layer
-**Tests**: 363 tests passing (all green)
-**Next Task**: Phase 7e - Real-time Homepage Dashboard
+**Phase**: Phase 7e - Real-time Homepage Dashboard - Status Indicators Complete ✅
+**Last Commit**: StatusIndicator component with claude_status display
+**Tests**: 374 tests passing (StatusIndicator tests added)
+**Next Task**: Phase 7e - Assistant Message Carousel
 
 ## Recent Achievements (Since Last Update)
 - ✅ **Phase 7a Complete**: JobSystem foundation with auto-registration and lifecycle management

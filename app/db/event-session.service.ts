@@ -67,3 +67,13 @@ export async function getClaudeSessionsForMemvaSession(
   
   return result.map(row => row.session_id).sort()
 }
+
+export async function getRecentAssistantMessages(
+  memvaSessionId: string,
+  limit: number = 5
+): Promise<Event[]> {
+  return getEventsForSession(memvaSessionId, {
+    eventType: 'assistant',
+    includeSidechain: false
+  }).then(events => events.slice(0, limit))
+}
