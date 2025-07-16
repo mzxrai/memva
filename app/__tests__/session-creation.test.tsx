@@ -77,8 +77,8 @@ describe('Session Creation', () => {
     // Should redirect to session page and display session details
     await waitFor(() => {
       expect(screen.getByText('Fix authentication bug')).toBeInTheDocument()
-      expect(screen.getByText('Status: active')).toBeInTheDocument()
-      expect(screen.getByText('Project: /Users/mbm-premva/dev/memva')).toBeInTheDocument()
+      expect(screen.getByText('active')).toBeInTheDocument()
+      expect(screen.getByText('/Users/mbm-premva/dev/memva')).toBeInTheDocument()
     })
   })
 

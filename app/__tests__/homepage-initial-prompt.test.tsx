@@ -61,8 +61,8 @@ describe('Homepage Initial Prompt Behavior', () => {
     // Should navigate to session page and display the session with correct title
     await waitFor(() => {
       expect(screen.getByText('Help me implement a new feature')).toBeInTheDocument()
-      expect(screen.getByText('Status: active')).toBeInTheDocument()
-      expect(screen.getByText('Project: /Users/mbm-premva/dev/memva')).toBeInTheDocument()
+      expect(screen.getByText('active')).toBeInTheDocument()
+      expect(screen.getByText('/Users/mbm-premva/dev/memva')).toBeInTheDocument()
     })
   })
 
@@ -96,8 +96,8 @@ describe('Homepage Initial Prompt Behavior', () => {
     // Should navigate to session page and display session details
     await waitFor(() => {
       expect(screen.getByText('Create a React component')).toBeInTheDocument()
-      expect(screen.getByText('Status: active')).toBeInTheDocument()
-      expect(screen.getByText('Project: /Users/mbm-premva/dev/memva')).toBeInTheDocument()
+      expect(screen.getByText('active')).toBeInTheDocument()
+      expect(screen.getByText('/Users/mbm-premva/dev/memva')).toBeInTheDocument()
     })
   })
 
@@ -130,8 +130,8 @@ describe('Homepage Initial Prompt Behavior', () => {
     // Should show session page with session details
     await waitFor(() => {
       expect(screen.getByText('Test session')).toBeInTheDocument()
-      expect(screen.getByText('Status: active')).toBeInTheDocument()
-      expect(screen.getByText('Project: /Users/mbm-premva/dev/memva')).toBeInTheDocument()
+      expect(screen.getByText('active')).toBeInTheDocument()
+      expect(screen.getByText('/Users/mbm-premva/dev/memva')).toBeInTheDocument()
     })
   })
 })

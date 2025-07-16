@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useLoaderData } from 'react-router'
 import { createMockSession } from '../test-utils/factories'
@@ -105,7 +105,7 @@ describe('Home Component', () => {
     expect(titleInput).toHaveValue('New Session Title')
   })
 
-  it('should display session stats when available', () => {
+  it('should display session event count when available', () => {
     // Mock session with stats
     const sessionWithStats = {
       ...createMockSession({ 
@@ -125,14 +125,11 @@ describe('Home Component', () => {
 
     render(<Home />)
 
-    // Test session stats are displayed
-    expectContent.text('5 events')
-    expectContent.text('30 min')
+    // Test session basic info is displayed
+    expectContent.text('Session With Stats')
     
-    // Test event type pills
-    expectContent.text('user: 2')
-    expectContent.text('assistant: 2')
-    expectContent.text('summary: 1')
+    // Test event count is displayed
+    expectContent.text('5 events')
   })
 
   it('should handle untitled sessions gracefully', () => {
@@ -198,7 +195,6 @@ describe('Home Component', () => {
   it('should handle form submission via Enter key', async () => {
     vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
 
-    const mockSubmit = vi.fn()
     // Mock the Form component to capture submit events
     vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
 

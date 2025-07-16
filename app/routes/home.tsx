@@ -159,38 +159,10 @@ export default function Home() {
                   </span>
                 </div>
 
-                {/* Event Stats */}
+                {/* Event Count */}
                 {isSessionWithStats(session) && (
-                  <div className="space-y-3">
-                    {/* Event Count and Duration */}
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-zinc-400">
-                        {session.event_count} event{session.event_count !== 1 ? "s" : ""}
-                      </span>
-                      <span className="text-zinc-500">
-                        {session.duration_minutes} min
-                      </span>
-                    </div>
-
-                    {/* Event Type Pills */}
-                    {Object.keys(session.event_types).length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {Object.entries(session.event_types).map(([type, count]) => (
-                          <span
-                            key={type}
-                            className={clsx(
-                              "px-2 py-1 text-xs rounded-full",
-                              "border",
-                              type === "user" && "bg-blue-500/10 border-blue-500/30 text-blue-400",
-                              type === "assistant" && "bg-purple-500/10 border-purple-500/30 text-purple-400",
-                              type === "summary" && "bg-amber-500/10 border-amber-500/30 text-amber-400"
-                            )}
-                          >
-                            {type}: {count}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                  <div className="text-sm text-zinc-400">
+                    {session.event_count} event{session.event_count !== 1 ? "s" : ""}
                   </div>
                 )}
 
