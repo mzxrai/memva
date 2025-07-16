@@ -32,11 +32,17 @@ export async function loader() {
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const title = formData.get('title') as string;
+  const prompt = formData.get('prompt') as string;
   
   if (!title?.trim()) {
     return { error: 'Title is required' };
   }
   
+  if (!prompt?.trim()) {
+    return { error: 'Prompt is required' };
+  }
+  
+  // Create session with claude_status set to not_started
   const session = await createSession({
     title: title.trim(),
     project_path: '/Users/mbm-premva/dev/memva', // Auto-assigned for now
@@ -45,6 +51,17 @@ export async function action({ request }: Route.ActionArgs) {
       should_auto_start: true
     }
   });
+  
+  // Create session-runner job
+  const { createJob } = await import('../db/jobs.service');
+  const { createSessionRunnerJob } = await import('../workers/job-types');
+  
+  const jobInput = createSessionRunnerJob({
+    sessionId: session.id,
+    prompt: prompt.trim()
+  });
+  
+  await createJob(jobInput);
   
   return redirect(`/sessions/${session.id}`);
 }
@@ -56,9 +73,10 @@ function isSessionWithStats(session: SessionWithStats | { id: string }): session
 export default function Home() {
   const { sessions } = useLoaderData<typeof loader>();
   const [sessionTitle, setSessionTitle] = useState("");
+  const [sessionPrompt, setSessionPrompt] = useState("");
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    if (!sessionTitle.trim()) {
+    if (!sessionTitle.trim() || !sessionPrompt.trim()) {
       e.preventDefault();
     }
   };
@@ -76,24 +94,36 @@ export default function Home() {
           <Form 
             method="post" 
             onSubmit={handleSubmit}
-            className="flex gap-3 p-4 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-xl"
+            className="p-4 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-xl space-y-3"
           >
-            <input
-              type="text"
-              name="title"
-              value={sessionTitle}
-              onChange={(e) => setSessionTitle(e.target.value)}
-              placeholder="Start a new Claude Code session: ask, brainstorm, build"
-              className="flex-1 px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem]"
-            />
-            <button
-              type="submit"
-              disabled={!sessionTitle.trim()}
-              className="pl-5 pr-7 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium rounded-lg transition-colors focus:outline-none focus:bg-zinc-700 flex items-center gap-2 font-mono text-[0.9375rem] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-zinc-800"
-            >
-              <RiPlayFill className="w-5 h-5" />
-              Start
-            </button>
+            <div className="flex gap-3">
+              <input
+                type="text"
+                name="title"
+                value={sessionTitle}
+                onChange={(e) => setSessionTitle(e.target.value)}
+                placeholder="Session title"
+                className="flex-1 px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem]"
+              />
+              <button
+                type="submit"
+                disabled={!sessionTitle.trim() || !sessionPrompt.trim()}
+                className="pl-5 pr-7 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium rounded-lg transition-colors focus:outline-none focus:bg-zinc-700 flex items-center gap-2 font-mono text-[0.9375rem] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-zinc-800"
+              >
+                <RiPlayFill className="w-5 h-5" />
+                Start
+              </button>
+            </div>
+            <div>
+              <textarea
+                name="prompt"
+                value={sessionPrompt}
+                onChange={(e) => setSessionPrompt(e.target.value)}
+                placeholder="What would you like Claude Code to help you with? (e.g., 'Build a React component', 'Debug this error', 'Write unit tests')"
+                className="w-full px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem] resize-none"
+                rows={2}
+              />
+            </div>
           </Form>
         </div>
 
