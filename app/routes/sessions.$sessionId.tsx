@@ -186,6 +186,10 @@ export default function SessionDetail() {
 
   // Debounced auto-scroll during streaming to prevent bouncing
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const expandScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const expandScrollResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const focusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-scroll logic (respects user intent to review history)
   useEffect(() => {
@@ -211,12 +215,18 @@ export default function SessionDetail() {
       }
       
       // Reset programmatic scroll flag after a short delay
-      setTimeout(() => setIsProgrammaticScroll(false), 100);
+      if (scrollResetTimeoutRef.current) {
+        clearTimeout(scrollResetTimeoutRef.current);
+      }
+      scrollResetTimeoutRef.current = setTimeout(() => setIsProgrammaticScroll(false), 100);
     };
 
     if (previousCount === 0 && currentMessageCount > 0 && isInitialHistoryLoad) {
       // Loading existing history: ALWAYS scroll to bottom to show newest message
-      setTimeout(() => performScroll('auto'), 0);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      scrollTimeoutRef.current = setTimeout(() => performScroll('auto'), 0);
     } else if (hasNewMessages && previousCount > 0) {
       // New messages streaming in: scroll to show them
       performScroll('smooth');
@@ -225,11 +235,27 @@ export default function SessionDetail() {
 
     previousMessageCountRef.current = currentMessageCount;
     
-    // Cleanup timeout on unmount
+    // Cleanup timeouts on unmount
     return () => {
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
         scrollTimeoutRef.current = null;
+      }
+      if (scrollResetTimeoutRef.current) {
+        clearTimeout(scrollResetTimeoutRef.current);
+        scrollResetTimeoutRef.current = null;
+      }
+      if (expandScrollTimeoutRef.current) {
+        clearTimeout(expandScrollTimeoutRef.current);
+        expandScrollTimeoutRef.current = null;
+      }
+      if (expandScrollResetTimeoutRef.current) {
+        clearTimeout(expandScrollResetTimeoutRef.current);
+        expandScrollResetTimeoutRef.current = null;
+      }
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+        focusTimeoutRef.current = null;
       }
     };
   }, [messages, isInitialHistoryLoad, contentOverflows, autoScrollDisabled, isLoading]);
@@ -248,14 +274,31 @@ export default function SessionDetail() {
       }
       
       // Allow time for any Edit tools to expand, then scroll
-      setTimeout(() => {
+      if (expandScrollTimeoutRef.current) {
+        clearTimeout(expandScrollTimeoutRef.current);
+      }
+      expandScrollTimeoutRef.current = setTimeout(() => {
         if (!autoScrollDisabled) {
           setIsProgrammaticScroll(true);
           container.scrollTop = container.scrollHeight;
-          setTimeout(() => setIsProgrammaticScroll(false), 100);
+          if (expandScrollResetTimeoutRef.current) {
+            clearTimeout(expandScrollResetTimeoutRef.current);
+          }
+          expandScrollResetTimeoutRef.current = setTimeout(() => setIsProgrammaticScroll(false), 100);
         }
       }, 100);
     }
+    
+    return () => {
+      if (expandScrollTimeoutRef.current) {
+        clearTimeout(expandScrollTimeoutRef.current);
+        expandScrollTimeoutRef.current = null;
+      }
+      if (expandScrollResetTimeoutRef.current) {
+        clearTimeout(expandScrollResetTimeoutRef.current);
+        expandScrollResetTimeoutRef.current = null;
+      }
+    };
   }, [isLoading, autoScrollDisabled, messages.length]);
 
   // Sporadic token animation while loading
@@ -307,6 +350,7 @@ export default function SessionDetail() {
 
   // Helper function to check if user has active text selection
   const hasActiveTextSelection = useCallback(() => {
+    if (typeof window === 'undefined') return false;
     const selection = window.getSelection();
     return selection && selection.toString().length > 0;
   }, []);
@@ -315,13 +359,23 @@ export default function SessionDetail() {
   useEffect(() => {
     if (!isLoading && inputRef.current) {
       // Small delay to ensure DOM updates are complete
-      setTimeout(() => {
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+      }
+      focusTimeoutRef.current = setTimeout(() => {
         // Only auto-focus if user doesn't have text selected
         if (!hasActiveTextSelection()) {
           inputRef.current?.focus();
         }
       }, 100);
     }
+    
+    return () => {
+      if (focusTimeoutRef.current) {
+        clearTimeout(focusTimeoutRef.current);
+        focusTimeoutRef.current = null;
+      }
+    };
   }, [isLoading, hasActiveTextSelection]);
 
   // Calculate scrollbar width

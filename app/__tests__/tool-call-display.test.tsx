@@ -212,8 +212,8 @@ describe('ToolCallDisplay component', () => {
         <ToolCallDisplay toolCall={bashTool} result={result} hasResult={true} />
       )
       
-      // Should show result with line count via BashToolDisplay
-      expect(screen.getByText(/file1\.txt.*\+1 more lines/)).toBeInTheDocument()
+      // Should show both lines since it's only 2 lines (our new format shows up to 3 lines inline)
+      expect(screen.getByText(/file1\.txt[\s\S]*file2\.txt/)).toBeInTheDocument()
     })
     
     it('should show error status for failed Bash commands', () => {
