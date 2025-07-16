@@ -14,7 +14,7 @@ export const CodeBlock = memo(({ code, language, showLineNumbers = true, classNa
   const [copied, setCopied] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   
-  const isDiff = language === 'diff' || code.includes('\n+') || code.includes('\n-')
+  const isDiff = language === 'diff'
   const lines = code.split('\n')
   
   const handleCopy = async () => {

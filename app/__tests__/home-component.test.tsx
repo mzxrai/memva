@@ -1,3 +1,4 @@
+import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useLoaderData } from 'react-router'
@@ -8,12 +9,12 @@ import Home from '../routes/home'
 // Mock React Router hooks
 vi.mock('react-router', () => ({
   useLoaderData: vi.fn(),
-  Form: ({ children, onSubmit, ...props }: any) => (
+  Form: ({ children, onSubmit, ...props }: { children: React.ReactNode; onSubmit?: (event: React.FormEvent) => void; [key: string]: unknown }) => (
     <form onSubmit={onSubmit} {...props}>
       {children}
     </form>
   ),
-  Link: ({ to, children, ...props }: any) => (
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode; [key: string]: unknown }) => (
     <a href={to} {...props}>
       {children}
     </a>

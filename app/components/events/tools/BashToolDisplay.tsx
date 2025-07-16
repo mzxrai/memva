@@ -11,38 +11,44 @@ interface BashToolDisplayProps {
   result?: unknown
 }
 
-// Format Bash command result based on result structure
+// Format Bash command result - handles only Claude Code SDK format
 const formatBashResult = (result: unknown): { status: 'success' | 'error', brief: string, full?: string } | null => {
   if (!result || typeof result !== 'object' || result === null) {
     return null
   }
   
-  const bashResult = result as { stdout?: string, stderr?: string, interrupted?: boolean }
+  const sdkResult = result as { content?: string, is_error?: boolean }
   
-  if (bashResult.interrupted) {
-    return { status: 'error', brief: '✗ Interrupted', full: bashResult.stdout || bashResult.stderr }
+  if (sdkResult.content === undefined) {
+    return null
   }
   
-  if (bashResult.stderr && bashResult.stderr.trim()) {
-    return { status: 'error', brief: '✗ Error', full: bashResult.stderr }
+  const content = sdkResult.content.trim()
+  const isError = sdkResult.is_error === true
+  
+  if (isError) {
+    return { status: 'error', brief: '✗ Error', full: content }
   }
   
-  if (bashResult.stdout) {
-    const lines = bashResult.stdout.trim().split('\n')
-    const firstLine = lines[0] || ''
-    let brief: string
-    
-    if (lines.length > 1) {
-      const preview = firstLine.length > 150 ? firstLine.substring(0, 150) + '…' : firstLine
-      brief = `${preview} (+${lines.length - 1} more)`
-    } else {
-      brief = firstLine.substring(0, 200) + (firstLine.length > 200 ? '…' : '')
-    }
-    
-    return { status: 'success', brief, full: bashResult.stdout }
+  if (!content) {
+    return { status: 'success', brief: 'Done' }
   }
   
-  return { status: 'success', brief: 'Done' }
+  const lines = content.split('\n').filter(line => line.trim())
+  
+  if (lines.length === 0) {
+    return { status: 'success', brief: 'Done' }
+  } else if (lines.length === 1) {
+    const line = lines[0]
+    const brief = line.length > 200 ? line.substring(0, 200) + '…' : line
+    return { status: 'success', brief, full: content }
+  } else {
+    // For multi-line output, show a more meaningful preview
+    const firstNonEmptyLine = lines.find(line => line.trim() && !line.startsWith('total ')) || lines[0]
+    const preview = firstNonEmptyLine.length > 80 ? firstNonEmptyLine.substring(0, 80) + '…' : firstNonEmptyLine
+    const brief = `${preview} (+${lines.length - 1} more lines)`
+    return { status: 'success', brief, full: content }
+  }
 }
 
 export const BashToolDisplay = memo(({ toolCall, hasResult, result }: BashToolDisplayProps) => {
@@ -66,7 +72,7 @@ export const BashToolDisplay = memo(({ toolCall, hasResult, result }: BashToolDi
         typography.font.mono,
         typography.size.xs
       )}>
-        {formattedResult.full && formattedResult.full.length > 100 && (
+        {formattedResult.full && (formattedResult.full.length > 100 || formattedResult.brief.includes('more lines')) && (
           <button
             onClick={() => setShowFullResult(!showFullResult)}
             className={clsx(
@@ -100,7 +106,7 @@ export const BashToolDisplay = memo(({ toolCall, hasResult, result }: BashToolDi
         <div className="mt-2">
           <CodeBlock
             code={formattedResult.full}
-            language="bash"
+            language="text"
             showLineNumbers={false}
             className="text-xs"
           />

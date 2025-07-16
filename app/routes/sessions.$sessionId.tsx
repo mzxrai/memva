@@ -74,18 +74,29 @@ const extractToolResult = (message: Record<string, unknown>): { toolUseId: strin
         // Extract is_error flag
         const isError = 'is_error' in toolResult && toolResult.is_error === true;
         
+        // Always return SDK format: { content: string, is_error: boolean }
+        let content: string | null = null;
+        
         // Check if we have the actual result in toolUseResult field
         if ('toolUseResult' in message && message.toolUseResult) {
-          return {
-            toolUseId: toolResult.tool_use_id as string,
-            result: message.toolUseResult,
-            isError
-          };
+          // If toolUseResult is a string, use it as content
+          if (typeof message.toolUseResult === 'string') {
+            content = message.toolUseResult;
+          } else {
+            // If it's an object, try to extract content field
+            content = typeof message.toolUseResult === 'object' && 
+                     message.toolUseResult !== null && 
+                     'content' in message.toolUseResult ? 
+                     (message.toolUseResult as { content: string }).content : null;
+          }
+        } else {
+          // Otherwise get content from toolResult
+          content = 'content' in toolResult ? toolResult.content as string : null;
         }
-        // Otherwise use the content field
+        
         return {
           toolUseId: toolResult.tool_use_id as string,
-          result: 'content' in toolResult ? toolResult.content : null,
+          result: { content: content || '', is_error: isError },
           isError
         };
       }

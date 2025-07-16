@@ -208,7 +208,7 @@ describe('SessionDetail Component', () => {
     const { sendPromptToClaudeCode } = await import('../services/claude-code.service')
     const { act } = await import('@testing-library/react')
     
-    let onMessageCallback: ((message: any) => void) | undefined
+    let onMessageCallback: ((message: import('../services/claude-code.service').SDKMessage) => void) | undefined
 
     // Mock Claude Code service to capture callback
     vi.mocked(sendPromptToClaudeCode).mockImplementation(({ onMessage }) => {
@@ -236,7 +236,7 @@ describe('SessionDetail Component', () => {
       await act(async () => {
         callback({
           type: 'result',
-          subtype: 'success',
+          content: 'success',
           timestamp: new Date().toISOString()
         })
       })

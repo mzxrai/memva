@@ -9,9 +9,8 @@ describe('BashToolDisplay Component', () => {
     it('should display brief output for single line result', () => {
       const bashTool = MOCK_TOOLS.bash('ls -la')
       const result = {
-        stdout: 'file1.txt',
-        stderr: '',
-        interrupted: false
+        content: 'file1.txt',
+        is_error: false
       }
       
       render(
@@ -29,9 +28,8 @@ describe('BashToolDisplay Component', () => {
     it('should display preview with line count for multi-line result', () => {
       const bashTool = MOCK_TOOLS.bash('ls -la')
       const result = {
-        stdout: 'file1.txt\nfile2.txt\nfile3.txt',
-        stderr: '',
-        interrupted: false
+        content: 'file1.txt\nfile2.txt\nfile3.txt',
+        is_error: false
       }
       
       render(
@@ -43,16 +41,15 @@ describe('BashToolDisplay Component', () => {
       )
 
       // Should show preview with additional line count
-      expectContent.text('file1.txt (+2 more)')
+      expectContent.text('file1.txt (+2 more lines)')
     })
 
     it('should truncate very long single lines', () => {
       const bashTool = MOCK_TOOLS.bash('echo')
       const longOutput = 'a'.repeat(250)
       const result = {
-        stdout: longOutput,
-        stderr: '',
-        interrupted: false
+        content: longOutput,
+        is_error: false
       }
       
       render(
@@ -71,9 +68,8 @@ describe('BashToolDisplay Component', () => {
       const bashTool = MOCK_TOOLS.bash('ls -la')
       const longOutput = 'a'.repeat(150)
       const result = {
-        stdout: longOutput,
-        stderr: '',
-        interrupted: false
+        content: longOutput,
+        is_error: false
       }
       
       render(
@@ -95,15 +91,43 @@ describe('BashToolDisplay Component', () => {
       expect(screen.getByRole('button', { name: /collapse/i })).toBeInTheDocument()
       expect(screen.getByLabelText('code block')).toBeInTheDocument()
     })
+
+    it('should show expand button for short multi-line output', () => {
+      const bashTool = MOCK_TOOLS.bash('node --version && npm --version')
+      const result = {
+        content: 'v23.10.0\n10.9.0',
+        is_error: false
+      }
+      
+      render(
+        <BashToolDisplay 
+          toolCall={bashTool}
+          hasResult={true}
+          result={result}
+        />
+      )
+
+      // Should show expand button even though total content is short
+      const expandButton = screen.getByRole('button', { name: /expand/i })
+      expect(expandButton).toBeInTheDocument()
+
+      // Should show preview with line count
+      expectContent.text('v23.10.0 (+1 more lines)')
+
+      // Click to expand
+      fireEvent.click(expandButton)
+
+      // Should show full content in code block
+      expect(screen.getByLabelText('code block')).toBeInTheDocument()
+    })
   })
 
   describe('when Bash tool has error result', () => {
-    it('should display error status for stderr output', () => {
+    it('should display error status for error result', () => {
       const bashTool = MOCK_TOOLS.bash('invalid-command')
       const result = {
-        stdout: '',
-        stderr: 'command not found: invalid-command',
-        interrupted: false
+        content: 'command not found: invalid-command',
+        is_error: true
       }
       
       render(
@@ -118,12 +142,11 @@ describe('BashToolDisplay Component', () => {
       expectContent.text('✗ Error')
     })
 
-    it('should display interrupted status', () => {
-      const bashTool = MOCK_TOOLS.bash('long-running-command')
+    it('should display permission error', () => {
+      const bashTool = MOCK_TOOLS.bash('ls')
       const result = {
-        stdout: 'partial output',
-        stderr: '',
-        interrupted: true
+        content: 'Claude requested permissions to use Bash, but you haven\'t granted it yet.',
+        is_error: true
       }
       
       render(
@@ -134,8 +157,8 @@ describe('BashToolDisplay Component', () => {
         />
       )
 
-      // Should show interrupted indicator
-      expectContent.text('✗ Interrupted')
+      // Should show error indicator
+      expectContent.text('✗ Error')
     })
   })
 
@@ -172,30 +195,15 @@ describe('BashToolDisplay Component', () => {
     })
   })
 
-  describe('when result format is invalid', () => {
-    it('should handle non-object result gracefully', () => {
+  describe('when result has empty content', () => {
+    it('should show "Done" for empty content but valid result', () => {
       const bashTool = MOCK_TOOLS.bash('ls')
       
       render(
         <BashToolDisplay 
           toolCall={bashTool}
           hasResult={true}
-          result="string result"
-        />
-      )
-
-      // Should not render anything for invalid format
-      expect(screen.queryByText('string result')).not.toBeInTheDocument()
-    })
-
-    it('should handle empty result object', () => {
-      const bashTool = MOCK_TOOLS.bash('ls')
-      
-      render(
-        <BashToolDisplay 
-          toolCall={bashTool}
-          hasResult={true}
-          result={{}}
+          result={{ content: '', is_error: false }}
         />
       )
 

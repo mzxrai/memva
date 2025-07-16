@@ -204,9 +204,8 @@ describe('ToolCallDisplay component', () => {
       const bashTool = MOCK_TOOLS.bash('ls -la')
       
       const result = {
-        stdout: 'file1.txt\nfile2.txt',
-        stderr: '',
-        interrupted: false
+        content: 'file1.txt\nfile2.txt',
+        is_error: false
       }
       
       render(
@@ -214,16 +213,15 @@ describe('ToolCallDisplay component', () => {
       )
       
       // Should show result with line count via BashToolDisplay
-      expect(screen.getByText(/file1\.txt.*\+1 more/)).toBeInTheDocument()
+      expect(screen.getByText(/file1\.txt.*\+1 more lines/)).toBeInTheDocument()
     })
     
     it('should show error status for failed Bash commands', () => {
       const bashTool = MOCK_TOOLS.bash('invalid-command')
       
       const result = {
-        stdout: '',
-        stderr: 'command not found: invalid-command',
-        interrupted: false
+        content: 'command not found: invalid-command',
+        is_error: true
       }
       
       render(
@@ -287,9 +285,8 @@ describe('ToolCallDisplay component', () => {
       // For Read tools, errors would come as string results, but let's test with a bash tool instead
       // since Read tools typically return file content as strings, not error objects
       const result = {
-        stdout: '',
-        stderr: 'Permission denied',
-        interrupted: false
+        content: 'Permission denied',
+        is_error: true
       }
       
       const bashTool = MOCK_TOOLS.bash('cat /forbidden/file.txt')
