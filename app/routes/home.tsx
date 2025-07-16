@@ -118,7 +118,10 @@ export default function Home() {
                   "hover:shadow-lg hover:shadow-zinc-950/50",
                   "transform hover:scale-[1.02]",
                   "transition-all duration-150",
-                  "cursor-pointer"
+                  "cursor-pointer",
+                  "min-h-[200px]",
+                  "grid grid-rows-[1fr_auto_auto_auto]",
+                  "gap-4"
                 )}
               >
                 {/* Status Badge */}
@@ -137,12 +140,12 @@ export default function Home() {
                 </div>
 
                 {/* Title */}
-                <h3 className="text-lg font-medium text-zinc-100 mb-3 pr-20">
+                <h3 className="text-lg font-medium text-zinc-100 pr-20 min-h-[3rem] line-clamp-2">
                   {session.title || "Untitled Session"}
                 </h3>
 
                 {/* Project Path */}
-                <div className="flex items-center gap-2 text-sm text-zinc-400 mb-4">
+                <div className="flex items-center gap-2 text-sm text-zinc-400">
                   <RiFolder3Line className="w-4 h-4 text-zinc-500" />
                   <span className="font-mono text-xs truncate">
                     {session.project_path}
@@ -150,7 +153,7 @@ export default function Home() {
                 </div>
 
                 {/* Created Date */}
-                <div className="flex items-center gap-2 text-sm text-zinc-500 mb-4">
+                <div className="flex items-center gap-2 text-sm text-zinc-500">
                   <RiTimeLine className="w-4 h-4" />
                   <span>
                     {formatDistanceToNow(new Date(session.created_at), {
@@ -160,11 +163,12 @@ export default function Home() {
                 </div>
 
                 {/* Event Count */}
-                {isSessionWithStats(session) && (
-                  <div className="text-sm text-zinc-400">
-                    {session.event_count} event{session.event_count !== 1 ? "s" : ""}
-                  </div>
-                )}
+                <div className="text-sm text-zinc-400">
+                  {(() => {
+                    const count = isSessionWithStats(session) ? session.event_count : 0;
+                    return `${count} event${count !== 1 ? "s" : ""}`;
+                  })()}
+                </div>
 
                 {/* Hover Gradient */}
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-zinc-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
