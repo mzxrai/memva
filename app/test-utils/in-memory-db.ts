@@ -7,7 +7,7 @@ import { sessions, events } from '../db/schema'
 export type TestDatabase = {
   db: ReturnType<typeof drizzle>
   sqlite: Database.Database
-  createSession: (input: { title?: string; project_path: string }) => typeof sessions.$inferInsert & { id: string }
+  createSession: (input: { title?: string; project_path: string; claude_status?: string }) => typeof sessions.$inferInsert & { id: string }
   insertEvent: (event: typeof events.$inferInsert) => void
   getEventsForSession: (sessionId: string) => Array<typeof events.$inferSelect>
   cleanup: () => void
@@ -26,7 +26,8 @@ export function setupInMemoryDb(): TestDatabase {
       updated_at TEXT NOT NULL,
       status TEXT NOT NULL,
       project_path TEXT NOT NULL,
-      metadata TEXT
+      metadata TEXT,
+      claude_status TEXT DEFAULT 'not_started'
     )
   `)
   
@@ -74,6 +75,7 @@ export function setupInMemoryDb(): TestDatabase {
     CREATE INDEX IF NOT EXISTS idx_memva_session_id ON events(memva_session_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
     CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at);
+    CREATE INDEX IF NOT EXISTS idx_sessions_claude_status ON sessions(claude_status);
     CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
     CREATE INDEX IF NOT EXISTS idx_jobs_type ON jobs(type);
     CREATE INDEX IF NOT EXISTS idx_jobs_priority_created ON jobs(priority DESC, created_at ASC);
@@ -82,7 +84,7 @@ export function setupInMemoryDb(): TestDatabase {
   `)
   
   // Helper functions
-  const createSession = (input: { title?: string; project_path: string }) => {
+  const createSession = (input: { title?: string; project_path: string; claude_status?: string }) => {
     const session = {
       id: crypto.randomUUID(),
       title: input.title || null,
@@ -90,7 +92,8 @@ export function setupInMemoryDb(): TestDatabase {
       updated_at: new Date().toISOString(),
       status: 'active',
       project_path: input.project_path,
-      metadata: null
+      metadata: null,
+      claude_status: input.claude_status || 'not_started'
     }
     db.insert(sessions).values(session).run()
     return session
