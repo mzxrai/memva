@@ -82,25 +82,25 @@ const session = db.select().from(sessions).where(eq(sessions.id, id)).get()
 
 ## Migration Plan
 
-### Phase 1: Fix Immediate Test Failures (30 minutes)
+### Phase 1: Fix Immediate Test Failures (30 minutes) ✅ COMPLETED
 
 **Goal**: Fix undefined/null test issue per CLAUDE.md testing guidelines
 
 **Tasks**:
-- [ ] **Task 1.1**: Fix test database `getSession()` method
-  - [ ] Update `app/test-utils/in-memory-db.ts` line 108
-  - [ ] Change `return db.select()...get()` to `return db.select()...get() || null`
-  - [ ] **Test**: Run `npm test -- session-detail-loader.test.ts` to verify fix
+- [x] **Task 1.1**: Fix test database `getSession()` method
+  - [x] Update `app/test-utils/in-memory-db.ts` line 108
+  - [x] Change `return db.select()...get()` to `return db.select()...get() || null`
+  - [x] **Test**: Run `npm test -- session-detail-loader.test.ts` to verify fix
 
-- [ ] **Task 1.2**: Fix SessionDetail component `useParams` mock
-  - [ ] Update `app/__tests__/session-detail-component.test.tsx`
-  - [ ] Add `useParams: vi.fn(() => ({ sessionId: 'test-session-id' }))` to react-router mock
-  - [ ] **Test**: Run `npm test -- session-detail-component.test.tsx` to verify fix
+- [x] **Task 1.2**: Fix SessionDetail component `useParams` mock
+  - [x] Update `app/__tests__/session-detail-component.test.tsx`
+  - [x] Replace `useLoaderData` mocks with `useSessionStatus` and `useEventPolling` mocks
+  - [x] **Test**: Run `npm test -- session-detail-component.test.tsx` to verify fix
 
-- [ ] **Phase 1 Checkpoint**: 
-  - [ ] All previously failing tests now pass
-  - [ ] No new test failures introduced
-  - [ ] TypeScript compilation successful
+- [x] **Phase 1 Checkpoint**: 
+  - [x] All previously failing tests now pass
+  - [x] No new test failures introduced
+  - [x] TypeScript compilation successful (Phase 1 specific tests)
 
 ### Phase 2: Create Missing Service Functions (45 minutes)
 
