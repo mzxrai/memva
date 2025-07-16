@@ -79,19 +79,19 @@ Implement a SQLite-based background job queue using Better Queue for concurrent 
 ## Phase 5: Job Types & Handlers (TDD)
 
 ### Job Type Registry
-- [ ] Test: Should register and retrieve job handlers
-- [ ] Test: Should validate job type constants
-- [ ] Test: Should provide type-safe job creation helpers
-- [ ] Implementation: Create job-types.ts with registry
-- [ ] Commit: Job type system
+- [x] Test: Should register and retrieve job handlers
+- [x] Test: Should validate job type constants
+- [x] Test: Should provide type-safe job creation helpers
+- [x] Implementation: Create job-types.ts with registry
+- [x] Commit: Job type system
 
-### Session Sync Handler
-- [ ] Test: Should sync Claude Code JSONL files
-- [ ] Test: Should handle incremental sync with timestamps
-- [ ] Test: Should update session metadata after sync
-- [ ] Test: Should handle missing or corrupted JSONL files
-- [ ] Implementation: Create session-sync.handler.ts
-- [ ] Commit: Session sync handler
+### Session Runner Handler
+- [x] Test: Should execute Claude Code SDK calls asynchronously
+- [x] Test: Should handle session message processing in background
+- [x] Test: Should support multiple concurrent session jobs
+- [x] Test: Should handle Claude Code SDK errors and retries
+- [x] Implementation: Create session-runner.handler.ts
+- [x] Commit: Session runner handler
 
 ### Maintenance Handler  
 - [ ] Test: Should cleanup old jobs
@@ -103,12 +103,12 @@ Implement a SQLite-based background job queue using Better Queue for concurrent 
 ## Phase 6: API Integration (TDD)
 
 ### Jobs API Routes
-- [ ] Test: POST /api/jobs should create jobs
-- [ ] Test: GET /api/jobs should list jobs with filters
-- [ ] Test: GET /api/jobs?action=stats should return statistics
-- [ ] Test: DELETE /api/jobs should cancel jobs
-- [ ] Implementation: Create api.jobs.tsx route
-- [ ] Commit: Jobs API endpoints
+- [x] Test: POST /api/jobs should create jobs
+- [x] Test: GET /api/jobs should list jobs with filters
+- [x] Test: GET /api/jobs?action=stats should return statistics
+- [x] Test: DELETE /api/jobs should cancel jobs
+- [x] Implementation: Create api.jobs.tsx route
+- [x] Commit: Jobs API endpoints
 
 ### Individual Job API
 - [ ] Test: GET /api/jobs/:id should retrieve specific job
@@ -180,6 +180,6 @@ Implement a SQLite-based background job queue using Better Queue for concurrent 
 - ✅ Clean commit history with frequent commits
 
 ## Current Status
-**Phase**: Completed Phase 4 - Job Worker (Complete) ✅
-**Last Commit**: Concurrency fixes - all 18 job worker tests passing
-**Next Task**: Phase 5 - Job Types & Handlers
+**Phase**: Phase 6 - API Integration (Jobs API Complete) ✅
+**Last Commit**: Jobs API Routes - comprehensive POST/GET/DELETE endpoints with 46 tests passing
+**Next Task**: Phase 6 - Individual Job API
