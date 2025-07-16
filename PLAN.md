@@ -111,11 +111,11 @@ Implement a SQLite-based background job queue using Better Queue for concurrent 
 - [x] Commit: Jobs API endpoints
 
 ### Individual Job API
-- [ ] Test: GET /api/jobs/:id should retrieve specific job
-- [ ] Test: PUT /api/jobs/:id should update job
-- [ ] Test: DELETE /api/jobs/:id should cancel specific job
-- [ ] Implementation: Create api.jobs.$jobId.tsx route
-- [ ] Commit: Individual job API
+- [x] Test: GET /api/jobs/:id should retrieve specific job
+- [x] Test: PUT /api/jobs/:id should update job
+- [x] Test: DELETE /api/jobs/:id should cancel specific job
+- [x] Implementation: Create api.jobs.$jobId.tsx route
+- [x] Commit: Individual job API
 
 ### Route Configuration
 - [ ] Test: Job API routes should be accessible
@@ -180,6 +180,6 @@ Implement a SQLite-based background job queue using Better Queue for concurrent 
 - ✅ Clean commit history with frequent commits
 
 ## Current Status
-**Phase**: Phase 6 - API Integration (Jobs API Complete) ✅
-**Last Commit**: Jobs API Routes - comprehensive POST/GET/DELETE endpoints with 46 tests passing
-**Next Task**: Phase 6 - Individual Job API
+**Phase**: Phase 6 - API Integration (Individual Job API Complete) ✅
+**Last Commit**: Individual Job API - GET/PUT/DELETE for specific jobs with 62 tests passing
+**Next Task**: Phase 6 - Route Configuration

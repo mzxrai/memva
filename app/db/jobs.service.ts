@@ -19,6 +19,8 @@ export type UpdateJobInput = {
   started_at?: string
   completed_at?: string
   attempts?: number
+  priority?: number
+  scheduled_at?: string
 }
 
 export type ListJobsOptions = {
@@ -78,6 +80,8 @@ export async function updateJob(id: string, input: UpdateJobInput): Promise<Job 
   if (input.started_at !== undefined) updates.started_at = input.started_at
   if (input.completed_at !== undefined) updates.completed_at = input.completed_at
   if (input.attempts !== undefined) updates.attempts = input.attempts
+  if (input.priority !== undefined) updates.priority = input.priority
+  if (input.scheduled_at !== undefined) updates.scheduled_at = input.scheduled_at
   
   await db
     .update(jobs)
