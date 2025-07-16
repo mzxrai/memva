@@ -224,8 +224,9 @@ describe('SessionDetail Component', () => {
 
     // Simulate Claude response with result message wrapped in act
     if (onMessageCallback) {
+      const callback = onMessageCallback
       await act(async () => {
-        onMessageCallback!({
+        callback({
           type: 'assistant',
           content: 'Hello! How can I help you?',
           timestamp: new Date().toISOString()
@@ -233,7 +234,7 @@ describe('SessionDetail Component', () => {
       })
 
       await act(async () => {
-        onMessageCallback!({
+        callback({
           type: 'result',
           subtype: 'success',
           timestamp: new Date().toISOString()
