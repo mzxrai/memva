@@ -18,6 +18,7 @@ import { colors, typography, radius, transition, iconSize } from '../../constant
 import { CodeBlock } from './CodeBlock'
 import { WriteToolDisplay } from './tools/WriteToolDisplay'
 import { EditToolDisplay } from './tools/EditToolDisplay'
+import { BashToolDisplay } from './tools/BashToolDisplay'
 import type { ToolUseContent } from '../../types/events'
 import clsx from 'clsx'
 
@@ -100,29 +101,6 @@ const getPrimaryParam = (toolName: string, input: unknown): string => {
 const formatResult = (toolName: string, result: unknown): { status: 'success' | 'error', brief: string, full?: string } => {
   if (!result) return { status: 'success', brief: 'No result' }
   
-  // Handle Bash command results
-  if (toolName === 'Bash' && typeof result === 'object' && result !== null) {
-    const bashResult = result as { stdout?: string, stderr?: string, interrupted?: boolean }
-    if (bashResult.interrupted) {
-      return { status: 'error', brief: '✗ Interrupted', full: bashResult.stdout || bashResult.stderr }
-    }
-    if (bashResult.stderr && bashResult.stderr.trim()) {
-      return { status: 'error', brief: '✗ Error', full: bashResult.stderr }
-    }
-    if (bashResult.stdout) {
-      const lines = bashResult.stdout.trim().split('\n')
-      const firstLine = lines[0] || ''
-      let brief: string
-      if (lines.length > 1) {
-        const preview = firstLine.length > 150 ? firstLine.substring(0, 150) + '…' : firstLine
-        brief = `${preview} (+${lines.length - 1} more)`
-      } else {
-        brief = firstLine.substring(0, 200) + (firstLine.length > 200 ? '…' : '')
-      }
-      return { status: 'success', brief, full: bashResult.stdout }
-    }
-    return { status: 'success', brief: 'Done' }
-  }
   
   // Handle Read tool results
   if (toolName === 'Read' && typeof result === 'string') {
@@ -393,7 +371,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       </div>
       
       {/* Result section - minimal inline display */}
-      {formattedResult && toolCall.name !== 'Write' && (
+      {formattedResult && toolCall.name !== 'Write' && toolCall.name !== 'Bash' && (
         <div className="py-2">
           <div className={clsx(
             'flex items-center gap-2',
@@ -450,6 +428,13 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
         result={result}
         isStreaming={isStreaming}
         isError={isError}
+      />
+      
+      {/* Bash tool result section */}
+      <BashToolDisplay 
+        toolCall={toolCall}
+        hasResult={hasResult}
+        result={result}
       />
     </div>
   )

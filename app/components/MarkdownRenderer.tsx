@@ -105,14 +105,14 @@ const components: Components = {
     
     if (!inline && language) {
       return (
-        <div className="my-3 font-mono">
+        <div className="my-3 [&_pre]:!font-mono [&_code]:!font-mono [&_code]:!text-[0.875rem]">
           <SyntaxHighlighter
             language={language}
             style={vscDarkPlus}
             customStyle={{
               margin: 0,
               borderRadius: '0.5rem',
-              fontSize: '0.875rem', // 14px
+              fontSize: '0.9375rem', // 15px to get closer to 14px target
               padding: '1rem',
               background: 'rgba(255, 255, 255, 0.02)', // very subtle white frost on black
             }}

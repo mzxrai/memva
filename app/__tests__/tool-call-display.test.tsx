@@ -214,10 +214,10 @@ describe('ToolCallDisplay component', () => {
       }
       
       render(
-        <ToolCallDisplay toolCall={bashTool} result={result} />
+        <ToolCallDisplay toolCall={bashTool} result={result} hasResult={true} />
       )
       
-      // Should show result with line count
+      // Should show result with line count via BashToolDisplay
       expect(screen.getByText(/file1\.txt.*\+1 more/)).toBeInTheDocument()
     })
     
@@ -231,12 +231,10 @@ describe('ToolCallDisplay component', () => {
       }
       
       render(
-        <ToolCallDisplay toolCall={bashTool} result={result} />
+        <ToolCallDisplay toolCall={bashTool} result={result} hasResult={true} />
       )
       
-      // Should show error indicator
-      expect(screen.getByText(/✗/)).toBeInTheDocument()
-      // Error is shown in the brief message for short errors
+      // Should show error indicator via BashToolDisplay
       expect(screen.getByText(/✗ Error/)).toBeInTheDocument()
     })
     
