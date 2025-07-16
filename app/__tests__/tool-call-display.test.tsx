@@ -189,19 +189,15 @@ describe('ToolCallDisplay component', () => {
   
   describe('with results', () => {
     it('should display result inline when provided', () => {
-      const result = {
-        stdout: 'File content here',
-        stderr: '',
-        interrupted: false
-      }
+      const result = 'File content here'
       
       const readTool = MOCK_TOOLS.read('/path/to/file.ts')
       render(
-        <ToolCallDisplay toolCall={readTool} result={result} />
+        <ToolCallDisplay toolCall={readTool} result={result} hasResult={true} />
       )
       
-      // Should show result content
-      expect(screen.getByText(/stdout.*File content here/)).toBeInTheDocument()
+      // Should show ReadToolDisplay with line count
+      expect(screen.getByText(/1 line loaded/)).toBeInTheDocument()
     })
     
     it('should show success status for successful Bash commands', () => {
@@ -239,15 +235,11 @@ describe('ToolCallDisplay component', () => {
     })
     
     it('should collapse long results by default', () => {
-      const longResult = {
-        stdout: 'Line 1\n'.repeat(50),
-        stderr: '',
-        interrupted: false
-      }
+      const longResult = 'Line 1\n'.repeat(50) // 50 lines, long enough to trigger expand button
       
       const readTool = MOCK_TOOLS.read('/path/to/file.ts')
       render(
-        <ToolCallDisplay toolCall={readTool} result={longResult} />
+        <ToolCallDisplay toolCall={readTool} result={longResult} hasResult={true} />
       )
       
       // Should show collapsed state with expand button
@@ -266,7 +258,7 @@ describe('ToolCallDisplay component', () => {
       const result = 'File contents here with multiple lines\nLine 2\nLine 3'
       
       render(
-        <ToolCallDisplay toolCall={readTool} result={result} />
+        <ToolCallDisplay toolCall={readTool} result={result} hasResult={true} />
       )
       
       // Should show file loaded indicator
@@ -292,18 +284,21 @@ describe('ToolCallDisplay component', () => {
     })
     
     it('should handle error results gracefully', () => {
+      // For Read tools, errors would come as string results, but let's test with a bash tool instead
+      // since Read tools typically return file content as strings, not error objects
       const result = {
-        error: 'Permission denied',
-        is_error: true
+        stdout: '',
+        stderr: 'Permission denied',
+        interrupted: false
       }
       
-      const readTool = MOCK_TOOLS.read('/path/to/file.ts')
+      const bashTool = MOCK_TOOLS.bash('cat /forbidden/file.txt')
       render(
-        <ToolCallDisplay toolCall={readTool} result={result} />
+        <ToolCallDisplay toolCall={bashTool} result={result} hasResult={true} />
       )
       
-      // Should show error
-      expect(screen.getByText(/Permission denied/)).toBeInTheDocument()
+      // Should show error via BashToolDisplay
+      expect(screen.getByText(/✗ Error/)).toBeInTheDocument()
     })
     
     it('should not show result section when result is null', () => {

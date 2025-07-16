@@ -19,6 +19,7 @@ import { CodeBlock } from './CodeBlock'
 import { WriteToolDisplay } from './tools/WriteToolDisplay'
 import { EditToolDisplay } from './tools/EditToolDisplay'
 import { BashToolDisplay } from './tools/BashToolDisplay'
+import { ReadToolDisplay } from './tools/ReadToolDisplay'
 import type { ToolUseContent } from '../../types/events'
 import clsx from 'clsx'
 
@@ -102,13 +103,6 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
   if (!result) return { status: 'success', brief: 'No result' }
   
   
-  // Handle Read tool results
-  if (toolName === 'Read' && typeof result === 'string') {
-    const lines = result.trim().split('\n')
-    const lineCount = lines.length
-    const brief = `${lineCount} line${lineCount !== 1 ? 's' : ''} loaded`
-    return { status: 'success', brief, full: result }
-  }
   
   // Handle Write/Edit tool results
   if ((toolName === 'Write' || toolName === 'Edit' || toolName === 'MultiEdit') && 
@@ -371,7 +365,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       </div>
       
       {/* Result section - minimal inline display */}
-      {formattedResult && toolCall.name !== 'Write' && toolCall.name !== 'Bash' && (
+      {formattedResult && toolCall.name !== 'Write' && toolCall.name !== 'Bash' && toolCall.name !== 'Read' && (
         <div className="py-2">
           <div className={clsx(
             'flex items-center gap-2',
@@ -432,6 +426,13 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       
       {/* Bash tool result section */}
       <BashToolDisplay 
+        toolCall={toolCall}
+        hasResult={hasResult}
+        result={result}
+      />
+      
+      {/* Read tool result section */}
+      <ReadToolDisplay 
         toolCall={toolCall}
         hasResult={hasResult}
         result={result}
