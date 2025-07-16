@@ -27,13 +27,8 @@ export async function action({ request, params }: Route.ActionArgs) {
   await updateSession(params.sessionId, { status: 'active' });
 
   // Update claude_status to processing
-  const { db, sessions } = await import('../db');
-  const { eq } = await import('drizzle-orm');
-  
-  await db.update(sessions)
-    .set({ claude_status: 'processing' })
-    .where(eq(sessions.id, params.sessionId))
-    .execute();
+  const { updateSessionClaudeStatus } = await import('../db/sessions.service');
+  await updateSessionClaudeStatus(params.sessionId, 'processing');
 
   // Create session-runner job
   const { createJob } = await import('../db/jobs.service');
