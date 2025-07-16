@@ -183,3 +183,68 @@ export async function cancelJob(id: string): Promise<Job | null> {
     completed_at: new Date().toISOString()
   })
 }
+
+export async function getJobStats(): Promise<{
+  pending: number
+  running: number
+  completed: number
+  failed: number
+  cancelled: number
+  total: number
+}> {
+  const allJobs = await db.select({ status: jobs.status }).from(jobs).execute()
+  
+  const stats = {
+    pending: 0,
+    running: 0,
+    completed: 0,
+    failed: 0,
+    cancelled: 0,
+    total: allJobs.length
+  }
+  
+  for (const job of allJobs) {
+    if (job.status in stats) {
+      (stats as Record<string, number>)[job.status]++
+    }
+  }
+  
+  return stats
+}
+
+export async function cleanupOldJobs(olderThanDays = 30): Promise<number> {
+  const cutoffDate = new Date()
+  cutoffDate.setDate(cutoffDate.getDate() - olderThanDays)
+  const cutoffIso = cutoffDate.toISOString()
+  
+  const jobsToDelete = await db
+    .select({ id: jobs.id })
+    .from(jobs)
+    .where(
+      and(
+        or(
+          eq(jobs.status, 'completed'),
+          eq(jobs.status, 'failed'),
+          eq(jobs.status, 'cancelled')
+        ),
+        lt(jobs.completed_at, cutoffIso)
+      )
+    )
+    .execute()
+  
+  if (jobsToDelete.length === 0) {
+    return 0
+  }
+  
+  const idsToDelete = jobsToDelete.map(job => job.id)
+  
+  // Delete jobs one by one to avoid complex SQL
+  for (const jobId of idsToDelete) {
+    await db
+      .delete(jobs)
+      .where(eq(jobs.id, jobId))
+      .execute()
+  }
+  
+  return idsToDelete.length
+}
