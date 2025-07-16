@@ -2,6 +2,7 @@ import { db, jobs, type Job, type NewJob } from './index'
 import { eq, desc, and, or, isNull, lt } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 
+export type { Job, NewJob }
 export type JobStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
 
 export type CreateJobInput = {

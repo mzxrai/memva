@@ -100,7 +100,7 @@ Implement a SQLite-based background job queue using Better Queue for concurrent 
 - [ ] Implementation: Create maintenance.handler.ts
 - [ ] Commit: Maintenance handler
 
-## Phase 6: API Integration (TDD)
+## Phase 6: API Integration (TDD) ✅
 
 ### Jobs API Routes
 - [x] Test: POST /api/jobs should create jobs
@@ -122,21 +122,129 @@ Implement a SQLite-based background job queue using Better Queue for concurrent 
 - [x] Implementation: Add routes to routes.ts
 - [x] Commit: Route configuration
 
-## Phase 7: System Integration (TDD)
+## Phase 7: Real-time Async Session Management (TDD)
 
-### Job System Initialization
-- [ ] Test: Should initialize job system with default handlers
-- [ ] Test: Should start job system and begin processing
-- [ ] Test: Should stop job system gracefully
-- [ ] Implementation: Create workers/index.ts with initialization
-- [ ] Commit: System integration
+### Phase 7a: Complete Job System Foundation
+- [ ] Test: Should initialize job worker with default configuration
+- [ ] Test: Should register session-runner handler automatically
+- [ ] Test: Should start job processing when called
+- [ ] Test: Should stop gracefully and clean up resources
+- [ ] Test: Should handle initialization errors properly
+- [ ] Implementation: Create workers/index.ts with JobSystem class
+- [ ] Implementation: Auto-register handlers and lifecycle management
+- [ ] Implementation: Add job system startup to app entry point
+- [ ] Commit: Job system initialization
 
-### Error Handling & Retry Logic
-- [ ] Test: Should retry failed jobs with exponential backoff
-- [ ] Test: Should handle maximum retry limits
-- [ ] Test: Should isolate failing job types
-- [ ] Implementation: Add comprehensive error handling
-- [ ] Commit: Error handling and retries
+### Phase 7b: Database Schema Enhancement
+- [ ] Test: Should add claude_status column to sessions table
+- [ ] Test: Should support status values (not_started, processing, waiting_for_input, error, completed)
+- [ ] Test: Should default to not_started for new sessions
+- [ ] Test: Should update status through job lifecycle
+- [ ] Implementation: Create database migration for claude_status column
+- [ ] Implementation: Update sessions schema and types
+- [ ] Implementation: Add helper functions for status management
+- [ ] Commit: Session status tracking schema
+
+### Phase 7c: Background Job Integration
+- [ ] Test: Should create session and dispatch job from homepage form
+- [ ] Test: Should set initial status to not_started
+- [ ] Test: Should redirect to session detail page immediately
+- [ ] Test: Should dispatch session-runner job with prompt
+- [ ] Test: Should handle job creation errors gracefully
+- [ ] Implementation: Modify home.tsx action to use job system
+- [ ] Implementation: Replace redirect-only with job dispatch + redirect
+- [ ] Commit: Homepage job dispatch
+
+- [ ] Test: Should dispatch job when user submits new prompt in session detail
+- [ ] Test: Should update session status to processing
+- [ ] Test: Should handle job submission errors
+- [ ] Test: Should maintain existing form UX
+- [ ] Implementation: Modify session detail page to dispatch jobs
+- [ ] Implementation: Remove direct streaming from session page
+- [ ] Commit: Session detail job dispatch
+
+### Phase 7d: Database-Driven Session Updates
+- [ ] Test: Should poll database for new events every 2 seconds
+- [ ] Test: Should update events list when new events arrive
+- [ ] Test: Should handle polling errors gracefully
+- [ ] Test: Should stop polling when component unmounts
+- [ ] Test: Should show events in real-time as they're stored
+- [ ] Implementation: Create useEventPolling() hook for session detail
+- [ ] Implementation: Replace SSE streaming with database polling
+- [ ] Implementation: Add automatic refresh of events list
+- [ ] Commit: Database-driven session updates
+
+- [ ] Test: Should disable submit button when status is processing
+- [ ] Test: Should show error message when status is error
+- [ ] Test: Should enable submit button for ready states
+- [ ] Test: Should clear error status when new job is submitted
+- [ ] Implementation: Add status polling to session detail page
+- [ ] Implementation: Update submit button logic based on status
+- [ ] Implementation: Add error state display
+- [ ] Commit: Session status UI integration
+
+### Phase 7e: Real-time Homepage Dashboard
+- [ ] Test: Should display grey dot for not_started sessions
+- [ ] Test: Should display green pulsing dot for processing sessions
+- [ ] Test: Should display green dot + "Needs Input" badge for ready states
+- [ ] Test: Should display red dot for error sessions
+- [ ] Test: Should update status indicators in real-time
+- [ ] Implementation: Create StatusIndicator component with dot + badge
+- [ ] Implementation: Add status mapping logic (internal → UI display)
+- [ ] Implementation: Use Linear-inspired design with color usage
+- [ ] Commit: Homepage status indicators
+
+- [ ] Test: Should show preview of most recent assistant message
+- [ ] Test: Should extract meaningful content (skip system messages)
+- [ ] Test: Should display 2-3 lines of assistant message
+- [ ] Test: Should update carousel when new messages arrive
+- [ ] Test: Should handle sessions with no assistant messages gracefully
+- [ ] Implementation: Create MessageCarousel component with vertical scrolling
+- [ ] Implementation: Add message preview extraction logic
+- [ ] Implementation: Implement smooth vertical animation
+- [ ] Commit: Assistant message carousel
+
+- [ ] Test: Should establish SSE connection to session updates endpoint
+- [ ] Test: Should update session status when jobs change state
+- [ ] Test: Should update message previews when new assistant messages arrive
+- [ ] Test: Should handle SSE connection errors and reconnection
+- [ ] Test: Should efficiently query only changed sessions
+- [ ] Implementation: Create /api/session-updates SSE endpoint
+- [ ] Implementation: Add session status change broadcasting
+- [ ] Implementation: Create useSessionUpdates() hook for homepage
+- [ ] Implementation: Add automatic reconnection on SSE failures
+- [ ] Commit: Real-time homepage updates
+
+### Phase 7f: Enhanced Job Handler
+- [ ] Test: Should set status to processing when Claude Code starts
+- [ ] Test: Should set status to waiting_for_input when Claude completes
+- [ ] Test: Should set status to error for unrecoverable errors
+- [ ] Test: Should reset status to processing when new job starts
+- [ ] Test: Should maintain existing event storage patterns
+- [ ] Implementation: Enhance session-runner.handler.ts with status updates
+- [ ] Implementation: Add status transition logic throughout lifecycle
+- [ ] Implementation: Add proper error handling and status reporting
+- [ ] Commit: Status-aware session runner
+
+### Phase 7g: Performance & Polish
+- [ ] Test: Should query only changed sessions for homepage updates
+- [ ] Test: Should efficiently fetch latest assistant messages
+- [ ] Test: Should handle large numbers of sessions without performance issues
+- [ ] Test: Should minimize database load during polling
+- [ ] Implementation: Add database indexes for efficient queries
+- [ ] Implementation: Implement change detection for SSE updates
+- [ ] Implementation: Optimize polling intervals and query caching
+- [ ] Commit: Performance optimization
+
+- [ ] Test: Should handle job system failures gracefully
+- [ ] Test: Should recover from database connection issues
+- [ ] Test: Should handle SSE connection failures
+- [ ] Test: Should show clear error messages to users
+- [ ] Test: Should maintain system stability during errors
+- [ ] Implementation: Add comprehensive error boundaries
+- [ ] Implementation: Implement retry logic for failed operations
+- [ ] Implementation: Add user-friendly error messages
+- [ ] Commit: Error handling and recovery
 
 ## Phase 8: Testing & Validation
 
@@ -179,7 +287,46 @@ Implement a SQLite-based background job queue using Better Queue for concurrent 
 - ✅ Graceful error handling and recovery
 - ✅ Clean commit history with frequent commits
 
+## Technical Architecture
+
+### Real-time Update Flow
+1. **Job Processing**: Background jobs update session status in database
+2. **Change Detection**: Database triggers detect status/message changes  
+3. **SSE Broadcasting**: Changes broadcast to connected homepage clients
+4. **UI Updates**: Homepage receives updates and re-renders affected session cards
+
+### Session Status State Machine
+```
+not_started → processing → (waiting_for_input | error | completed)
+```
+
+### Key Components
+- **JobSystem**: Manages worker lifecycle and handler registration
+- **StatusIndicator**: Session status with dots and badges (grey/green/red)
+- **MessageCarousel**: Vertical scrolling preview of assistant messages
+- **SessionUpdates**: SSE endpoint for real-time homepage updates
+- **useEventPolling**: Hook for database-driven session detail updates
+- **useSessionUpdates**: Hook for real-time homepage updates
+
+### Database Schema Additions
+```sql
+-- Add session status tracking
+ALTER TABLE sessions ADD COLUMN claude_status TEXT DEFAULT 'not_started';
+
+-- Add indexes for efficient real-time queries
+CREATE INDEX idx_sessions_claude_status ON sessions(claude_status);
+CREATE INDEX idx_events_session_type_timestamp ON events(session_id, event_type, timestamp);
+```
+
 ## Current Status
-**Phase**: Phase 6 - API Integration (Route Configuration Complete) ✅
+**Phase**: Phase 6 - API Integration Complete ✅
 **Last Commit**: Route Configuration - Job API routes accessible with 73 tests passing
-**Next Task**: Phase 7 - System Integration
+**Next Task**: Phase 7a - Complete Job System Foundation
+
+## Demo Goal
+Transform app into real-time async session management system:
+- Homepage serves as live monitoring dashboard with status indicators
+- Background jobs handle all Claude Code processing
+- Real-time updates via SSE for session status and message previews
+- Database-driven session detail pages with event polling
+- Support for 10-15 concurrent sessions running in parallel
