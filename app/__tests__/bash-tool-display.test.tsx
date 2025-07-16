@@ -44,6 +44,25 @@ describe('BashToolDisplay Component', () => {
       expectContent.text('file1.txt (+2 more lines)')
     })
 
+    it('should show total line in ls -la output preview', () => {
+      const bashTool = MOCK_TOOLS.bash('ls -la')
+      const result = {
+        content: 'total 19336\ndrwxr-xr-x@ 36 user staff 1152 Jul 16 11:41 .\ndrwxr-xr-x  29 user staff  928 Jul 15 19:49 ..',
+        is_error: false
+      }
+      
+      render(
+        <BashToolDisplay 
+          toolCall={bashTool}
+          hasResult={true}
+          result={result}
+        />
+      )
+
+      // Should show the first line (total) in preview, not skip it
+      expectContent.text('total 19336 (+2 more lines)')
+    })
+
     it('should truncate very long single lines', () => {
       const bashTool = MOCK_TOOLS.bash('echo')
       const longOutput = 'a'.repeat(250)

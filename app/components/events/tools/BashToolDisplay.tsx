@@ -43,8 +43,8 @@ const formatBashResult = (result: unknown): { status: 'success' | 'error', brief
     const brief = line.length > 200 ? line.substring(0, 200) + '…' : line
     return { status: 'success', brief, full: content }
   } else {
-    // For multi-line output, show a more meaningful preview
-    const firstNonEmptyLine = lines.find(line => line.trim() && !line.startsWith('total ')) || lines[0]
+    // For multi-line output, show the first non-empty line
+    const firstNonEmptyLine = lines.find(line => line.trim()) || lines[0]
     const preview = firstNonEmptyLine.length > 80 ? firstNonEmptyLine.substring(0, 80) + '…' : firstNonEmptyLine
     const brief = `${preview} (+${lines.length - 1} more lines)`
     return { status: 'success', brief, full: content }
