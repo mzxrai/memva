@@ -125,34 +125,34 @@ const session = db.select().from(sessions).where(eq(sessions.id, id)).get()
   - [x] No breaking changes to existing APIs
   - [x] TypeScript compilation successful
 
-### Phase 3: Replace Route Database Queries (30 minutes)
+### Phase 3: Replace Route Database Queries (30 minutes) ✅ COMPLETED
 
 **Goal**: Eliminate Pattern 2 violations per CLAUDE.md
 
 **Tasks**:
-- [ ] **Task 3.1**: Update events route
-  - [ ] In `app/routes/events.tsx`:
-    - [ ] Remove `import { getDatabase } from "../db/database"`
-    - [ ] Remove `import { events } from "../db/schema"`
-    - [ ] Remove `import { desc } from "drizzle-orm"`
-    - [ ] Add `import { getRecentEvents, groupEventsBySession } from '../db/events.service'`
-    - [ ] Replace database query with `const recentEvents = await getRecentEvents(500)`
-    - [ ] Replace grouping logic with `const eventsBySession = await groupEventsBySession(recentEvents)`
-  - [ ] **Test**: Manual verification route works correctly
+- [x] **Task 3.1**: Update events route
+  - [x] In `app/routes/events.tsx`:
+    - [x] Remove `import { getDatabase } from "../db/database"`
+    - [x] Remove `import { events } from "../db/schema"`
+    - [x] Remove `import { desc } from "drizzle-orm"`
+    - [x] Add `import { getRecentEvents, groupEventsBySession } from '../db/events.service'`
+    - [x] Replace database query with `const recentEvents = await getRecentEvents(500)`
+    - [x] Replace grouping logic with `const eventsBySession = await groupEventsBySession(recentEvents)`
+  - [x] **Test**: Manual verification route works correctly
 
-- [ ] **Task 3.2**: Update session events route
-  - [ ] In `app/routes/events.$sessionId.tsx`:
-    - [ ] Remove `import { getDatabase } from "../db/database"`
-    - [ ] Remove `import { events } from "../db/schema"`
-    - [ ] Remove `import { eq, asc } from "drizzle-orm"`
-    - [ ] Add `import { getEventsForClaudeSession } from '../db/events.service'`
-    - [ ] Replace database query with `const sessionEvents = await getEventsForClaudeSession(sessionId)`
-  - [ ] **Test**: Manual verification route works correctly
+- [x] **Task 3.2**: Update session events route
+  - [x] In `app/routes/events.$sessionId.tsx`:
+    - [x] Remove `import { getDatabase } from "../db/database"`
+    - [x] Remove `import { events } from "../db/schema"`
+    - [x] Remove `import { eq, asc } from "drizzle-orm"`
+    - [x] Add `import { getEventsForClaudeSession } from '../db/events.service'`
+    - [x] Replace database query with `const sessionEvents = await getEventsForClaudeSession(sessionId)`
+  - [x] **Test**: Manual verification route works correctly
 
-- [ ] **Phase 3 Checkpoint**:
-  - [ ] Both routes work with new service functions
-  - [ ] No Pattern 2 usage remaining
-  - [ ] All tests still pass
+- [x] **Phase 3 Checkpoint**:
+  - [x] Both routes work with new service functions
+  - [x] No Pattern 2 usage remaining
+  - [x] All tests still pass
 
 ### Phase 4: Simplify Test Mocking (20 minutes)
 

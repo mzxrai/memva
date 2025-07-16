@@ -15,9 +15,8 @@ vi.mock('../services/claude-code.service', () => ({
   sendPromptToClaudeCode: vi.fn()
 }))
 
-vi.mock('../db/event-session.service', () => ({
-  getEventsForSession: vi.fn().mockResolvedValue([])
-}))
+// The event-session.service is already mocked by setupDatabaseMocks
+// We just need to make sure the test database is set up correctly
 
 describe('Homepage Initial Prompt Behavior', () => {
   let testDb: TestDatabase
