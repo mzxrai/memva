@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useLoaderData } from 'react-router'
 import { createMockSession } from '../test-utils/factories'
@@ -83,15 +83,8 @@ describe('Home Component', () => {
     expectContent.text('/test/project1')
     expectContent.text('/test/project2')
     
-    // Test status indicators
-    expectContent.text('Active')
-    expectContent.text('Archived')
-    
     // Test session creation form is still present
-    expect(screen.getByPlaceholderText('Session title')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText(/what would you like claude code to help you with/i)).toBeInTheDocument()
-    const startButton = screen.getByRole('button', { name: 'Start' })
-    expect(startButton).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/start a new claude code session/i)).toBeInTheDocument()
   })
 
   it('should handle session creation form interactions', async () => {

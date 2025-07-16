@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
@@ -8,6 +8,7 @@ import { createMockSession } from '../test-utils/factories'
 // Mock react-router - component test with mock data
 vi.mock('react-router', () => ({
   useParams: vi.fn(() => ({ sessionId: 'test-session-id' })),
+  useLoaderData: vi.fn(),
   Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
   Form: ({ children, method, className }: { children: ReactNode; method: string; className?: string }) => <form method={method} className={className}>{children}</form>
 }))
@@ -28,6 +29,8 @@ vi.mock('../services/claude-code.service', () => ({
 
 import { useSessionStatus } from '../hooks/useSessionStatus'
 import { useEventPolling } from '../hooks/useEventPolling'
+import { sendPromptToClaudeCode } from '../services/claude-code.service'
+import { useLoaderData } from 'react-router'
 
 describe('SessionDetail Component', () => {
   beforeEach(() => {
