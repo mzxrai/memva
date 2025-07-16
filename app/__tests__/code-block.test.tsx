@@ -135,6 +135,32 @@ describe('CodeBlock component', () => {
   })
 })
 
+describe('CodeBlock non-diff mode', () => {
+  it('should not treat bash output with dashes as diff', () => {
+    const bashOutput = `total 19336
+drwxr-xr-x@ 36 mbm-premva staff 1152 Jul 16 11:41 .
+drwxr-xr-x  29 mbm-premva staff  928 Jul 15 19:49 ..
+-rw-r--r--@  1 mbm-premva staff   42 Jul 12 19:25 .dockerignore
+-rw-r--r--@  1 mbm-premva staff  189 Jul 13 16:12 .envrc`
+    
+    render(<CodeBlock code={bashOutput} language="text" />)
+    
+    // Should render the content without diff styling
+    expectContent.text('total 19336')
+    expect(screen.getByText(/^-rw-r--r--@.*\.dockerignore$/)).toBeInTheDocument()
+    
+    // Should not have diff indicators (+ or - symbols) rendered separately
+    // The dashes should be part of the actual content, not diff indicators
+    const codeRegion = screen.getByRole('region', { name: /code block/i })
+    expect(codeRegion).toBeInTheDocument()
+    
+    // Check that the content is treated as plain text - no red coloring for "removed" lines
+    const codeLine = screen.getByText(/^-rw-r--r--@.*\.dockerignore$/)
+    expect(codeLine.closest('.code-line')).toHaveClass('border-transparent')
+    expect(codeLine.closest('.code-line')).not.toHaveClass('bg-red-950/20')
+  })
+})
+
 describe('CodeBlock diff mode', () => {
   const diffCode = `- function oldFunction() {
 -   console.log("old");

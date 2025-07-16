@@ -45,14 +45,8 @@ describe('Session Creation', () => {
     render(<Stub />)
 
     await waitFor(() => {
-      const titleInput = screen.getByPlaceholderText(/session title/i)
-      expect(titleInput).toBeInTheDocument()
-      
-      const promptInput = screen.getByPlaceholderText(/what would you like claude code to help/i)
-      expect(promptInput).toBeInTheDocument()
-      
-      const button = screen.getByRole('button', { name: /start/i })
-      expect(button).toBeInTheDocument()
+      const input = screen.getByPlaceholderText(/start a new claude code session/i)
+      expect(input).toBeInTheDocument()
     })
   })
 
@@ -86,12 +80,13 @@ describe('Session Creation', () => {
     // Should redirect to session page and display session details
     await waitFor(() => {
       expect(screen.getByText('Fix authentication bug')).toBeInTheDocument()
-      expect(screen.getByText('Status: active')).toBeInTheDocument()
-      expect(screen.getByText('Project: /Users/mbm-premva/dev/memva')).toBeInTheDocument()
+      expect(screen.getByText('active')).toBeInTheDocument()
+      expect(screen.getByText('/Users/mbm-premva/dev/memva')).toBeInTheDocument()
     })
   })
 
-  it('should create a new session when Start button is clicked', async () => {
+
+  it('should not create session with empty input on Enter press', async () => {
     const user = userEvent.setup()
     
     const Stub = createRoutesStub([

@@ -64,12 +64,12 @@ describe('Homepage Initial Prompt Behavior', () => {
     // Should navigate to session page and display the session with correct title
     await waitFor(() => {
       expect(screen.getByText('Help me implement a new feature')).toBeInTheDocument()
-      expect(screen.getByText('Status: active')).toBeInTheDocument()
-      expect(screen.getByText('Project: /Users/mbm-premva/dev/memva')).toBeInTheDocument()
+      expect(screen.getByText('active')).toBeInTheDocument()
+      expect(screen.getByText('/Users/mbm-premva/dev/memva')).toBeInTheDocument()
     })
   })
 
-  it('should handle session creation from homepage form', async () => {
+  it('should handle session creation from homepage form via Enter key', async () => {
     const user = userEvent.setup()
     
     const Stub = createRoutesStub([
@@ -91,24 +91,19 @@ describe('Homepage Initial Prompt Behavior', () => {
     // Wait for home page to load
     await waitFor(() => screen.getByPlaceholderText(/session title/i))
     
-    // Enter title and prompt, then click Start button
-    const titleInput = screen.getByPlaceholderText(/session title/i)
-    const promptInput = screen.getByPlaceholderText(/what would you like claude code to help/i)
-    const button = screen.getByRole('button', { name: /start/i })
-    
-    await user.type(titleInput, 'Create a React component')
-    await user.type(promptInput, 'Help me create a React component')
-    await user.click(button)
+    // Enter prompt and submit with Enter key
+    const input = screen.getByPlaceholderText(/start a new claude code session/i)
+    await user.type(input, 'Create a React component{Enter}')
 
     // Should navigate to session page and display session details
     await waitFor(() => {
       expect(screen.getByText('Create a React component')).toBeInTheDocument()
-      expect(screen.getByText('Status: active')).toBeInTheDocument()
-      expect(screen.getByText('Project: /Users/mbm-premva/dev/memva')).toBeInTheDocument()
+      expect(screen.getByText('active')).toBeInTheDocument()
+      expect(screen.getByText('/Users/mbm-premva/dev/memva')).toBeInTheDocument()
     })
   })
 
-  it('should show empty session state for new sessions', async () => {
+  it('should show session page with auto-start for new sessions', async () => {
     const user = userEvent.setup()
     
     const Stub = createRoutesStub([
@@ -138,10 +133,11 @@ describe('Homepage Initial Prompt Behavior', () => {
     await user.type(promptInput, 'Test prompt')
     await user.click(screen.getByRole('button', { name: /start/i }))
 
-    // Should show session page with empty message area (no events yet)
+    // Should show session page with session details
     await waitFor(() => {
       expect(screen.getByText('Test session')).toBeInTheDocument()
-      expect(screen.getByText('No messages yet. Start by asking Claude Code something!')).toBeInTheDocument()
+      expect(screen.getByText('active')).toBeInTheDocument()
+      expect(screen.getByText('/Users/mbm-premva/dev/memva')).toBeInTheDocument()
     })
   })
 })

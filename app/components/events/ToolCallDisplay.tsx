@@ -16,7 +16,11 @@ import {
 } from 'react-icons/ri'
 import { colors, typography, radius, transition, iconSize } from '../../constants/design'
 import { CodeBlock } from './CodeBlock'
-import { DiffViewer } from './DiffViewer'
+import { WriteToolDisplay } from './tools/WriteToolDisplay'
+import { EditToolDisplay } from './tools/EditToolDisplay'
+import { BashToolDisplay } from './tools/BashToolDisplay'
+import { ReadToolDisplay } from './tools/ReadToolDisplay'
+import { TodoWriteToolDisplay } from './tools/TodoWriteToolDisplay'
 import type { ToolUseContent } from '../../types/events'
 import clsx from 'clsx'
 
@@ -63,47 +67,14 @@ const getIconTestId = (toolName: string): string => {
   return iconMap[toolName] || 'tools-icon'
 }
 
-/**
- * Reconstructs the original and final file content from MultiEdit operations
- * to create a unified diff with proper line numbers
- */
-function reconstructFileFromMultiEdit(edits: Array<{ old_string: string; new_string: string }>): { 
-  originalContent: string; 
-  finalContent: string 
-} {
-  if (edits.length === 0) {
-    return { originalContent: '', finalContent: '' }
+// Get display name for tool
+const getToolDisplayName = (toolName: string): string => {
+  const displayNames: Record<string, string> = {
+    TodoWrite: 'Update Todos',
   }
-
-  if (edits.length === 1) {
-    // Single edit case
-    return {
-      originalContent: edits[0].old_string,
-      finalContent: edits[0].new_string
-    }
-  }
-
-  // For multiple edits, create a simple but effective reconstruction
-  // Since MultiEdit edits are typically applied to different parts of the same file,
-  // we'll concatenate them with clear separators to show the context
-  
-  const originalParts = edits.map((edit, index) => {
-    // Add a comment to show which edit this is
-    const marker = `// Edit ${index + 1}/${edits.length}`
-    return `${marker}\n${edit.old_string}`
-  })
-  
-  const finalParts = edits.map((edit, index) => {
-    // Add the same comment structure
-    const marker = `// Edit ${index + 1}/${edits.length}`
-    return `${marker}\n${edit.new_string}`
-  })
-  
-  return {
-    originalContent: originalParts.join('\n\n'),
-    finalContent: finalParts.join('\n\n')
-  }
+  return displayNames[toolName] || toolName
 }
+
 
 // Get primary parameter to show in the header
 const getPrimaryParam = (toolName: string, input: unknown): string => {
@@ -140,37 +111,7 @@ const getPrimaryParam = (toolName: string, input: unknown): string => {
 const formatResult = (toolName: string, result: unknown): { status: 'success' | 'error', brief: string, full?: string } => {
   if (!result) return { status: 'success', brief: 'No result' }
   
-  // Handle Bash command results
-  if (toolName === 'Bash' && typeof result === 'object' && result !== null) {
-    const bashResult = result as { stdout?: string, stderr?: string, interrupted?: boolean }
-    if (bashResult.interrupted) {
-      return { status: 'error', brief: '✗ Interrupted', full: bashResult.stdout || bashResult.stderr }
-    }
-    if (bashResult.stderr && bashResult.stderr.trim()) {
-      return { status: 'error', brief: '✗ Error', full: bashResult.stderr }
-    }
-    if (bashResult.stdout) {
-      const lines = bashResult.stdout.trim().split('\n')
-      const firstLine = lines[0] || ''
-      let brief: string
-      if (lines.length > 1) {
-        const preview = firstLine.length > 150 ? firstLine.substring(0, 150) + '…' : firstLine
-        brief = `${preview} (+${lines.length - 1} more)`
-      } else {
-        brief = firstLine.substring(0, 200) + (firstLine.length > 200 ? '…' : '')
-      }
-      return { status: 'success', brief, full: bashResult.stdout }
-    }
-    return { status: 'success', brief: 'Done' }
-  }
   
-  // Handle Read tool results
-  if (toolName === 'Read' && typeof result === 'string') {
-    const lines = result.trim().split('\n')
-    const lineCount = lines.length
-    const brief = `${lineCount} line${lineCount !== 1 ? 's' : ''} loaded`
-    return { status: 'success', brief, full: result }
-  }
   
   // Handle Write/Edit tool results
   if ((toolName === 'Write' || toolName === 'Edit' || toolName === 'MultiEdit') && 
@@ -215,15 +156,6 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
     'interrupted' in result &&
     (result as { interrupted?: boolean }).interrupted === true
   
-  // Debug logging
-  if (isEditTool) {
-    console.log('=== EDIT TOOL DEBUG ===')
-    console.log('Tool name:', toolCall.name)
-    console.log('Has result:', !!result)
-    console.log('Result type:', typeof result)
-    console.log('Result preview:', typeof result === 'string' ? result.substring(0, 200) : result)
-    console.log('isStreaming:', isStreaming)
-  }
   
   // Auto-expand Edit tools when streaming completes
   useEffect(() => {
@@ -265,8 +197,6 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
         }
         
         if (firstMeaningfulLine) {
-          console.log('DEBUG: Looking for first meaningful line:', firstMeaningfulLine)
-          
           // More robust approach: normalize whitespace and try to find the line
           // This handles tabs vs spaces, trailing whitespace, etc.
           const normalizedSearchLine = firstMeaningfulLine.trim()
@@ -282,7 +212,6 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
               
               // Compare normalized content
               if (lineContent === normalizedSearchLine) {
-                console.log('DEBUG: Found exact line match at:', lineNumber)
                 return {
                   startLine: lineNumber,
                   showLineNumbers: true
@@ -290,8 +219,6 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
               }
             }
           }
-          
-          console.log('DEBUG: No exact match found for line:', firstMeaningfulLine)
           
           // Try a more flexible regex approach as fallback
           try {
@@ -303,18 +230,17 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
             const lineMatch = result.match(new RegExp(`(\\d+)→\\s*${escapedLine}`, 'm'))
             if (lineMatch) {
               const startLine = parseInt(lineMatch[1], 10)
-              console.log('DEBUG: Found flexible match at:', startLine)
               return {
                 startLine,
                 showLineNumbers: true
               }
             }
-          } catch (regexError) {
-            console.error('Regex fallback failed:', regexError)
+          } catch {
+            // Regex fallback failed, continue to next fallback
           }
         }
-      } catch (e) {
-        console.error('Error extracting line number:', e)
+      } catch {
+        // Error extracting line number, continue to fallback
       }
     }
     
@@ -322,7 +248,6 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
     const lineNumberMatch = result.match(/(\d+)→/)
     if (lineNumberMatch) {
       const startLine = parseInt(lineNumberMatch[1], 10)
-      console.log('DEBUG: Using fallback line number:', startLine)
       return {
         startLine,
         showLineNumbers: true
@@ -332,30 +257,6 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
     return null
   }, [result, isEditTool, toolCall])
   
-  // Check if this is an Edit tool with diff data AND we have the tool result
-  const isEditWithDiff = isEditTool && 
-    toolCall.input && 
-    typeof toolCall.input === 'object' &&
-    result && // Must have tool result to show diffs
-    (
-      // Single Edit tool format
-      ('old_string' in toolCall.input && 
-       'new_string' in toolCall.input &&
-       typeof toolCall.input.old_string === 'string' &&
-       typeof toolCall.input.new_string === 'string') ||
-      // MultiEdit tool format  
-      ('edits' in toolCall.input &&
-       Array.isArray(toolCall.input.edits) &&
-       toolCall.input.edits.length > 0 &&
-       toolCall.input.edits.every(edit => 
-         typeof edit === 'object' &&
-         edit !== null &&
-         'old_string' in edit &&
-         'new_string' in edit &&
-         typeof edit.old_string === 'string' &&
-         typeof edit.new_string === 'string'
-       ))
-    )
   
   return (
     <div
@@ -385,11 +286,11 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
         {/* Tool name */}
         <span className={clsx(
           typography.font.mono,
-          typography.size.sm,
+          typography.size.base,
           typography.weight.medium,
           colors.text.primary
         )}>
-          {toolCall.name}
+          {getToolDisplayName(toolCall.name)}
         </span>
         
         {/* Status indicator - shows right after tool name */}
@@ -454,47 +355,14 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
         )}
       >
         <div className="py-2">
-          {isEditWithDiff ? (
-            (() => {
-              const input = toolCall.input as Record<string, unknown>
-              
-              // Handle single Edit tool
-              if ('old_string' in input && 'new_string' in input) {
-                return (
-                  <DiffViewer
-                    oldString={input.old_string as string}
-                    newString={input.new_string as string}
-                    fileName={input.file_path as string}
-                    startLineNumber={lineInfo?.startLine || 1}
-                    showLineNumbers={lineInfo?.showLineNumbers ?? true}
-                  />
-                )
-              }
-              
-              // Handle MultiEdit tool - reconstruct full file diff
-              if ('edits' in input && Array.isArray(input.edits)) {
-                const edits = input.edits as Array<{ old_string: string; new_string: string }>
-                const { originalContent, finalContent } = reconstructFileFromMultiEdit(edits)
-                
-                return (
-                  <div>
-                    <div className="text-xs text-zinc-400 mb-2 font-mono">
-                      {edits.length} edit{edits.length !== 1 ? 's' : ''} applied
-                    </div>
-                    <DiffViewer
-                      oldString={originalContent}
-                      newString={finalContent}
-                      fileName={input.file_path as string}
-                      startLineNumber={lineInfo?.startLine || 1}
-                      showLineNumbers={lineInfo?.showLineNumbers ?? true}
-                    />
-                  </div>
-                )
-              }
-              
-              return null
-            })()
-          ) : (
+          <EditToolDisplay
+            toolCall={toolCall}
+            hasResult={hasResult}
+            result={result}
+            lineInfo={lineInfo}
+          />
+          
+          {!isEditTool && (
             <CodeBlock
               code={JSON.stringify(toolCall.input, null, 2)}
               language="json"
@@ -506,7 +374,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       </div>
       
       {/* Result section - minimal inline display */}
-      {formattedResult && (
+      {formattedResult && toolCall.name !== 'Write' && toolCall.name !== 'Bash' && toolCall.name !== 'Read' && toolCall.name !== 'TodoWrite' && (
         <div className="py-2">
           <div className={clsx(
             'flex items-center gap-2',
@@ -555,6 +423,36 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
           )}
         </div>
       )}
+      
+      {/* Write tool file preview section */}
+      <WriteToolDisplay 
+        toolCall={toolCall}
+        hasResult={hasResult}
+        result={result}
+        isStreaming={isStreaming}
+        isError={isError}
+      />
+      
+      {/* Bash tool result section */}
+      <BashToolDisplay 
+        toolCall={toolCall}
+        hasResult={hasResult}
+        result={result}
+      />
+      
+      {/* Read tool result section */}
+      <ReadToolDisplay 
+        toolCall={toolCall}
+        hasResult={hasResult}
+        result={result}
+      />
+      
+      {/* TodoWrite tool result section */}
+      <TodoWriteToolDisplay 
+        toolCall={toolCall}
+        hasResult={hasResult}
+        result={result}
+      />
     </div>
   )
 })

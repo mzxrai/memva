@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import React from 'react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useLoaderData } from 'react-router'
 import { createMockSession } from '../test-utils/factories'
@@ -8,12 +9,12 @@ import Home from '../routes/home'
 // Mock React Router hooks
 vi.mock('react-router', () => ({
   useLoaderData: vi.fn(),
-  Form: ({ children, onSubmit, ...props }: any) => (
+  Form: ({ children, onSubmit, ...props }: { children: React.ReactNode; onSubmit?: (event: React.FormEvent) => void; [key: string]: unknown }) => (
     <form onSubmit={onSubmit} {...props}>
       {children}
     </form>
   ),
-  Link: ({ to, children, ...props }: any) => (
+  Link: ({ to, children, ...props }: { to: string; children: React.ReactNode; [key: string]: unknown }) => (
     <a href={to} {...props}>
       {children}
     </a>
@@ -39,13 +40,8 @@ describe('Home Component', () => {
     expectContent.text('Start working with Claude Code to see your sessions here')
     
     // Test session creation form
-    expect(screen.getByPlaceholderText('Session title')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText(/what would you like claude code to help you with/i)).toBeInTheDocument()
-    
-    // Test button exists but is disabled initially
-    const startButton = screen.getByRole('button', { name: 'Start' })
-    expect(startButton).toBeInTheDocument()
-    expect(startButton).toBeDisabled()
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/start a new claude code session/i)).toBeInTheDocument()
   })
 
   it('should render sessions grid when sessions exist', () => {
@@ -129,7 +125,7 @@ describe('Home Component', () => {
     expect(promptInput).toHaveValue('Help me build a component')
   })
 
-  it('should display session stats when available', () => {
+  it('should display session event count when available', () => {
     // Mock session with stats
     const sessionWithStats = {
       ...createMockSession({ 
@@ -149,14 +145,11 @@ describe('Home Component', () => {
 
     render(<Home />)
 
-    // Test session stats are displayed
-    expectContent.text('5 events')
-    expectContent.text('30 min')
+    // Test session basic info is displayed
+    expectContent.text('Session With Stats')
     
-    // Test event type pills
-    expectContent.text('user: 2')
-    expectContent.text('assistant: 2')
-    expectContent.text('summary: 1')
+    // Test event count is displayed
+    expectContent.text('5 events')
   })
 
   it('should handle untitled sessions gracefully', () => {
