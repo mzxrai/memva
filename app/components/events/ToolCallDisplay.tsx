@@ -217,15 +217,6 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
     'interrupted' in result &&
     (result as { interrupted?: boolean }).interrupted === true
   
-  // Debug logging
-  if (isEditTool) {
-    console.log('=== EDIT TOOL DEBUG ===')
-    console.log('Tool name:', toolCall.name)
-    console.log('Has result:', !!result)
-    console.log('Result type:', typeof result)
-    console.log('Result preview:', typeof result === 'string' ? result.substring(0, 200) : result)
-    console.log('isStreaming:', isStreaming)
-  }
   
   // Auto-expand Edit tools when streaming completes
   useEffect(() => {
@@ -267,8 +258,6 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
         }
         
         if (firstMeaningfulLine) {
-          console.log('DEBUG: Looking for first meaningful line:', firstMeaningfulLine)
-          
           // More robust approach: normalize whitespace and try to find the line
           // This handles tabs vs spaces, trailing whitespace, etc.
           const normalizedSearchLine = firstMeaningfulLine.trim()
@@ -284,7 +273,6 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
               
               // Compare normalized content
               if (lineContent === normalizedSearchLine) {
-                console.log('DEBUG: Found exact line match at:', lineNumber)
                 return {
                   startLine: lineNumber,
                   showLineNumbers: true
@@ -292,8 +280,6 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
               }
             }
           }
-          
-          console.log('DEBUG: No exact match found for line:', firstMeaningfulLine)
           
           // Try a more flexible regex approach as fallback
           try {
@@ -305,18 +291,17 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
             const lineMatch = result.match(new RegExp(`(\\d+)→\\s*${escapedLine}`, 'm'))
             if (lineMatch) {
               const startLine = parseInt(lineMatch[1], 10)
-              console.log('DEBUG: Found flexible match at:', startLine)
               return {
                 startLine,
                 showLineNumbers: true
               }
             }
-          } catch (regexError) {
-            console.error('Regex fallback failed:', regexError)
+          } catch {
+            // Regex fallback failed, continue to next fallback
           }
         }
-      } catch (e) {
-        console.error('Error extracting line number:', e)
+      } catch {
+        // Error extracting line number, continue to fallback
       }
     }
     
@@ -324,7 +309,6 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
     const lineNumberMatch = result.match(/(\d+)→/)
     if (lineNumberMatch) {
       const startLine = parseInt(lineNumberMatch[1], 10)
-      console.log('DEBUG: Using fallback line number:', startLine)
       return {
         startLine,
         showLineNumbers: true

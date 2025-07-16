@@ -281,11 +281,16 @@ describe('ToolCallDisplay component', () => {
       const result = { success: true }
       
       render(
-        <ToolCallDisplay toolCall={writeTool} result={result} />
+        <ToolCallDisplay toolCall={writeTool} result={result} hasResult={true} />
       )
       
-      // Should show success indicator
-      expectContent.text('Updated')
+      // Should show WriteToolDisplay instead of old 'Updated' text
+      expectContent.text('file.ts')
+      expectContent.text('1 line')
+      expectContent.text('11 B')
+      
+      // Should not show the old 'Updated' text anymore
+      expect(screen.queryByText('Updated')).not.toBeInTheDocument()
     })
     
     it('should handle error results gracefully', () => {

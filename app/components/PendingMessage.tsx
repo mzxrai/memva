@@ -1,4 +1,3 @@
-import clsx from 'clsx'
 import { useState, useEffect } from 'react'
 import { RiSparklingLine } from 'react-icons/ri'
 import { BaseEventWrapper } from './events/BaseEventWrapper'
