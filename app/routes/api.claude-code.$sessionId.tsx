@@ -3,6 +3,38 @@ import { getSession, getLatestClaudeSessionId, updateClaudeSessionId } from "../
 import { streamClaudeCodeResponse } from "../services/claude-code.server"
 import { createEventFromMessage, storeEvent } from "../db/events.service"
 
+// GET endpoint for SSE event listening
+export async function loader({ params }: Route.LoaderArgs) {
+  const session = await getSession(params.sessionId)
+  if (!session) {
+    return new Response("Session not found", { status: 404 })
+  }
+
+  const headers = new Headers({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no"
+  })
+
+  // For now, create a simple SSE stream that sends a heartbeat
+  // In a full implementation, this would listen for new events in the database
+  const stream = new ReadableStream({
+    start(controller) {
+      const encoder = new TextEncoder()
+      
+      // Send initial connection message
+      const connectMsg = `data: ${JSON.stringify({ type: 'connection', status: 'connected' })}\n\n`
+      controller.enqueue(encoder.encode(connectMsg))
+      
+      // For now, we'll just keep the connection alive
+      // TODO: Implement actual event streaming from database
+    }
+  })
+
+  return new Response(stream, { headers })
+}
+
 export async function action({ request, params }: Route.ActionArgs) {
   console.log(`[API] Action called for session ${params.sessionId}`)
   

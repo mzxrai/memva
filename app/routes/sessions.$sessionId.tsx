@@ -1,20 +1,26 @@
-import type { Route } from "./+types/sessions.$sessionId";
-import { useParams, Form } from "react-router";
-import { useSessionStatus } from "../hooks/useSessionStatus";
-import { useEventPolling } from "../hooks/useEventPolling";
-import { useState } from "react";
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
+import { useParams, Form, useLoaderData } from "react-router";
+import { useSSEEvents } from "../hooks/useSSEEvents";
+import { useState, useMemo } from "react";
 import { RiSendPlaneFill, RiFolder3Line } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
 import { getSession } from "../db/sessions.service";
 import { getEventsForSession } from "../db/event-session.service";
+import type { AnyEvent } from "../types/events";
 
-export async function loader({ params }: Route.LoaderArgs) {
-  const session = await getSession(params.sessionId);
-  const events = await getEventsForSession(params.sessionId);
+export async function loader({ params }: LoaderFunctionArgs) {
+  const sessionId = params.sessionId;
+  
+  if (!sessionId) {
+    throw new Response("Session ID is required", { status: 400 });
+  }
+  
+  const session = await getSession(sessionId);
+  const events = await getEventsForSession(sessionId);
   return { session, events };
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
+export async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
   const prompt = formData.get('prompt') as string;
   
@@ -22,20 +28,26 @@ export async function action({ request, params }: Route.ActionArgs) {
     return { error: 'Prompt is required' };
   }
 
+  const sessionId = params.sessionId;
+  
+  if (!sessionId) {
+    throw new Response("Session ID is required", { status: 400 });
+  }
+
   // Update session status to processing
   const { updateSession } = await import('../db/sessions.service');
-  await updateSession(params.sessionId, { status: 'active' });
+  await updateSession(sessionId, { status: 'active' });
 
   // Update claude_status to processing
   const { updateSessionClaudeStatus } = await import('../db/sessions.service');
-  await updateSessionClaudeStatus(params.sessionId, 'processing');
+  await updateSessionClaudeStatus(sessionId, 'processing');
 
   // Create session-runner job
   const { createJob } = await import('../db/jobs.service');
   const { createSessionRunnerJob } = await import('../workers/job-types');
   
   const jobInput = createSessionRunnerJob({
-    sessionId: params.sessionId,
+    sessionId: sessionId,
     prompt: prompt.trim()
   });
   
@@ -49,10 +61,86 @@ export async function action({ request, params }: Route.ActionArgs) {
 export default function SessionDetail() {
   const params = useParams();
   const sessionId = params.sessionId as string;
+  const { session, events: initialEvents } = useLoaderData<typeof loader>();
   
-  // Use hooks for polling session status and events
-  const { session } = useSessionStatus(sessionId);
-  const { events } = useEventPolling(sessionId);
+  // Use SSE for real-time new events
+  const { newEvents } = useSSEEvents(sessionId);
+  
+  // Combine initial events from loader with new events from SSE
+  // Remove duplicates by uuid and sort by timestamp
+  const { displayEvents, toolResults } = useMemo(() => {
+    const combined = [...initialEvents, ...newEvents];
+    const unique = combined.filter((event, index, arr) => 
+      arr.findIndex(e => e.uuid === event.uuid) === index
+    );
+    const sorted = unique.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    
+    // Filter out system, result events, and user events that contain only tool results from display
+    const displayEvents = sorted.filter(event => {
+      // Always exclude system and result events
+      if (event.event_type === 'system' || event.event_type === 'result') {
+        return false;
+      }
+      
+      // For user events, exclude if they contain only tool_result content (not actual user messages)
+      if (event.event_type === 'user' && event.data && typeof event.data === 'object') {
+        const data = event.data as Record<string, unknown>;
+        if ('message' in data && typeof data.message === 'object' && data.message) {
+          const message = data.message as Record<string, unknown>;
+          if ('content' in message && Array.isArray(message.content)) {
+            // Check if this user event contains only tool_result items (no text content)
+            const hasNonToolResultContent = message.content.some((item: unknown) => 
+              item && typeof item === 'object' && 'type' in item && item.type !== 'tool_result'
+            );
+            // Exclude if it only has tool_result content
+            if (!hasNonToolResultContent) {
+              return false;
+            }
+          }
+        }
+      }
+      
+      return true;
+    });
+    
+    // Build tool results map by linking tool calls to their results
+    const toolResults = new Map<string, { result: unknown; isError?: boolean }>();
+    
+    // Extract tool results from user events that contain tool_result content
+    sorted.forEach(event => {
+      if (event.event_type === 'user' && event.data && typeof event.data === 'object') {
+        const data = event.data as Record<string, unknown>;
+        
+        // Check if this user event has a message with content array containing tool results
+        if ('message' in data && typeof data.message === 'object' && data.message) {
+          const message = data.message as Record<string, unknown>;
+          if ('content' in message && Array.isArray(message.content)) {
+            // Look for tool_result content items
+            message.content.forEach((item: unknown) => {
+              if (item && typeof item === 'object' && 'type' in item && item.type === 'tool_result') {
+                const toolResult = item as unknown as { tool_use_id: string; content: unknown };
+                if (toolResult.tool_use_id) {
+                  // Map the tool_use_id to the result for lookup by AssistantMessageEvent
+                  // Wrap tool result content in standardized format that components expect
+                  const standardizedResult = {
+                    content: typeof toolResult.content === 'string' ? toolResult.content : JSON.stringify(toolResult.content),
+                    is_error: false
+                  };
+                  
+                  toolResults.set(toolResult.tool_use_id, {
+                    result: standardizedResult,
+                    isError: false
+                  });
+                }
+              }
+            });
+          }
+        }
+      }
+    });
+    
+    return { displayEvents, toolResults };
+  }, [initialEvents, newEvents]);
   
   const [prompt, setPrompt] = useState(""); 
 
@@ -99,17 +187,17 @@ export default function SessionDetail() {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        {events.length === 0 ? (
+        {displayEvents.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             <p className="text-zinc-500">No messages yet. Start by asking Claude Code something!</p>
           </div>
         ) : (
           <div className="min-h-full flex flex-col justify-start pt-6 pb-32">
-            {events.map((event) => (
+            {displayEvents.map((event) => (
               <EventRenderer
                 key={event.uuid}
-                event={event.data as Record<string, unknown>}
-                toolResults={new Map()}
+                event={event as AnyEvent}
+                toolResults={toolResults}
                 isStreaming={false}
               />
             ))}
