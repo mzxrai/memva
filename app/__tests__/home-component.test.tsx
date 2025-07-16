@@ -88,7 +88,10 @@ describe('Home Component', () => {
     expectContent.text('Archived')
     
     // Test session creation form is still present
-    expect(screen.getByRole('textbox')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Session title')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/what would you like claude code to help you with/i)).toBeInTheDocument()
+    const startButton = screen.getByRole('button', { name: 'Start' })
+    expect(startButton).toBeInTheDocument()
   })
 
   it('should handle session creation form interactions', async () => {
@@ -96,13 +99,30 @@ describe('Home Component', () => {
 
     render(<Home />)
 
-    const titleInput = screen.getByRole('textbox')
+    const titleInput = screen.getByPlaceholderText('Session title')
+    const promptInput = screen.getByPlaceholderText(/what would you like claude code to help you with/i)
+    const submitButton = screen.getByRole('button', { name: 'Start' })
 
-    // Test typing in input
+    // Test initial state - button should be disabled
+    expect(submitButton).toBeDisabled()
+
+    // Test typing in title input only
     fireEvent.change(titleInput, { target: { value: 'New Session Title' } })
+    
+    // Button should still be disabled because prompt is empty
+    expect(submitButton).toBeDisabled()
 
-    // Test input value is updated
+    // Test typing in prompt input
+    fireEvent.change(promptInput, { target: { value: 'Help me build a component' } })
+    
+    // Test button becomes enabled when both fields are filled
+    await waitFor(() => {
+      expect(submitButton).toBeEnabled()
+    })
+
+    // Test input values are updated
     expect(titleInput).toHaveValue('New Session Title')
+    expect(promptInput).toHaveValue('Help me build a component')
   })
 
   it('should display session event count when available', () => {
@@ -192,25 +212,39 @@ describe('Home Component', () => {
     expectContent.text('Archived')
   })
 
-  it('should handle form submission via Enter key', async () => {
-    vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
-
-    // Mock the Form component to capture submit events
+  it('should prevent form submission when title or prompt is empty', () => {
     vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
 
     render(<Home />)
 
-    const titleInput = screen.getByRole('textbox')
+    const titleInput = screen.getByPlaceholderText('Session title')
+    const promptInput = screen.getByPlaceholderText(/what would you like claude code to help you with/i)
+    const submitButton = screen.getByRole('button', { name: 'Start' })
 
-    // Test typing in input
-    fireEvent.change(titleInput, { target: { value: 'New Session Title' } })
-    expect(titleInput).toHaveValue('New Session Title')
+    // Test empty inputs
+    fireEvent.change(titleInput, { target: { value: '' } })
+    fireEvent.change(promptInput, { target: { value: '' } })
+    expect(submitButton).toBeDisabled()
 
-    // Test Enter key submission
-    fireEvent.keyDown(titleInput, { key: 'Enter', code: 'Enter' })
-    
-    // The form should still exist and be functional
-    expect(titleInput).toBeInTheDocument()
+    // Test whitespace-only inputs
+    fireEvent.change(titleInput, { target: { value: '   ' } })
+    fireEvent.change(promptInput, { target: { value: '   ' } })
+    expect(submitButton).toBeDisabled()
+
+    // Test valid title but empty prompt
+    fireEvent.change(titleInput, { target: { value: 'Valid Title' } })
+    fireEvent.change(promptInput, { target: { value: '' } })
+    expect(submitButton).toBeDisabled()
+
+    // Test empty title but valid prompt
+    fireEvent.change(titleInput, { target: { value: '' } })
+    fireEvent.change(promptInput, { target: { value: 'Valid prompt' } })
+    expect(submitButton).toBeDisabled()
+
+    // Test valid inputs
+    fireEvent.change(titleInput, { target: { value: 'Valid Title' } })
+    fireEvent.change(promptInput, { target: { value: 'Valid prompt' } })
+    expect(submitButton).toBeEnabled()
   })
 
   it('should handle form accessibility correctly', () => {
@@ -218,15 +252,33 @@ describe('Home Component', () => {
 
     render(<Home />)
 
-    const titleInput = screen.getByRole('textbox')
+    const titleInput = screen.getByPlaceholderText('Session title')
+    const promptInput = screen.getByPlaceholderText(/what would you like claude code to help you with/i)
+    const submitButton = screen.getByRole('button', { name: 'Start' })
 
     // Test form elements are accessible
     expect(titleInput).toBeInTheDocument()
     expect(titleInput).toHaveAttribute('type', 'text')
     expect(titleInput).toHaveAttribute('name', 'title')
     
-    // Test keyboard navigation - input should be focusable
+    expect(promptInput).toBeInTheDocument()
+    expect(promptInput).toHaveAttribute('name', 'prompt')
+    
+    expect(submitButton).toBeInTheDocument()
+    expect(submitButton).toHaveAttribute('type', 'submit')
+    
+    // Test keyboard navigation - just check they can be focused
     titleInput.focus()
     expect(titleInput).toHaveFocus()
+    
+    promptInput.focus()
+    expect(promptInput).toHaveFocus()
+    
+    // Note: disabled buttons cannot be focused, so only test when enabled
+    fireEvent.change(titleInput, { target: { value: 'Test' } })
+    fireEvent.change(promptInput, { target: { value: 'Test prompt' } })
+    expect(submitButton).toBeEnabled()
+    submitButton.focus()
+    expect(submitButton).toHaveFocus()
   })
 })

@@ -169,3 +169,20 @@ export async function updateClaudeSessionId(memvaSessionId: string, claudeSessio
     .where(eq(sessions.id, memvaSessionId))
     .execute()
 }
+
+export async function updateSessionClaudeStatus(sessionId: string, status: string): Promise<void> {
+  // First get the existing session to ensure it exists
+  const existingSession = await getSession(sessionId)
+  if (!existingSession) {
+    throw new Error('Session not found')
+  }
+  
+  await db
+    .update(sessions)
+    .set({ 
+      claude_status: status,
+      updated_at: new Date().toISOString()
+    })
+    .where(eq(sessions.id, sessionId))
+    .execute()
+}

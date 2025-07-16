@@ -32,11 +32,17 @@ export async function loader() {
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const title = formData.get('title') as string;
+  const prompt = formData.get('prompt') as string;
   
   if (!title?.trim()) {
     return { error: 'Title is required' };
   }
   
+  if (!prompt?.trim()) {
+    return { error: 'Prompt is required' };
+  }
+  
+  // Create session with claude_status set to not_started
   const session = await createSession({
     title: title.trim(),
     project_path: '/Users/mbm-premva/dev/memva', // Auto-assigned for now
@@ -45,6 +51,17 @@ export async function action({ request }: Route.ActionArgs) {
       should_auto_start: true
     }
   });
+  
+  // Create session-runner job
+  const { createJob } = await import('../db/jobs.service');
+  const { createSessionRunnerJob } = await import('../workers/job-types');
+  
+  const jobInput = createSessionRunnerJob({
+    sessionId: session.id,
+    prompt: prompt.trim()
+  });
+  
+  await createJob(jobInput);
   
   return redirect(`/sessions/${session.id}`);
 }
@@ -56,9 +73,10 @@ function isSessionWithStats(session: SessionWithStats | { id: string }): session
 export default function Home() {
   const { sessions } = useLoaderData<typeof loader>();
   const [sessionTitle, setSessionTitle] = useState("");
+  const [sessionPrompt, setSessionPrompt] = useState("");
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    if (!sessionTitle.trim()) {
+    if (!sessionTitle.trim() || !sessionPrompt.trim()) {
       e.preventDefault();
     }
   };

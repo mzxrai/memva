@@ -1,7 +1,7 @@
 import type { Route } from "./+types/api.claude-code.$sessionId"
 import { getSession, getLatestClaudeSessionId, updateClaudeSessionId } from "../db/sessions.service"
 import { streamClaudeCodeResponse } from "../services/claude-code.server"
-import { createEventFromMessage, storeEvent } from "../services/events.service"
+import { createEventFromMessage, storeEvent } from "../db/events.service"
 
 export async function action({ request, params }: Route.ActionArgs) {
   console.log(`[API] Action called for session ${params.sessionId}`)

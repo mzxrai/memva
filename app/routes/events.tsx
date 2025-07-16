@@ -1,26 +1,9 @@
 import { Link, useLoaderData } from "react-router"
-import { getDatabase } from "../db/database"
-import { events } from "../db/schema"
-import { desc } from "drizzle-orm"
+import { getRecentEvents, groupEventsBySession } from '../db/events.service'
 
 export async function loader() {
-  const db = getDatabase()
-  
-  const recentEvents = db
-    .select()
-    .from(events)
-    .orderBy(desc(events.timestamp))
-    .limit(500)
-    .all()
-  
-  // Group events by session
-  const eventsBySession = recentEvents.reduce((acc, event) => {
-    if (!acc[event.session_id]) {
-      acc[event.session_id] = []
-    }
-    acc[event.session_id].push(event)
-    return acc
-  }, {} as Record<string, typeof recentEvents>)
+  const recentEvents = await getRecentEvents(500)
+  const eventsBySession = await groupEventsBySession(recentEvents)
   
   return { eventsBySession }
 }

@@ -57,7 +57,8 @@ function initializeSchema() {
       updated_at TEXT NOT NULL,
       status TEXT NOT NULL,
       project_path TEXT NOT NULL,
-      metadata TEXT
+      metadata TEXT,
+      claude_status TEXT DEFAULT 'not_started'
     )
   `)
   
@@ -89,6 +90,7 @@ function initializeSchema() {
     CREATE INDEX IF NOT EXISTS idx_memva_session_id ON events(memva_session_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
     CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at);
+    CREATE INDEX IF NOT EXISTS idx_sessions_claude_status ON sessions(claude_status);
   `)
 }
 
@@ -96,14 +98,25 @@ function runMigrations() {
   if (!sqlite) return
   
   // Check if memva_session_id column exists
-  const columns = sqlite.prepare(`PRAGMA table_info(events)`).all()
-  const hasMemvaSessionId = columns.some((col: unknown) => 
+  const eventsColumns = sqlite.prepare(`PRAGMA table_info(events)`).all()
+  const hasMemvaSessionId = eventsColumns.some((col: unknown) => 
     typeof col === 'object' && col !== null && 'name' in col && (col as { name: string }).name === 'memva_session_id'
   )
   
   if (!hasMemvaSessionId) {
     console.log('Migrating: Adding memva_session_id column to events table')
     sqlite.exec(`ALTER TABLE events ADD COLUMN memva_session_id TEXT`)
+  }
+  
+  // Check if claude_status column exists in sessions table
+  const sessionsColumns = sqlite.prepare(`PRAGMA table_info(sessions)`).all()
+  const hasClaudeStatus = sessionsColumns.some((col: unknown) => 
+    typeof col === 'object' && col !== null && 'name' in col && (col as { name: string }).name === 'claude_status'
+  )
+  
+  if (!hasClaudeStatus) {
+    console.log('Migrating: Adding claude_status column to sessions table')
+    sqlite.exec(`ALTER TABLE sessions ADD COLUMN claude_status TEXT DEFAULT 'not_started'`)
   }
 }
 

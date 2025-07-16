@@ -41,7 +41,8 @@ describe('SessionDetail Loader Integration Tests', () => {
 
     // Call the loader
     const result = await loader({ 
-      params: { sessionId: session.id } 
+      params: { sessionId: session.id },
+      context: {}
     } as any)
 
     expect(result.session).not.toBeNull()
@@ -57,10 +58,11 @@ describe('SessionDetail Loader Integration Tests', () => {
 
     // Call loader with non-existent session ID
     const result = await loader({ 
-      params: { sessionId: 'non-existent-id' } 
+      params: { sessionId: 'non-existent-id' },
+      context: {}
     } as any)
 
-    expect(result.session).toBeNull()
+    expect(result.session).toBe(null)
     expect(result.events).toEqual([])
   })
 
@@ -92,7 +94,8 @@ describe('SessionDetail Loader Integration Tests', () => {
 
     // Call the loader
     const result = await loader({ 
-      params: { sessionId: session.id } 
+      params: { sessionId: session.id },
+      context: {}
     } as any)
 
     expect(result.session).not.toBeNull()

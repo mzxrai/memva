@@ -25,10 +25,11 @@ describe('Home Action', () => {
     // Mock form data
     const formData = new FormData()
     formData.append('title', 'New Session Title')
+    formData.append('prompt', 'Test prompt')
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
-    } as any
+    } as unknown as Request
 
     // Test the action behavior
     const result = await action({ request: mockRequest, params: {}, context: {} })
@@ -56,10 +57,11 @@ describe('Home Action', () => {
     // Mock form data with whitespace
     const formData = new FormData()
     formData.append('title', '  Session With Spaces  ')
+    formData.append('prompt', 'Test prompt')
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
-    } as any
+    } as unknown as Request
 
     // Test the action behavior
     const result = await action({ request: mockRequest, params: {}, context: {} })
@@ -82,7 +84,7 @@ describe('Home Action', () => {
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
-    } as any
+    } as unknown as Request
 
     // Test the action behavior
     const result = await action({ request: mockRequest, params: {}, context: {} })
@@ -102,7 +104,7 @@ describe('Home Action', () => {
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
-    } as any
+    } as unknown as Request
 
     // Test the action behavior
     const result = await action({ request: mockRequest, params: {}, context: {} })
@@ -121,7 +123,7 @@ describe('Home Action', () => {
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
-    } as any
+    } as unknown as Request
 
     // Test the action behavior
     const result = await action({ request: mockRequest, params: {}, context: {} })
@@ -138,10 +140,11 @@ describe('Home Action', () => {
     // Mock form data
     const formData = new FormData()
     formData.append('title', 'Test Session')
+    formData.append('prompt', 'Test prompt')
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
-    } as any
+    } as unknown as Request
 
     // Test the action behavior
     await action({ request: mockRequest, params: {}, context: {} })
@@ -166,6 +169,7 @@ describe('Home Action', () => {
     // Create first session
     const formData1 = new FormData()
     formData1.append('title', 'First Session')
+    formData1.append('prompt', 'First prompt')
     
     const mockRequest1 = {
       formData: vi.fn().mockResolvedValue(formData1)
@@ -176,6 +180,7 @@ describe('Home Action', () => {
     // Create second session
     const formData2 = new FormData()
     formData2.append('title', 'Second Session')
+    formData2.append('prompt', 'Second prompt')
     
     const mockRequest2 = {
       formData: vi.fn().mockResolvedValue(formData2)

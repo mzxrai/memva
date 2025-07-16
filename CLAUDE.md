@@ -55,6 +55,32 @@ I follow TDD with behavior-driven testing and functional programming principles.
 - **Language**: TypeScript (strict mode)
 - **Testing**: Vitest + React Testing Library
 - **State Management**: Immutable patterns
+- **Database**: Service layer pattern with Drizzle ORM
+
+## Database Architecture
+
+### Service Layer Pattern
+
+The database follows a **service layer pattern** for clean separation of concerns:
+
+- **Routes**: Use service functions, never direct database access
+- **Service Layer** (`*.service.ts`): Business logic and data access functions  
+- **Database Layer** (`index.ts`, `database.ts`): Connection management and singleton access
+- **Schema Layer** (`schema.ts`): Table definitions and types
+
+### Public APIs for Database Operations
+
+**Service functions are the public API** for database operations:
+
+```typescript
+// ✅ CORRECT - Use service functions
+import { createSession, getSession } from './db/sessions.service'
+const session = await createSession(data)
+
+// ❌ WRONG - Direct database access
+import { db } from './db/index'
+const session = db.insert(sessions).values(data).run()
+```
 
 ## Testing Principles
 
@@ -210,7 +236,7 @@ expect(element).toHaveClass('font-bold')
 |-----------|----------|--------------|---------|----------------|
 | **Component Tests** | `app/__tests__/*.test.tsx` | `component-name.test.tsx` | Test React component UI behavior | Testing individual components, forms, layouts |
 | **Integration Tests** | `app/__tests__/*.test.ts` | `feature-name.test.ts` | Test complete user workflows | Testing API routes, user journeys, business logic |
-| **Database Tests** | `app/db/*.test.ts` | `module-name.test.ts` | Test database operations directly | Testing queries, migrations, schema changes |
+| **Database Tests** | `app/db/*.test.ts` | `service-name.service.test.ts` | Test service layer functions | Testing service functions, data operations, business logic |
 
 #### Decision Matrix: Which Pattern to Use
 
@@ -235,10 +261,10 @@ expect(element).toHaveClass('font-bold')
 - **With database**: Full workflow with real database operations
 
 **🗄️ Database Tests (`app/db/*.test.ts`)**
-- **What**: Database operations, queries, migrations, schema
-- **When**: Testing data layer functionality, complex queries, database logic
-- **Examples**: Session creation, event storage, data relationships, migrations
-- **Direct database**: Test database operations without UI layer
+- **What**: Service layer functions, data operations, business logic
+- **When**: Testing service functions that encapsulate database operations and business rules
+- **Examples**: Session creation, event storage, data relationships, service function validation
+- **Service layer**: Test service functions that provide the public API for database operations
 
 ## TypeScript Guidelines
 
@@ -627,9 +653,14 @@ const processSession = (session: Session) => {
 2. **Test through public APIs only**
    - API routes: Test HTTP request/response behavior
    - Components: Test user interactions and visible behavior
-   - Database: Test actual database operations with in-memory SQLite
+   - Database: Test service layer functions (the public API for database operations)
 
-3. **Mock external dependencies only**
+3. **Use service layer for database operations**
+   - Routes should use service functions: `createSession()`, `getEventsForSession()`, etc.
+   - Tests should use service functions, not direct database access
+   - Service functions are the correct "public API" for database operations
+
+4. **Mock external dependencies only**
    - Use **setupDatabaseMocks()** for database module mocking
    - Use **MSW** for external HTTP API calls (pre-configured)
    - Never mock internal services or database directly
@@ -695,19 +726,18 @@ describe('User Message Storage Workflow', () => {
 })
 ```
 
-**🗄️ Database Test Example (`app/db/sessions.test.ts`)**
+**🗄️ Database Test Example (`app/db/sessions.service.test.ts`)**
 ```typescript
 import { vi } from 'vitest'
 import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
-import { createMockSession } from '../test-utils/factories'
-import { eq } from 'drizzle-orm'
-import { sessions } from './schema'
 
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
 
-describe('Session Database Operations', () => {
+import { createSession, getSession, updateSession } from './sessions.service'
+
+describe('Sessions Service', () => {
   let testDb: TestDatabase
 
   beforeEach(() => {
@@ -720,14 +750,15 @@ describe('Session Database Operations', () => {
     clearTestDatabase()
   })
 
-  it('should create and retrieve session correctly', () => {
-    const sessionData = createMockSession({ title: 'Test Session' })
+  it('should create and retrieve session correctly', async () => {
+    const sessionData = { title: 'Test Session', project_path: '/test/project' }
     
-    // Test direct database operations
-    testDb.db.insert(sessions).values(sessionData).run()
-    const retrieved = testDb.db.select().from(sessions).where(eq(sessions.id, sessionData.id)).get()
+    // Test service layer functions (the public API for database operations)
+    const created = await createSession(sessionData)
+    const retrieved = await getSession(created.id)
     
-    expect(retrieved).toEqual(sessionData)
+    expect(retrieved).toEqual(created)
+    expect(retrieved?.title).toBe('Test Session')
   })
 })
 ```
@@ -736,8 +767,9 @@ describe('Session Database Operations', () => {
 
 1. **External APIs**: Mock at boundary (MSW, vitest mocks)
 2. **Database**: Use in-memory SQLite (setupInMemoryDb + setupDatabaseMocks + setTestDatabase)
-3. **Internal services**: NEVER mock - use real implementations (follows CLAUDE.md: no unit tests for implementation details)
-4. **Test data**: ALWAYS use factories
+3. **Internal services**: NEVER mock - use real implementations with test database
+4. **Service layer**: Test directly using service functions as the public API for database operations
+5. **Test data**: ALWAYS use factories
 
 ### Async Testing Best Practices
 
@@ -751,6 +783,7 @@ describe('Session Database Operations', () => {
 - **NO "unit tests"** - test expected behavior through public APIs only
 - **NO testing implementation details** - test what users experience, not how code works internally
 - **NO mocking internal services** - use real implementations for internal dependencies
+- **Service layer functions ARE public APIs** - test service functions directly as the correct interface for database operations
 - **Test behavior, not implementation** - focus on business outcomes, not code structure
 
 ## Summary

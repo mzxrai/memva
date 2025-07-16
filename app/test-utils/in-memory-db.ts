@@ -7,7 +7,8 @@ import { sessions, events } from '../db/schema'
 export type TestDatabase = {
   db: ReturnType<typeof drizzle>
   sqlite: Database.Database
-  createSession: (input: { title?: string; project_path: string }) => typeof sessions.$inferInsert & { id: string }
+  createSession: (input: { id?: string; title?: string; project_path: string; claude_status?: string; metadata?: Record<string, unknown> | null }) => typeof sessions.$inferInsert & { id: string }
+  getSession: (sessionId: string) => typeof sessions.$inferSelect | null
   insertEvent: (event: typeof events.$inferInsert) => void
   getEventsForSession: (sessionId: string) => Array<typeof events.$inferSelect>
   cleanup: () => void
@@ -26,7 +27,8 @@ export function setupInMemoryDb(): TestDatabase {
       updated_at TEXT NOT NULL,
       status TEXT NOT NULL,
       project_path TEXT NOT NULL,
-      metadata TEXT
+      metadata TEXT,
+      claude_status TEXT DEFAULT 'not_started'
     )
   `)
   
@@ -45,6 +47,25 @@ export function setupInMemoryDb(): TestDatabase {
     )
   `)
   
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS jobs (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      data TEXT NOT NULL,
+      status TEXT NOT NULL,
+      priority INTEGER DEFAULT 0,
+      attempts INTEGER DEFAULT 0,
+      max_attempts INTEGER DEFAULT 3,
+      error TEXT,
+      result TEXT,
+      scheduled_at TEXT,
+      started_at TEXT,
+      completed_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `)
+  
   // Create indexes
   sqlite.exec(`
     CREATE INDEX IF NOT EXISTS idx_session_id ON events(session_id);
@@ -55,18 +76,25 @@ export function setupInMemoryDb(): TestDatabase {
     CREATE INDEX IF NOT EXISTS idx_memva_session_id ON events(memva_session_id);
     CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
     CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at);
+    CREATE INDEX IF NOT EXISTS idx_sessions_claude_status ON sessions(claude_status);
+    CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
+    CREATE INDEX IF NOT EXISTS idx_jobs_type ON jobs(type);
+    CREATE INDEX IF NOT EXISTS idx_jobs_priority_created ON jobs(priority DESC, created_at ASC);
+    CREATE INDEX IF NOT EXISTS idx_jobs_scheduled_at ON jobs(scheduled_at);
+    CREATE INDEX IF NOT EXISTS idx_jobs_status_priority ON jobs(status, priority DESC);
   `)
   
   // Helper functions
-  const createSession = (input: { title?: string; project_path: string }) => {
+  const createSession = (input: { id?: string; title?: string; project_path: string; claude_status?: string; metadata?: Record<string, unknown> | null }) => {
     const session = {
-      id: crypto.randomUUID(),
+      id: input.id || crypto.randomUUID(),
       title: input.title || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       status: 'active',
       project_path: input.project_path,
-      metadata: null
+      metadata: input.metadata || null,
+      claude_status: input.claude_status || 'not_started'
     }
     db.insert(sessions).values(session).run()
     return session
@@ -74,6 +102,10 @@ export function setupInMemoryDb(): TestDatabase {
 
   const insertEvent = (event: typeof events.$inferInsert) => {
     db.insert(events).values(event).run()
+  }
+
+  const getSession = (sessionId: string) => {
+    return db.select().from(sessions).where(eq(sessions.id, sessionId)).get() || null
   }
 
   const getEventsForSession = (sessionId: string) => {
@@ -88,6 +120,7 @@ export function setupInMemoryDb(): TestDatabase {
     db,
     sqlite,
     createSession,
+    getSession,
     insertEvent,
     getEventsForSession,
     cleanup

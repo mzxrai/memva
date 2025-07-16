@@ -1,7 +1,40 @@
+import { db, events, type Event, type NewEvent } from './index'
+import { eq, desc, asc } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
-import { db, events, type NewEvent } from '../db'
 import type { SDKMessage } from '@anthropic-ai/claude-code'
 
+export async function getRecentEvents(limit: number): Promise<Event[]> {
+  return db
+    .select()
+    .from(events)
+    .orderBy(desc(events.timestamp))
+    .limit(limit)
+    .execute()
+}
+
+export async function getEventsForClaudeSession(sessionId: string): Promise<Event[]> {
+  return db
+    .select()
+    .from(events)
+    .where(eq(events.session_id, sessionId))
+    .orderBy(asc(events.timestamp))
+    .execute()
+}
+
+export async function groupEventsBySession(events: Event[]): Promise<Record<string, Event[]>> {
+  const grouped: Record<string, Event[]> = {}
+  
+  for (const event of events) {
+    if (!grouped[event.session_id]) {
+      grouped[event.session_id] = []
+    }
+    grouped[event.session_id].push(event)
+  }
+  
+  return grouped
+}
+
+// Claude Code integration functions
 type ExtendedMessage = SDKMessage | {
   type: 'user_cancelled'
   content: string
