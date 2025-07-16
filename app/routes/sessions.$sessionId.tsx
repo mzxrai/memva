@@ -14,6 +14,41 @@ export async function loader({ params }: Route.LoaderArgs) {
   return { session, events };
 }
 
+export async function action({ request, params }: Route.ActionArgs) {
+  const formData = await request.formData();
+  const prompt = formData.get('prompt') as string;
+  
+  if (!prompt?.trim()) {
+    return { error: 'Prompt is required' };
+  }
+
+  // Update session status to processing
+  const { updateSession } = await import('../db/sessions.service');
+  await updateSession(params.sessionId, { status: 'active' });
+
+  // Update claude_status to processing
+  const { db, sessions } = await import('../db');
+  const { eq } = await import('drizzle-orm');
+  
+  await db.update(sessions)
+    .set({ claude_status: 'processing' })
+    .where(eq(sessions.id, params.sessionId))
+    .execute();
+
+  // Create session-runner job
+  const { createJob } = await import('../db/jobs.service');
+  const { createSessionRunnerJob } = await import('../workers/job-types');
+  
+  const jobInput = createSessionRunnerJob({
+    sessionId: params.sessionId,
+    prompt: prompt.trim()
+  });
+  
+  await createJob(jobInput);
+  
+  return { success: true };
+}
+
 // The EventRenderer component is already memoized and handles all event types
 
 // Helper function to estimate tokens from text (rough approximation)
