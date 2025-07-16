@@ -114,7 +114,7 @@ const components: Components = {
               borderRadius: '0.5rem',
               fontSize: '0.875rem',
               padding: '1rem',
-              background: 'rgb(24, 24, 27)', // zinc-900 - matches our design system
+              background: 'transparent',
               fontFamily: '"JetBrains Mono", "SF Mono", Monaco, "Courier New", monospace',
             }}
           >

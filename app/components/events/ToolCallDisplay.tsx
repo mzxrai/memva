@@ -17,6 +17,7 @@ import {
 import { colors, typography, radius, transition, iconSize } from '../../constants/design'
 import { CodeBlock } from './CodeBlock'
 import { DiffViewer } from './DiffViewer'
+import { WriteToolDisplay } from './tools/WriteToolDisplay'
 import type { ToolUseContent } from '../../types/events'
 import clsx from 'clsx'
 
@@ -104,6 +105,7 @@ function reconstructFileFromMultiEdit(edits: Array<{ old_string: string; new_str
     finalContent: finalParts.join('\n\n')
   }
 }
+
 
 // Get primary parameter to show in the header
 const getPrimaryParam = (toolName: string, input: unknown): string => {
@@ -506,7 +508,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       </div>
       
       {/* Result section - minimal inline display */}
-      {formattedResult && (
+      {formattedResult && toolCall.name !== 'Write' && (
         <div className="py-2">
           <div className={clsx(
             'flex items-center gap-2',
@@ -555,6 +557,15 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
           )}
         </div>
       )}
+      
+      {/* Write tool file preview section */}
+      <WriteToolDisplay 
+        toolCall={toolCall}
+        hasResult={hasResult}
+        result={result}
+        isStreaming={isStreaming}
+        isError={isError}
+      />
     </div>
   )
 })
