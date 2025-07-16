@@ -22,6 +22,8 @@ export type SessionRunnerJobData = {
 export type MaintenanceJobData = {
   operation: string
   olderThanDays?: number
+  backupPath?: string
+  forceVacuum?: boolean
 }
 
 export type DatabaseVacuumJobData = Record<string, never> // Empty object
