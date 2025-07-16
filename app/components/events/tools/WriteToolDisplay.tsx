@@ -170,7 +170,7 @@ export const WriteToolDisplay = memo(({ toolCall, hasResult, result }: WriteTool
                 'rounded',
                 transition.fast,
                 typography.font.mono,
-                'text-2xs',
+                'text-[0.625rem]', // 10px in rem units
                 colors.text.tertiary
               )}
               aria-label={showWritePreview ? 'Show less' : 'Show all'}
