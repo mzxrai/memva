@@ -1,5 +1,5 @@
 import { query, type SDKMessage } from '@anthropic-ai/claude-code'
-import { createEventFromMessage, storeEvent } from './events.service'
+import { createEventFromMessage, storeEvent } from '../db/events.service'
 
 interface StreamClaudeCodeOptions {
   prompt: string

@@ -6,7 +6,7 @@ This document lists all instances of old/deprecated database access patterns tha
 
 ### 1. Direct Database Access in Routes
 
-#### `app/routes/sessions.$sessionId.tsx` (lines 30-36)
+#### `app/routes/sessions.$sessionId.tsx` (lines 30-36) ✅ **FIXED**
 **Violation**: Direct database import and operation
 ```typescript
 const { db, sessions } = await import('../db');
@@ -18,15 +18,15 @@ await db.update(sessions)
   .execute();
 ```
 
-**Should be changed to**: Use `updateSession()` from `sessions.service.ts`
+**Fixed to**: Use `updateSessionClaudeStatus()` from `sessions.service.ts`
 ```typescript
-import { updateSession } from '../db/sessions.service';
-
-await updateSession(params.sessionId, { claude_status: 'processing' });
+const { updateSessionClaudeStatus } = await import('../db/sessions.service');
+await updateSessionClaudeStatus(params.sessionId, 'processing');
 ```
 
-**Impact**: Route is directly accessing database instead of using service layer
-**Risk**: Medium - Could break if database layer changes
+**Status**: ✅ **COMPLETED** - Fixed in commit `0e8264b`
+**Impact**: Route now uses service layer instead of direct database access
+**Risk**: Resolved
 
 ### 2. Duplicate Service Layer
 
