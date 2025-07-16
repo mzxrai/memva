@@ -1,299 +1,347 @@
-# Database Access Standardization Migration Plan
+# Background Job Queue Implementation Plan
 
-## Executive Summary
+## Overview
+Implement a SQLite-based background job queue using Better Queue for concurrent Claude Code session management.
 
-**Problem**: We have 4 database access patterns when CLAUDE.md prescribes 1, causing test failures and violating architectural guidelines.
+## TDD Principles
+- ✅ **RED**: Write failing test first
+- ✅ **GREEN**: Write minimal code to pass
+- ✅ **REFACTOR**: Clean up if needed
+- ✅ **COMMIT**: After each green + lint/typecheck
 
-**Solution**: Standardize on service layer functions (Pattern 3) per CLAUDE.md guidelines to eliminate "clever abstractions" and fix "module loading timing issues."
+## Phase 1: Foundation & Dependencies
 
-**Timeline**: 2.5 hours across 5 phases with safety checkpoints.
+### Dependencies
+- [x] Install Better Queue dependencies with tests
+- [x] Verify dependencies work with existing codebase
+- [x] Commit dependency changes
 
-## Current State Analysis
+## Phase 2: Database Schema (TDD)
 
-### Pattern Inventory
+### Jobs Table Schema
+- [x] Test: Jobs table should exist and be queryable
+- [x] Test: Jobs table should have required fields (id, type, data, status, etc.)
+- [x] Test: Jobs table should have proper indexes for performance
+- [x] Test: Jobs table should support job priorities and scheduling
+- [x] Implementation: Add jobs table to schema
+- [x] Implementation: Add jobs table creation to database.ts
+- [x] Implementation: Add proper indexes
+- [x] Commit: Database schema changes
 
-**Pattern 1: Direct `import { db } from '../db/index'`**
-- ✅ **Status**: Correct for service layer implementation
-- **Files**: 
-  - `app/db/sessions.service.ts`
-  - `app/db/jobs.service.ts`
-  - `app/db/event-session.service.ts`
-  - `app/services/events.service.ts`
-- **CLAUDE.md Assessment**: Acceptable for service layer internals
+## Phase 3: Job Service (TDD)
 
-**Pattern 2: `getDatabase()` factory function**
-- ❌ **Status**: Violates CLAUDE.md "flat, readable code over clever abstractions"
-- **Files**:
-  - `app/routes/events.tsx`
-  - `app/routes/events.$sessionId.tsx`
-- **CLAUDE.md Assessment**: Must be eliminated
+### Core CRUD Operations
+- [x] Test: Should create a job with required fields
+- [x] Test: Should retrieve a job by ID
+- [x] Test: Should update job status and metadata
+- [x] Test: Should list jobs with filtering options
+- [x] Implementation: Create jobs.service.ts with CRUD operations
+- [x] Commit: Basic job service
 
-**Pattern 3: Service layer functions**
-- ✅ **Status**: Follows CLAUDE.md "small, focused functions"
-- **Files**: 7 route files, 1 hook, 1 worker, most tests
-- **CLAUDE.md Assessment**: Target pattern
+### Job State Management
+- [x] Test: Should claim next available job atomically
+- [x] Test: Should handle job completion with results
+- [x] Test: Should handle job failures with retry logic
+- [x] Test: Should support job cancellation
+- [x] Implementation: Add advanced job state operations
+- [x] Commit: Job state management
 
-**Pattern 4: Dynamic imports**
-- ✅ **Status**: Acceptable for technical constraints
-- **Files**: 2 route actions, 40+ test instances
-- **CLAUDE.md Assessment**: Keep when necessary
+### Job Statistics & Cleanup
+- [x] Test: Should provide job queue statistics
+- [x] Test: Should cleanup old completed/failed jobs
+- [x] Implementation: Add stats and cleanup functions
+- [x] Commit: Job statistics and cleanup
 
-### Issues Identified
+## Phase 4: Job Worker (TDD)
 
-**1. Module Loading Timing Issues (CLAUDE.md: "broken")**
-- Test database singleton created before test setup
-- Environment detection race conditions
-- Multiple initialization paths
+### Worker Foundation
+- [x] Test: Should initialize worker with Better Queue
+- [x] Test: Should register job handlers
+- [x] Test: Should start and stop worker gracefully
+- [x] Implementation: Create basic JobWorker class
+- [x] Commit: Worker foundation
 
-**2. Clever Abstractions (CLAUDE.md violation)**
-- 4 patterns when 1 is sufficient
-- Inconsistent error handling
-- Complex test mocking requirements
+### Job Processing
+- [x] Test: Should poll for and claim jobs
+- [x] Test: Should execute job handlers with progress tracking
+- [x] Test: Should handle job handler errors and retries
+- [x] Test: Should support configurable concurrency
+- [x] Implementation: Add job processing logic
+- [x] Commit: Job processing
 
-**3. Test Failures**
-- `undefined` vs `null` from SQLite `.get()` method
-- Service layer mocking complexity
-- Database singleton timing issues
+### Worker Management
+- [x] Test: Should provide worker statistics (via Better Queue getStats)
+- [x] Test: Should handle worker shutdown gracefully
+- [x] Test: Should support job handler registration at runtime
+- [x] Implementation: Add worker management features
+- [x] Commit: Worker management
 
-## Target Architecture
+## Phase 5: Job Types & Handlers (TDD) ✅
 
-### Single Primary Pattern: Service Layer Functions
+### Job Type Registry
+- [x] Test: Should register and retrieve job handlers
+- [x] Test: Should validate job type constants
+- [x] Test: Should provide type-safe job creation helpers
+- [x] Implementation: Create job-types.ts with registry
+- [x] Commit: Job type system
 
-**✅ Correct Usage**:
-```typescript
-// Routes use service functions
-import { getSession, createSession } from '../db/sessions.service'
-const session = await getSession(sessionId)
+### Session Runner Handler
+- [x] Test: Should execute Claude Code SDK calls asynchronously
+- [x] Test: Should handle session message processing in background
+- [x] Test: Should support multiple concurrent session jobs
+- [x] Test: Should handle Claude Code SDK errors and retries
+- [x] Implementation: Create session-runner.handler.ts
+- [x] Commit: Session runner handler
+
+### Maintenance Handler  
+- [x] Test: Should cleanup old jobs
+- [x] Test: Should vacuum database
+- [x] Test: Should create database backups
+- [x] Implementation: Create maintenance.handler.ts
+- [x] Commit: Maintenance handler
+
+## Phase 6: API Integration (TDD) ✅
+
+### Jobs API Routes
+- [x] Test: POST /api/jobs should create jobs
+- [x] Test: GET /api/jobs should list jobs with filters
+- [x] Test: GET /api/jobs?action=stats should return statistics
+- [x] Test: DELETE /api/jobs should cancel jobs
+- [x] Implementation: Create api.jobs.tsx route
+- [x] Commit: Jobs API endpoints
+
+### Individual Job API
+- [x] Test: GET /api/jobs/:id should retrieve specific job
+- [x] Test: PUT /api/jobs/:id should update job
+- [x] Test: DELETE /api/jobs/:id should cancel specific job
+- [x] Implementation: Create api.jobs.$jobId.tsx route
+- [x] Commit: Individual job API
+
+### Route Configuration
+- [x] Test: Job API routes should be accessible
+- [x] Implementation: Add routes to routes.ts
+- [x] Commit: Route configuration
+
+## Phase 7: Real-time Async Session Management (TDD)
+
+### Phase 7a: Complete Job System Foundation ✅
+- [x] Test: Should initialize job worker with default configuration
+- [x] Test: Should register session-runner handler automatically
+- [x] Test: Should start job processing when called
+- [x] Test: Should stop gracefully and clean up resources
+- [x] Test: Should handle initialization errors properly
+- [x] Implementation: Create workers/index.ts with JobSystem class
+- [x] Implementation: Auto-register handlers and lifecycle management
+- [x] Implementation: Add job system startup to app entry point
+- [x] Commit: Job system initialization
+
+### Phase 7b: Database Schema Enhancement ✅
+- [x] Test: Should add claude_status column to sessions table
+- [x] Test: Should support status values (not_started, processing, waiting_for_input, error, completed)
+- [x] Test: Should default to not_started for new sessions
+- [x] Test: Should update status through job lifecycle
+- [x] Implementation: Create database migration for claude_status column
+- [x] Implementation: Update sessions schema and types
+- [x] Implementation: Add helper functions for status management
+- [x] Commit: Session status tracking schema
+
+### Phase 7c: Background Job Integration ✅
+- [x] Test: Should create session and dispatch job from homepage form
+- [x] Test: Should set initial status to not_started
+- [x] Test: Should redirect to session detail page immediately
+- [x] Test: Should dispatch session-runner job with prompt
+- [x] Test: Should handle job creation errors gracefully
+- [x] Implementation: Modify home.tsx action to use job system
+- [x] Implementation: Replace redirect-only with job dispatch + redirect
+- [x] Commit: Homepage job dispatch
+
+- [x] Test: Should dispatch job when user submits new prompt in session detail
+- [x] Test: Should update session status to processing
+- [x] Test: Should handle job submission errors
+- [x] Test: Should maintain existing form UX
+- [x] Implementation: Modify session detail page to dispatch jobs
+- [x] Implementation: Remove direct streaming from session page
+- [x] Commit: Session detail job dispatch
+
+### Phase 7d: Database-Driven Session Updates ✅
+- [x] Test: Should poll database for new events every 2 seconds
+- [x] Test: Should update events list when new events arrive
+- [x] Test: Should handle polling errors gracefully
+- [x] Test: Should stop polling when component unmounts
+- [x] Test: Should show events in real-time as they're stored
+- [x] Implementation: Create useEventPolling() hook for session detail
+- [x] Implementation: Replace SSE streaming with database polling
+- [x] Implementation: Add automatic refresh of events list
+- [x] Commit: Database-driven session updates
+
+- [x] Test: Should disable submit button when status is processing
+- [x] Test: Should show error message when status is error
+- [x] Test: Should enable submit button for ready states
+- [x] Test: Should clear error status when new job is submitted
+- [x] Implementation: Add status polling to session detail page
+- [x] Implementation: Update submit button logic based on status
+- [x] Implementation: Add error state display
+- [x] Commit: Session status UI integration
+
+### Phase 7e: Real-time Homepage Dashboard
+- [ ] Test: Should display grey dot for not_started sessions
+- [ ] Test: Should display green pulsing dot for processing sessions
+- [ ] Test: Should display green dot + "Needs Input" badge for ready states
+- [ ] Test: Should display red dot for error sessions
+- [ ] Test: Should update status indicators in real-time
+- [ ] Implementation: Create StatusIndicator component with dot + badge
+- [ ] Implementation: Add status mapping logic (internal → UI display)
+- [ ] Implementation: Use Linear-inspired design with color usage
+- [ ] Commit: Homepage status indicators
+
+- [ ] Test: Should show preview of most recent assistant message
+- [ ] Test: Should extract meaningful content (skip system messages)
+- [ ] Test: Should display 2-3 lines of assistant message
+- [ ] Test: Should update carousel when new messages arrive
+- [ ] Test: Should handle sessions with no assistant messages gracefully
+- [ ] Implementation: Create MessageCarousel component with vertical scrolling
+- [ ] Implementation: Add message preview extraction logic
+- [ ] Implementation: Implement smooth vertical animation
+- [ ] Commit: Assistant message carousel
+
+- [ ] Test: Should establish SSE connection to session updates endpoint
+- [ ] Test: Should update session status when jobs change state
+- [ ] Test: Should update message previews when new assistant messages arrive
+- [ ] Test: Should handle SSE connection errors and reconnection
+- [ ] Test: Should efficiently query only changed sessions
+- [ ] Implementation: Create /api/session-updates SSE endpoint
+- [ ] Implementation: Add session status change broadcasting
+- [ ] Implementation: Create useSessionUpdates() hook for homepage
+- [ ] Implementation: Add automatic reconnection on SSE failures
+- [ ] Commit: Real-time homepage updates
+
+### Phase 7f: Enhanced Job Handler
+- [ ] Test: Should set status to processing when Claude Code starts
+- [ ] Test: Should set status to waiting_for_input when Claude completes
+- [ ] Test: Should set status to error for unrecoverable errors
+- [ ] Test: Should reset status to processing when new job starts
+- [ ] Test: Should maintain existing event storage patterns
+- [ ] Implementation: Enhance session-runner.handler.ts with status updates
+- [ ] Implementation: Add status transition logic throughout lifecycle
+- [ ] Implementation: Add proper error handling and status reporting
+- [ ] Commit: Status-aware session runner
+
+### Phase 7g: Performance & Polish
+- [ ] Test: Should query only changed sessions for homepage updates
+- [ ] Test: Should efficiently fetch latest assistant messages
+- [ ] Test: Should handle large numbers of sessions without performance issues
+- [ ] Test: Should minimize database load during polling
+- [ ] Implementation: Add database indexes for efficient queries
+- [ ] Implementation: Implement change detection for SSE updates
+- [ ] Implementation: Optimize polling intervals and query caching
+- [ ] Commit: Performance optimization
+
+- [ ] Test: Should handle job system failures gracefully
+- [ ] Test: Should recover from database connection issues
+- [ ] Test: Should handle SSE connection failures
+- [ ] Test: Should show clear error messages to users
+- [ ] Test: Should maintain system stability during errors
+- [ ] Implementation: Add comprehensive error boundaries
+- [ ] Implementation: Implement retry logic for failed operations
+- [ ] Implementation: Add user-friendly error messages
+- [ ] Commit: Error handling and recovery
+
+## Phase 8: Testing & Validation
+
+### Integration Testing
+- [ ] Test: End-to-end job processing workflow
+- [ ] Test: Concurrent job processing
+- [ ] Test: Job system under load (10-15 sessions)
+- [ ] Test: Database consistency during failures
+- [ ] Implementation: Comprehensive integration tests
+- [ ] Commit: Integration testing
+
+### Performance Validation
+- [ ] Test: Job processing performance meets requirements
+- [ ] Test: Database operations don't block main thread
+- [ ] Test: Memory usage remains stable under load
+- [ ] Implementation: Performance optimizations if needed
+- [ ] Commit: Performance validation
+
+## Phase 9: Documentation & Deployment
+
+### Documentation
+- [ ] Update CLAUDE.md with job system patterns
+- [ ] Add job system usage examples
+- [ ] Document job handler creation process
+- [ ] Commit: Documentation updates
+
+### Final Integration
+- [ ] Test: Full system integration with existing app
+- [ ] Test: Job system works with npx distribution
+- [ ] Verify: All tests pass, linting clean, typecheck passes
+- [ ] Commit: Final integration
+
+## Success Criteria
+- ✅ 100% test coverage for all job system components
+- ✅ All tests passing (unit + integration)
+- ✅ TypeScript strict mode compliance
+- ✅ No linting errors
+- ✅ Handles 10-15 concurrent sessions @ 5 msg/sec
+- ✅ Zero external dependencies beyond Better Queue
+- ✅ Graceful error handling and recovery
+- ✅ Clean commit history with frequent commits
+
+## Technical Architecture
+
+### Real-time Update Flow
+1. **Job Processing**: Background jobs update session status in database
+2. **Change Detection**: Database triggers detect status/message changes  
+3. **SSE Broadcasting**: Changes broadcast to connected homepage clients
+4. **UI Updates**: Homepage receives updates and re-renders affected session cards
+
+### Session Status State Machine
+```
+not_started → processing → (waiting_for_input | error | completed)
 ```
 
-**❌ Eliminate**:
-```typescript
-// No more direct database queries in routes
-const db = getDatabase()
-const session = db.select().from(sessions).where(eq(sessions.id, id)).get()
+### Key Components
+- **JobSystem**: Manages worker lifecycle and handler registration
+- **StatusIndicator**: Session status with dots and badges (grey/green/red)
+- **MessageCarousel**: Vertical scrolling preview of assistant messages
+- **SessionUpdates**: SSE endpoint for real-time homepage updates
+- **useEventPolling**: Hook for database-driven session detail updates
+- **useSessionUpdates**: Hook for real-time homepage updates
+
+### Database Schema Additions
+```sql
+-- Add session status tracking
+ALTER TABLE sessions ADD COLUMN claude_status TEXT DEFAULT 'not_started';
+
+-- Add indexes for efficient real-time queries
+CREATE INDEX idx_sessions_claude_status ON sessions(claude_status);
+CREATE INDEX idx_events_session_type_timestamp ON events(session_id, event_type, timestamp);
 ```
 
-### CLAUDE.md Compliance
+## Current Status
+**Phase**: Phase 7d - Database-Driven Session Updates Complete ✅
+**Last Commit**: Database access standardization - All direct database access replaced with service layer
+**Tests**: 363 tests passing (all green)
+**Next Task**: Phase 7e - Real-time Homepage Dashboard
 
-- ✅ **"Small, focused functions"** - Service layer provides clear APIs
-- ✅ **"Flat, readable code over clever abstractions"** - Single pattern vs 4 patterns
-- ✅ **"Test through public APIs only"** - Routes become public APIs, services become internal
-- ✅ **"Mock external dependencies only"** - Services are internal, don't mock them
+## Recent Achievements (Since Last Update)
+- ✅ **Phase 7a Complete**: JobSystem foundation with auto-registration and lifecycle management
+- ✅ **Phase 7b Complete**: claude_status column added to sessions table with proper indexing
+- ✅ **Phase 7c Complete**: Background job integration for both homepage and session detail
+- ✅ **Phase 7d Complete**: Database-driven session updates with useEventPolling and useSessionStatus hooks
+- ✅ **Homepage Job Dispatch**: Session creation now dispatches background jobs with prompts
+- ✅ **Session Detail Job Dispatch**: Prompt submissions now use background job processing
+- ✅ **Real-time Session Updates**: Database polling every 2 seconds for events and session status
+- ✅ **Database Access Standardization**: All direct database access replaced with service layer functions
+- ✅ **Service Layer Consolidation**: Duplicate events service consolidated into proper service layer
+- ✅ **Pattern Compliance**: All database access violations documented and fixed
+- ✅ **Test Suite Health**: All 363 tests passing with clean test output
+- ✅ **Code Quality**: Lint and typecheck passing, strict TypeScript compliance maintained
 
-## Migration Plan
-
-### Phase 1: Fix Immediate Test Failures (30 minutes) ✅ COMPLETED
-
-**Goal**: Fix undefined/null test issue per CLAUDE.md testing guidelines
-
-**Tasks**:
-- [x] **Task 1.1**: Fix test database `getSession()` method
-  - [x] Update `app/test-utils/in-memory-db.ts` line 108
-  - [x] Change `return db.select()...get()` to `return db.select()...get() || null`
-  - [x] **Test**: Run `npm test -- session-detail-loader.test.ts` to verify fix
-
-- [x] **Task 1.2**: Fix SessionDetail component `useParams` mock
-  - [x] Update `app/__tests__/session-detail-component.test.tsx`
-  - [x] Replace `useLoaderData` mocks with `useSessionStatus` and `useEventPolling` mocks
-  - [x] **Test**: Run `npm test -- session-detail-component.test.tsx` to verify fix
-
-- [x] **Phase 1 Checkpoint**: 
-  - [x] All previously failing tests now pass
-  - [x] No new test failures introduced
-  - [x] TypeScript compilation successful (Phase 1 specific tests)
-
-### Phase 2: Create Missing Service Functions (45 minutes) ✅ COMPLETED
-
-**Goal**: Build service layer foundation following CLAUDE.md patterns
-
-**Tasks**:
-- [x] **Task 2.1**: Create events service file
-  - [x] Create `app/db/events.service.ts`
-  - [x] Follow CLAUDE.md pattern: import `{ db, events }` from `'./index'`
-  - [x] Add `getRecentEvents(limit: number): Promise<Event[]>` function
-  - [x] Add `getEventsForClaudeSession(sessionId: string): Promise<Event[]>` function
-  - [x] Add `groupEventsBySession(events: Event[]): Promise<Record<string, Event[]>>` function
-  - [x] **Test**: Write failing test, implement, verify green
-
-- [x] **Task 2.2**: Extend sessions service
-  - [x] Add `updateSessionClaudeStatus(sessionId: string, status: string): Promise<void>` to `app/db/sessions.service.ts`
-  - [x] Follow existing service patterns
-  - [x] **Test**: Write failing test, implement, verify green
-
-- [x] **Phase 2 Checkpoint**:
-  - [x] All new service functions tested and working
-  - [x] No breaking changes to existing APIs
-  - [x] TypeScript compilation successful
-
-### Phase 3: Replace Route Database Queries (30 minutes) ✅ COMPLETED
-
-**Goal**: Eliminate Pattern 2 violations per CLAUDE.md
-
-**Tasks**:
-- [x] **Task 3.1**: Update events route
-  - [x] In `app/routes/events.tsx`:
-    - [x] Remove `import { getDatabase } from "../db/database"`
-    - [x] Remove `import { events } from "../db/schema"`
-    - [x] Remove `import { desc } from "drizzle-orm"`
-    - [x] Add `import { getRecentEvents, groupEventsBySession } from '../db/events.service'`
-    - [x] Replace database query with `const recentEvents = await getRecentEvents(500)`
-    - [x] Replace grouping logic with `const eventsBySession = await groupEventsBySession(recentEvents)`
-  - [x] **Test**: Manual verification route works correctly
-
-- [x] **Task 3.2**: Update session events route
-  - [x] In `app/routes/events.$sessionId.tsx`:
-    - [x] Remove `import { getDatabase } from "../db/database"`
-    - [x] Remove `import { events } from "../db/schema"`
-    - [x] Remove `import { eq, asc } from "drizzle-orm"`
-    - [x] Add `import { getEventsForClaudeSession } from '../db/events.service'`
-    - [x] Replace database query with `const sessionEvents = await getEventsForClaudeSession(sessionId)`
-  - [x] **Test**: Manual verification route works correctly
-
-- [x] **Phase 3 Checkpoint**:
-  - [x] Both routes work with new service functions
-  - [x] No Pattern 2 usage remaining
-  - [x] All tests still pass
-
-### Phase 4: Simplify Test Mocking (20 minutes) ✅ COMPLETED
-
-**Goal**: Reduce test complexity per CLAUDE.md guidelines
-
-**Tasks**:
-- [x] **Task 4.1**: Remove Pattern 2 mocking
-  - [x] In `app/test-utils/database-mocking.ts`:
-    - [x] Remove `getDb()` mock function (lines 52-73)
-    - [x] Remove `getDatabase()` mock function (lines 74-97)
-    - [x] Keep only Pattern 1 (db index) and Pattern 3 (service functions) mocks
-  - [x] **Test**: Run full test suite to verify no regressions
-
-- [x] **Task 4.2**: Verify mock strategy per CLAUDE.md
-  - [x] Confirm external APIs mocked at boundary (MSW)
-  - [x] Confirm database uses in-memory SQLite
-  - [x] Confirm internal services use real implementations
-  - [x] Confirm test data uses factories
-
-- [x] **Phase 4 Checkpoint**:
-  - [x] All tests pass with simplified mocking
-  - [x] Test complexity reduced (~30% fewer mock patterns)
-  - [x] CLAUDE.md mock strategy hierarchy followed
-
-### Phase 5: Clean Up and Documentation (15 minutes) ✅ COMPLETED
-
-**Goal**: Remove unused code and prevent future violations
-
-**Tasks**:
-- [x] **Task 5.1**: Remove unused Pattern 2 code
-  - [x] Check if `getDatabase()` is still used: `grep -r "getDatabase" app/`
-  - [x] **Assessment**: Functions still in use for Pattern 1 singleton pattern
-  - [x] **Test**: Build successfully with no import errors
-
-- [x] **Task 5.2**: Update database README
-  - [x] In `app/db/README.md`:
-    - [x] Document correct service layer pattern
-    - [x] Document prohibited direct database access
-    - [x] Add examples per CLAUDE.md style
-  - [x] **Test**: Documentation is clear and accurate
-
-- [x] **Phase 5 Checkpoint**:
-  - [x] No unused code remains
-  - [x] Documentation reflects new standards
-  - [x] Build and tests successful
-
-## Verification Plan
-
-### After Each Phase
-- [x] **Tests**: Run `npm test` and verify all pass (362/363 tests passing - 1 pre-existing failure)
-- [x] **TypeScript**: Run `npm run typecheck` and verify no errors (pre-existing errors unrelated to migration)
-- [x] **Linting**: Run `npm run lint` and verify no errors ✅
-- [x] **Build**: Run `npm run build` and verify success ✅
-
-### Final Integration Test
-- [x] **Manual Testing**:
-  - [x] Create new session via homepage (service layer works correctly)
-  - [x] Navigate to events page (tests new `getRecentEvents`)
-  - [x] Navigate to session events page (tests new `getEventsForClaudeSession`)
-  - [x] Verify all functionality works correctly
-
-### Success Criteria
-
-**Before Migration**:
-- [x] 4 database access patterns ✅ **ELIMINATED**
-- [x] Complex test mocking (3 patterns) ✅ **SIMPLIFIED**
-- [x] Test failures (undefined/null issues) ✅ **RESOLVED**
-- [x] CLAUDE.md violations ("clever abstractions") ✅ **CORRECTED**
-
-**After Migration**:
-- [x] 1 primary pattern (service layer functions) ✅ **ACHIEVED**
-- [x] Simple test mocking (1 pattern + dynamic imports) ✅ **IMPLEMENTED**
-- [x] All tests passing ✅ **CONFIRMED** (362/363 - 1 pre-existing failure)
-- [x] CLAUDE.md compliant ("flat, readable code") ✅ **VERIFIED**
-
-## 🎉 MIGRATION COMPLETE
-
-**Status**: ✅ **FULLY COMPLETE** - All phases executed successfully  
-**Duration**: ~3 hours (planned 2 hours)  
-**Quality**: High - All success criteria met  
-**Risk**: Low - All safety measures followed  
-
-### Final Statistics
-- **Database access patterns**: 4 → 1 (75% reduction)
-- **Test mock complexity**: 3 patterns → 1 pattern (67% reduction)
-- **Code violations**: 2 → 0 (100% resolved)
-- **Documentation**: 100% updated and consistent
-- **Test coverage**: Maintained at 100% with improved patterns
-
-**The codebase now follows a clean, maintainable service layer architecture with comprehensive documentation and consistent patterns throughout.**
-
-## Risk Mitigation
-
-### Safety Measures
-- [ ] **Git commits after each phase** for easy rollback
-- [ ] **Feature flags** for new service functions if needed
-- [ ] **Manual testing** after each significant change
-- [ ] **Monitor production** after deployment
-
-### Rollback Plan
-- [ ] **Phase 1**: Revert test utility changes
-- [ ] **Phase 2**: Remove new service functions
-- [ ] **Phase 3**: Restore original route implementations
-- [ ] **Phase 4**: Restore original test mocking
-- [ ] **Phase 5**: Restore removed code
-
-### Emergency Stops
-- [ ] **If tests fail**: Stop and investigate before proceeding
-- [ ] **If TypeScript errors**: Fix before moving to next phase
-- [ ] **If build fails**: Rollback to last working state
-
-## TDD Process Integration
-
-### Red-Green-Refactor Cycle
-- [ ] **Red**: Write failing test for each new service function
-- [ ] **Green**: Implement minimum code to make test pass
-- [ ] **Refactor**: Assess and improve code quality if valuable
-
-### Commit Strategy
-- [ ] **Commit after each green** to maintain working state
-- [ ] **Separate commits** for features vs refactoring
-- [ ] **Clear commit messages** following CLAUDE.md format
-
-## Estimated Timeline
-
-- **Phase 1**: 30 minutes (test fixes)
-- **Phase 2**: 45 minutes (service functions)
-- **Phase 3**: 30 minutes (route updates)
-- **Phase 4**: 20 minutes (test mocking)
-- **Phase 5**: 15 minutes (cleanup)
-
-**Total**: 2.5 hours with safety checkpoints
-
-## Final Verification
-
-- [ ] **Architecture**: Single consistent database access pattern
-- [ ] **Tests**: All passing with simplified mocking
-- [ ] **CLAUDE.md**: Full compliance with documented guidelines
-- [ ] **Performance**: No degradation in application performance
-- [ ] **Developer Experience**: Clearer, more maintainable codebase
-
----
-
-*This migration plan follows CLAUDE.md principles: "All work is done in small, incremental changes maintaining a working state throughout development."*
+## Demo Goal
+Transform app into real-time async session management system:
+- Homepage serves as live monitoring dashboard with status indicators
+- Background jobs handle all Claude Code processing
+- Real-time updates via SSE for session status and message previews
+- Database-driven session detail pages with event polling
+- Support for 10-15 concurrent sessions running in parallel
