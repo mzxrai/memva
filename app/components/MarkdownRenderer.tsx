@@ -114,7 +114,7 @@ const components: Components = {
               borderRadius: '0.5rem',
               fontSize: '0.875rem',
               padding: '1rem',
-              background: 'transparent',
+              background: 'rgba(255, 255, 255, 0.02)', // very subtle white frost on black
               fontFamily: '"JetBrains Mono", "SF Mono", Monaco, "Courier New", monospace',
             }}
           >
