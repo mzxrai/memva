@@ -66,7 +66,7 @@ describe('Homepage Initial Prompt Behavior', () => {
     })
   })
 
-  it('should handle session creation from homepage form', async () => {
+  it('should handle session creation from homepage form via Enter key', async () => {
     const user = userEvent.setup()
     
     const Stub = createRoutesStub([
@@ -88,12 +88,10 @@ describe('Homepage Initial Prompt Behavior', () => {
     // Wait for home page to load
     await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
     
-    // Enter prompt and click Start button
+    // Enter prompt and submit with Enter key
     const input = screen.getByPlaceholderText(/start a new claude code session/i)
-    const button = screen.getByRole('button', { name: /start/i })
     
-    await user.type(input, 'Create a React component')
-    await user.click(button)
+    await user.type(input, 'Create a React component{Enter}')
 
     // Should navigate to session page and display session details
     await waitFor(() => {
@@ -103,7 +101,7 @@ describe('Homepage Initial Prompt Behavior', () => {
     })
   })
 
-  it('should show empty session state for new sessions', async () => {
+  it('should show session page with auto-start for new sessions', async () => {
     const user = userEvent.setup()
     
     const Stub = createRoutesStub([
@@ -129,10 +127,11 @@ describe('Homepage Initial Prompt Behavior', () => {
     const input = screen.getByPlaceholderText(/start a new claude code session/i)
     await user.type(input, 'Test session{Enter}')
 
-    // Should show session page with empty message area (no events yet)
+    // Should show session page with session details
     await waitFor(() => {
       expect(screen.getByText('Test session')).toBeInTheDocument()
-      expect(screen.getByText('No messages yet. Start by asking Claude Code something!')).toBeInTheDocument()
+      expect(screen.getByText('Status: active')).toBeInTheDocument()
+      expect(screen.getByText('Project: /Users/mbm-premva/dev/memva')).toBeInTheDocument()
     })
   })
 })
