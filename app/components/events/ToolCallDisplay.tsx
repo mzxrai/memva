@@ -20,6 +20,7 @@ import { WriteToolDisplay } from './tools/WriteToolDisplay'
 import { EditToolDisplay } from './tools/EditToolDisplay'
 import { BashToolDisplay } from './tools/BashToolDisplay'
 import { ReadToolDisplay } from './tools/ReadToolDisplay'
+import { TodoWriteToolDisplay } from './tools/TodoWriteToolDisplay'
 import type { ToolUseContent } from '../../types/events'
 import clsx from 'clsx'
 
@@ -64,6 +65,14 @@ const getIconTestId = (toolName: string): string => {
     Glob: 'search-icon',
   }
   return iconMap[toolName] || 'tools-icon'
+}
+
+// Get display name for tool
+const getToolDisplayName = (toolName: string): string => {
+  const displayNames: Record<string, string> = {
+    TodoWrite: 'Update Todos',
+  }
+  return displayNames[toolName] || toolName
 }
 
 
@@ -277,11 +286,11 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
         {/* Tool name */}
         <span className={clsx(
           typography.font.mono,
-          typography.size.sm,
+          typography.size.base,
           typography.weight.medium,
           colors.text.primary
         )}>
-          {toolCall.name}
+          {getToolDisplayName(toolCall.name)}
         </span>
         
         {/* Status indicator - shows right after tool name */}
@@ -365,7 +374,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       </div>
       
       {/* Result section - minimal inline display */}
-      {formattedResult && toolCall.name !== 'Write' && toolCall.name !== 'Bash' && toolCall.name !== 'Read' && (
+      {formattedResult && toolCall.name !== 'Write' && toolCall.name !== 'Bash' && toolCall.name !== 'Read' && toolCall.name !== 'TodoWrite' && (
         <div className="py-2">
           <div className={clsx(
             'flex items-center gap-2',
@@ -433,6 +442,13 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       
       {/* Read tool result section */}
       <ReadToolDisplay 
+        toolCall={toolCall}
+        hasResult={hasResult}
+        result={result}
+      />
+      
+      {/* TodoWrite tool result section */}
+      <TodoWriteToolDisplay 
         toolCall={toolCall}
         hasResult={hasResult}
         result={result}
