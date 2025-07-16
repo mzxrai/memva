@@ -45,18 +45,22 @@ describe('Homepage Initial Prompt Behavior', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: sessionDetailLoader as any
+        loader: sessionDetailLoader
       }
     ])
 
     render(<Stub />)
 
     // Wait for home page to load
-    await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
+    await waitFor(() => screen.getByPlaceholderText(/session title/i))
     
-    // Enter initial prompt and submit
-    const input = screen.getByPlaceholderText(/start a new claude code session/i)
-    await user.type(input, 'Help me implement a new feature{Enter}')
+    // Enter title and prompt, then submit
+    const titleInput = screen.getByPlaceholderText(/session title/i)
+    const promptInput = screen.getByPlaceholderText(/what would you like claude code to help/i)
+    
+    await user.type(titleInput, 'Help me implement a new feature')
+    await user.type(promptInput, 'I need help implementing a new feature')
+    await user.click(screen.getByRole('button', { name: /start/i }))
 
     // Should navigate to session page and display the session with correct title
     await waitFor(() => {
@@ -79,20 +83,22 @@ describe('Homepage Initial Prompt Behavior', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: sessionDetailLoader as any
+        loader: sessionDetailLoader
       }
     ])
 
     render(<Stub />)
 
     // Wait for home page to load
-    await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
+    await waitFor(() => screen.getByPlaceholderText(/session title/i))
     
-    // Enter prompt and click Start button
-    const input = screen.getByPlaceholderText(/start a new claude code session/i)
+    // Enter title and prompt, then click Start button
+    const titleInput = screen.getByPlaceholderText(/session title/i)
+    const promptInput = screen.getByPlaceholderText(/what would you like claude code to help/i)
     const button = screen.getByRole('button', { name: /start/i })
     
-    await user.type(input, 'Create a React component')
+    await user.type(titleInput, 'Create a React component')
+    await user.type(promptInput, 'Help me create a React component')
     await user.click(button)
 
     // Should navigate to session page and display session details
@@ -116,18 +122,22 @@ describe('Homepage Initial Prompt Behavior', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: sessionDetailLoader as any
+        loader: sessionDetailLoader
       }
     ])
 
     render(<Stub />)
 
     // Wait for home page to load
-    await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
+    await waitFor(() => screen.getByPlaceholderText(/session title/i))
     
     // Create a new session
-    const input = screen.getByPlaceholderText(/start a new claude code session/i)
-    await user.type(input, 'Test session{Enter}')
+    const titleInput = screen.getByPlaceholderText(/session title/i)
+    const promptInput = screen.getByPlaceholderText(/what would you like claude code to help/i)
+    
+    await user.type(titleInput, 'Test session')
+    await user.type(promptInput, 'Test prompt')
+    await user.click(screen.getByRole('button', { name: /start/i }))
 
     // Should show session page with empty message area (no events yet)
     await waitFor(() => {

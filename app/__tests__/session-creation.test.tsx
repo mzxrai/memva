@@ -45,15 +45,18 @@ describe('Session Creation', () => {
     render(<Stub />)
 
     await waitFor(() => {
-      const input = screen.getByPlaceholderText(/start a new claude code session/i)
-      expect(input).toBeInTheDocument()
+      const titleInput = screen.getByPlaceholderText(/session title/i)
+      expect(titleInput).toBeInTheDocument()
+      
+      const promptInput = screen.getByPlaceholderText(/what would you like claude code to help/i)
+      expect(promptInput).toBeInTheDocument()
       
       const button = screen.getByRole('button', { name: /start/i })
       expect(button).toBeInTheDocument()
     })
   })
 
-  it('should create a new session when Enter is pressed', async () => {
+  it('should create a new session when Enter is pressed on title input', async () => {
     const user = userEvent.setup()
     
     const Stub = createRoutesStub([
@@ -66,16 +69,19 @@ describe('Session Creation', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: sessionDetailLoader as any
+        loader: sessionDetailLoader
       }
     ])
 
     render(<Stub />)
 
-    await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
+    await waitFor(() => screen.getByPlaceholderText(/session title/i))
     
-    const input = screen.getByPlaceholderText(/start a new claude code session/i)
-    await user.type(input, 'Fix authentication bug{Enter}')
+    const titleInput = screen.getByPlaceholderText(/session title/i)
+    const promptInput = screen.getByPlaceholderText(/what would you like claude code to help/i)
+    
+    await user.type(promptInput, 'Help me fix authentication bug')
+    await user.type(titleInput, 'Fix authentication bug{Enter}')
 
     // Should redirect to session page and display session details
     await waitFor(() => {
@@ -98,18 +104,20 @@ describe('Session Creation', () => {
       {
         path: '/sessions/:sessionId',
         Component: SessionDetail,
-        loader: sessionDetailLoader as any
+        loader: sessionDetailLoader
       }
     ])
 
     render(<Stub />)
 
-    await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
+    await waitFor(() => screen.getByPlaceholderText(/session title/i))
 
-    const input = screen.getByPlaceholderText(/start a new claude code session/i)
+    const titleInput = screen.getByPlaceholderText(/session title/i)
+    const promptInput = screen.getByPlaceholderText(/what would you like claude code to help/i)
     const button = screen.getByRole('button', { name: /start/i })
     
-    await user.type(input, 'Implement new feature')
+    await user.type(titleInput, 'Implement new feature')
+    await user.type(promptInput, 'Help me implement a new feature')
     await user.click(button)
 
     // Should redirect to session page and display session details
@@ -142,12 +150,12 @@ describe('Session Creation', () => {
     // Should not redirect - stays on same page
     await new Promise(resolve => setTimeout(resolve, 100))
     
-    const input = screen.getByPlaceholderText(/start a new claude code session/i)
-    expect(input).toBeInTheDocument()
+    const titleInput = screen.getByPlaceholderText(/session title/i)
+    expect(titleInput).toBeInTheDocument()
     expect(screen.getByText('Sessions')).toBeInTheDocument()
   })
 
-  it('should allow typing in the input field', async () => {
+  it('should allow typing in the input fields', async () => {
     const user = userEvent.setup()
     
     const Stub = createRoutesStub([
@@ -160,15 +168,19 @@ describe('Session Creation', () => {
 
     render(<Stub />)
 
-    await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
+    await waitFor(() => screen.getByPlaceholderText(/session title/i))
     
-    const input = screen.getByPlaceholderText(/start a new claude code session/i)
-    await user.type(input, 'Test session title')
+    const titleInput = screen.getByPlaceholderText(/session title/i)
+    const promptInput = screen.getByPlaceholderText(/what would you like claude code to help/i)
+    
+    await user.type(titleInput, 'Test session title')
+    await user.type(promptInput, 'Test prompt')
 
-    expect(input).toHaveValue('Test session title')
+    expect(titleInput).toHaveValue('Test session title')
+    expect(promptInput).toHaveValue('Test prompt')
   })
 
-  it('should disable Start button when input is empty', async () => {
+  it('should disable Start button when inputs are empty', async () => {
     const Stub = createRoutesStub([
       {
         path: '/',
@@ -185,7 +197,7 @@ describe('Session Creation', () => {
     expect(button).toBeDisabled()
   })
 
-  it('should enable Start button when input has text', async () => {
+  it('should enable Start button when both inputs have text', async () => {
     const user = userEvent.setup()
     
     const Stub = createRoutesStub([
@@ -198,14 +210,18 @@ describe('Session Creation', () => {
 
     render(<Stub />)
 
-    await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
+    await waitFor(() => screen.getByPlaceholderText(/session title/i))
     
-    const input = screen.getByPlaceholderText(/start a new claude code session/i)
+    const titleInput = screen.getByPlaceholderText(/session title/i)
+    const promptInput = screen.getByPlaceholderText(/what would you like claude code to help/i)
     const button = screen.getByRole('button', { name: /start/i })
     
     expect(button).toBeDisabled()
     
-    await user.type(input, 'Test session')
-    expect(button).not.toBeDisabled()
+    await user.type(titleInput, 'Test session')
+    expect(button).toBeDisabled() // Still disabled with only title
+    
+    await user.type(promptInput, 'Test prompt')
+    expect(button).not.toBeDisabled() // Enabled with both fields
   })
 })

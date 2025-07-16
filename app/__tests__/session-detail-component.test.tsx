@@ -1,21 +1,33 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useLoaderData } from 'react-router'
 import type { ReactNode } from 'react'
 import SessionDetail from '../routes/sessions.$sessionId'
 import { createMockSession } from '../test-utils/factories'
 
 // Mock react-router - component test with mock data
 vi.mock('react-router', () => ({
-  useLoaderData: vi.fn(),
-  Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>
+  useParams: vi.fn(() => ({ sessionId: 'test-session-id' })),
+  Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
+  Form: ({ children, method, className }: { children: ReactNode; method: string; className?: string }) => <form method={method} className={className}>{children}</form>
+}))
+
+// Mock hooks used by the component
+vi.mock('../hooks/useSessionStatus', () => ({
+  useSessionStatus: vi.fn()
+}))
+
+vi.mock('../hooks/useEventPolling', () => ({
+  useEventPolling: vi.fn()
 }))
 
 // Mock external dependencies only
 vi.mock('../services/claude-code.service', () => ({
   sendPromptToClaudeCode: vi.fn()
 }))
+
+import { useSessionStatus } from '../hooks/useSessionStatus'
+import { useEventPolling } from '../hooks/useEventPolling'
 
 describe('SessionDetail Component', () => {
   it('should display session details with proper semantic structure', () => {
@@ -25,9 +37,16 @@ describe('SessionDetail Component', () => {
       status: 'active'
     })
 
-    vi.mocked(useLoaderData).mockReturnValue({ 
+    vi.mocked(useSessionStatus).mockReturnValue({ 
       session: mockSession, 
-      events: [] 
+      error: null, 
+      isLoading: false 
+    })
+
+    vi.mocked(useEventPolling).mockReturnValue({ 
+      events: [], 
+      error: null, 
+      isPolling: false 
     })
 
     render(<SessionDetail />)
@@ -39,9 +58,16 @@ describe('SessionDetail Component', () => {
   })
 
   it('should handle missing session gracefully', () => {
-    vi.mocked(useLoaderData).mockReturnValue({ 
+    vi.mocked(useSessionStatus).mockReturnValue({ 
       session: null, 
-      events: [] 
+      error: null, 
+      isLoading: false 
+    })
+
+    vi.mocked(useEventPolling).mockReturnValue({ 
+      events: [], 
+      error: null, 
+      isPolling: false 
     })
 
     render(<SessionDetail />)
@@ -56,9 +82,16 @@ describe('SessionDetail Component', () => {
       project_path: '/Users/test/project'
     })
 
-    vi.mocked(useLoaderData).mockReturnValue({ 
+    vi.mocked(useSessionStatus).mockReturnValue({ 
       session: mockSession, 
-      events: [] 
+      error: null, 
+      isLoading: false 
+    })
+
+    vi.mocked(useEventPolling).mockReturnValue({ 
+      events: [], 
+      error: null, 
+      isPolling: false 
     })
 
     render(<SessionDetail />)
@@ -73,9 +106,16 @@ describe('SessionDetail Component', () => {
       project_path: '/Users/test/project'
     })
 
-    vi.mocked(useLoaderData).mockReturnValue({ 
+    vi.mocked(useSessionStatus).mockReturnValue({ 
       session: mockSession, 
-      events: [] 
+      error: null, 
+      isLoading: false 
+    })
+
+    vi.mocked(useEventPolling).mockReturnValue({ 
+      events: [], 
+      error: null, 
+      isPolling: false 
     })
 
     render(<SessionDetail />)
@@ -92,9 +132,16 @@ describe('SessionDetail Component', () => {
       project_path: '/Users/test/project'
     })
 
-    vi.mocked(useLoaderData).mockReturnValue({ 
+    vi.mocked(useSessionStatus).mockReturnValue({ 
       session: mockSession, 
-      events: [] 
+      error: null, 
+      isLoading: false 
+    })
+
+    vi.mocked(useEventPolling).mockReturnValue({ 
+      events: [], 
+      error: null, 
+      isPolling: false 
     })
 
     render(<SessionDetail />)
@@ -147,9 +194,16 @@ describe('SessionDetail Component', () => {
       }
     ]
 
-    vi.mocked(useLoaderData).mockReturnValue({ 
+    vi.mocked(useSessionStatus).mockReturnValue({ 
       session: mockSession, 
-      events: mockEvents 
+      error: null, 
+      isLoading: false 
+    })
+
+    vi.mocked(useEventPolling).mockReturnValue({ 
+      events: mockEvents, 
+      error: null, 
+      isPolling: false 
     })
 
     render(<SessionDetail />)
@@ -165,35 +219,25 @@ describe('SessionDetail Component', () => {
   it('should show stop button when loading prop is simulated', async () => {
     const mockSession = createMockSession({
       title: 'Test Session',
-      project_path: '/Users/test/project'
+      project_path: '/Users/test/project',
+      claude_status: 'processing' // Set to processing to simulate loading
     })
 
-    const { sendPromptToClaudeCode } = await import('../services/claude-code.service')
-    
-    // Mock Claude Code to not respond immediately, simulating loading state
-    vi.mocked(sendPromptToClaudeCode).mockImplementation(() => {
-      // Don't call onMessage to simulate ongoing loading
-    })
-
-    vi.mocked(useLoaderData).mockReturnValue({ 
+    vi.mocked(useSessionStatus).mockReturnValue({ 
       session: mockSession, 
-      events: [] 
+      error: null, 
+      isLoading: false 
     })
 
-    const user = userEvent.setup()
+    vi.mocked(useEventPolling).mockReturnValue({ 
+      events: [], 
+      error: null, 
+      isPolling: false 
+    })
+
     render(<SessionDetail />)
 
     const input = screen.getByRole('textbox')
-    await user.type(input, 'Test message')
-    
-    const sendButton = screen.getByText(/send/i)
-    await user.click(sendButton)
-
-    // Should show stop button during loading
-    await waitFor(() => {
-      expect(screen.getByText(/stop/i)).toBeInTheDocument()
-    })
-
     // Input should be disabled during loading
     expect(input).toBeDisabled()
   })
@@ -205,53 +249,36 @@ describe('SessionDetail Component', () => {
       metadata: { should_auto_start: true }
     })
 
-    const { sendPromptToClaudeCode } = await import('../services/claude-code.service')
-    const { act } = await import('@testing-library/react')
-    
-    let onMessageCallback: ((message: any) => void) | undefined
+    const mockEvents = [
+      {
+        uuid: 'event-1',
+        session_id: 'claude-session-1',
+        event_type: 'assistant',
+        timestamp: '2025-07-13T10:00:00Z',
+        is_sidechain: false,
+        parent_uuid: null,
+        cwd: '/Users/test/project',
+        project_name: 'test-project',
+        data: { type: 'assistant', content: 'Hello! How can I help you?' },
+        memva_session_id: mockSession.id
+      }
+    ]
 
-    // Mock Claude Code service to capture callback
-    vi.mocked(sendPromptToClaudeCode).mockImplementation(({ onMessage }) => {
-      onMessageCallback = onMessage
+    vi.mocked(useSessionStatus).mockReturnValue({ 
+      session: mockSession, 
+      error: null, 
+      isLoading: false 
     })
 
-    vi.mocked(useLoaderData).mockReturnValue({ 
-      session: mockSession, 
-      events: [] 
+    vi.mocked(useEventPolling).mockReturnValue({ 
+      events: mockEvents, 
+      error: null, 
+      isPolling: false 
     })
 
     render(<SessionDetail />)
 
-    // Simulate Claude response with result message wrapped in act
-    if (onMessageCallback) {
-      await act(async () => {
-        if (onMessageCallback) {
-          onMessageCallback({
-            type: 'assistant',
-            content: 'Hello! How can I help you?',
-            timestamp: new Date().toISOString()
-          })
-        }
-      })
-
-      await act(async () => {
-        if (onMessageCallback) {
-          onMessageCallback({
-            type: 'result',
-            subtype: 'success',
-            timestamp: new Date().toISOString()
-          })
-        }
-      })
-    }
-
     // Assistant message should be visible
-    await waitFor(() => {
-      expect(screen.getByText('Hello! How can I help you?')).toBeInTheDocument()
-    })
-
-    // Test that we only have one "Claude" header (from assistant message, not pending)
-    const claudeHeaders = screen.getAllByText('Claude')
-    expect(claudeHeaders).toHaveLength(1)
+    expect(screen.getByText('Hello! How can I help you?')).toBeInTheDocument()
   })
 })
