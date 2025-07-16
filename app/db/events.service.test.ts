@@ -58,26 +58,38 @@ describe('Events Service', () => {
   })
 
   describe('getEventsForClaudeSession', () => {
-    it('should return events for specific Claude session', async () => {
+    it('should return events for specific Claude session ordered by timestamp ascending', async () => {
       const session = testDb.createSession({ project_path: '/test' })
       
-      // Create events for different Claude sessions
+      // Create events for different Claude sessions with different timestamps
       const event1 = createMockEvent({
         session_id: 'claude-session-1',
-        memva_session_id: session.id
+        memva_session_id: session.id,
+        timestamp: '2025-07-16T10:00:00Z'
       })
       const event2 = createMockEvent({
+        session_id: 'claude-session-1',
+        memva_session_id: session.id,
+        timestamp: '2025-07-16T10:02:00Z'
+      })
+      const event3 = createMockEvent({
         session_id: 'claude-session-2',
-        memva_session_id: session.id
+        memva_session_id: session.id,
+        timestamp: '2025-07-16T10:01:00Z'
       })
 
+      testDb.insertEvent(event2) // Insert in non-chronological order
       testDb.insertEvent(event1)
-      testDb.insertEvent(event2)
+      testDb.insertEvent(event3)
 
       const events = await getEventsForClaudeSession('claude-session-1')
 
-      expect(events).toHaveLength(1)
+      expect(events).toHaveLength(2)
       expect(events[0].session_id).toBe('claude-session-1')
+      expect(events[1].session_id).toBe('claude-session-1')
+      // Should be ordered by timestamp ascending (oldest first)
+      expect(events[0].timestamp).toBe('2025-07-16T10:00:00Z')
+      expect(events[1].timestamp).toBe('2025-07-16T10:02:00Z')
     })
 
     it('should return empty array for non-existent Claude session', async () => {

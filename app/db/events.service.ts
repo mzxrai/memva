@@ -1,5 +1,5 @@
 import { db, events, type Event } from './index'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, asc } from 'drizzle-orm'
 
 export async function getRecentEvents(limit: number): Promise<Event[]> {
   return db
@@ -15,7 +15,7 @@ export async function getEventsForClaudeSession(sessionId: string): Promise<Even
     .select()
     .from(events)
     .where(eq(events.session_id, sessionId))
-    .orderBy(desc(events.timestamp))
+    .orderBy(asc(events.timestamp))
     .execute()
 }
 

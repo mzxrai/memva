@@ -1,19 +1,10 @@
 import type { Route } from "./+types/events.$sessionId"
 import { Link, useLoaderData } from "react-router"
-import { getDatabase } from "../db/database"
-import { events } from "../db/schema"
-import { eq, asc } from "drizzle-orm"
+import { getEventsForClaudeSession } from '../db/events.service'
 
 export async function loader({ params }: Route.LoaderArgs) {
-  const db = getDatabase()
   const sessionId = params.sessionId
-  
-  const sessionEvents = db
-    .select()
-    .from(events)
-    .where(eq(events.session_id, sessionId))
-    .orderBy(asc(events.timestamp))
-    .all()
+  const sessionEvents = await getEventsForClaudeSession(sessionId)
   
   return { sessionEvents, sessionId }
 }

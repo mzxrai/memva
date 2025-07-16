@@ -102,28 +102,28 @@ const session = db.select().from(sessions).where(eq(sessions.id, id)).get()
   - [x] No new test failures introduced
   - [x] TypeScript compilation successful (Phase 1 specific tests)
 
-### Phase 2: Create Missing Service Functions (45 minutes)
+### Phase 2: Create Missing Service Functions (45 minutes) ✅ COMPLETED
 
 **Goal**: Build service layer foundation following CLAUDE.md patterns
 
 **Tasks**:
-- [ ] **Task 2.1**: Create events service file
-  - [ ] Create `app/db/events.service.ts`
-  - [ ] Follow CLAUDE.md pattern: import `{ db, events }` from `'./index'`
-  - [ ] Add `getRecentEvents(limit: number): Promise<Event[]>` function
-  - [ ] Add `getEventsForClaudeSession(sessionId: string): Promise<Event[]>` function
-  - [ ] Add `groupEventsBySession(events: Event[]): Promise<Record<string, Event[]>>` function
-  - [ ] **Test**: Write failing test, implement, verify green
+- [x] **Task 2.1**: Create events service file
+  - [x] Create `app/db/events.service.ts`
+  - [x] Follow CLAUDE.md pattern: import `{ db, events }` from `'./index'`
+  - [x] Add `getRecentEvents(limit: number): Promise<Event[]>` function
+  - [x] Add `getEventsForClaudeSession(sessionId: string): Promise<Event[]>` function
+  - [x] Add `groupEventsBySession(events: Event[]): Promise<Record<string, Event[]>>` function
+  - [x] **Test**: Write failing test, implement, verify green
 
-- [ ] **Task 2.2**: Extend sessions service
-  - [ ] Add `updateSessionClaudeStatus(sessionId: string, status: string): Promise<void>` to `app/db/sessions.service.ts`
-  - [ ] Follow existing service patterns
-  - [ ] **Test**: Write failing test, implement, verify green
+- [x] **Task 2.2**: Extend sessions service
+  - [x] Add `updateSessionClaudeStatus(sessionId: string, status: string): Promise<void>` to `app/db/sessions.service.ts`
+  - [x] Follow existing service patterns
+  - [x] **Test**: Write failing test, implement, verify green
 
-- [ ] **Phase 2 Checkpoint**:
-  - [ ] All new service functions tested and working
-  - [ ] No breaking changes to existing APIs
-  - [ ] TypeScript compilation successful
+- [x] **Phase 2 Checkpoint**:
+  - [x] All new service functions tested and working
+  - [x] No breaking changes to existing APIs
+  - [x] TypeScript compilation successful
 
 ### Phase 3: Replace Route Database Queries (30 minutes)
 
