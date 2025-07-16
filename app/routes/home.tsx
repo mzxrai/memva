@@ -2,7 +2,8 @@ import type { Route } from "./+types/home";
 import { Link, useLoaderData, Form, redirect } from "react-router";
 import { listSessions, getSessionWithStats, createSession, type SessionWithStats } from "../db/sessions.service";
 import { formatDistanceToNow } from "date-fns";
-import { RiFolder3Line, RiTimeLine, RiPulseLine, RiArchiveLine } from "react-icons/ri";
+import { RiFolder3Line, RiTimeLine, RiPulseLine } from "react-icons/ri";
+import StatusIndicator from "../components/StatusIndicator";
 import clsx from "clsx";
 import { useState, type FormEvent } from "react";
 
@@ -73,7 +74,7 @@ function isSessionWithStats(session: SessionWithStats | { id: string }): session
 export default function Home() {
   const { sessions } = useLoaderData<typeof loader>();
   const [sessionTitle, setSessionTitle] = useState("");
-  const [sessionPrompt, setSessionPrompt] = useState("");
+  const [sessionPrompt] = useState("");
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     if (!sessionTitle.trim() || !sessionPrompt.trim()) {
@@ -142,19 +143,9 @@ export default function Home() {
                   "gap-4"
                 )}
               >
-                {/* Status Badge */}
+                {/* Status Indicator */}
                 <div className="absolute top-4 right-4">
-                  {session.status === "active" ? (
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-emerald-500">Active</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 text-xs text-zinc-500">
-                      <RiArchiveLine className="w-3 h-3" />
-                      <span>Archived</span>
-                    </div>
-                  )}
+                  <StatusIndicator session={session} />
                 </div>
 
                 {/* Title */}

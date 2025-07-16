@@ -3,7 +3,7 @@ import { useParams, Form } from "react-router";
 import { useSessionStatus } from "../hooks/useSessionStatus";
 import { useEventPolling } from "../hooks/useEventPolling";
 import { useState } from "react";
-import { RiSendPlaneFill } from "react-icons/ri";
+import { RiSendPlaneFill, RiFolder3Line } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
 import { getSession } from "../db/sessions.service";
 import { getEventsForSession } from "../db/event-session.service";
