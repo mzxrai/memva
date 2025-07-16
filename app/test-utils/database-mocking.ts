@@ -25,7 +25,18 @@ export function setupDatabaseMocks(vi: { mock: typeof import('vitest').vi.mock; 
         // Return a no-op database during cleanup instead of throwing
         return {
           insert: () => ({ values: () => ({ execute: () => Promise.resolve() }) }),
-          select: () => ({ from: () => ({ where: () => ({ all: () => [] }) }) })
+          select: () => ({ 
+            from: () => ({ 
+              where: () => ({ 
+                orderBy: () => ({ 
+                  limit: () => ({ 
+                    execute: () => Promise.resolve([])
+                  })
+                }),
+                all: () => [] 
+              })
+            })
+          })
         }
       }
       return currentTestDb.db
@@ -44,7 +55,18 @@ export function setupDatabaseMocks(vi: { mock: typeof import('vitest').vi.mock; 
         // Return a no-op database during cleanup instead of throwing
         return {
           insert: () => ({ values: () => ({ execute: () => Promise.resolve() }) }),
-          select: () => ({ from: () => ({ where: () => ({ all: () => [] }) }) })
+          select: () => ({ 
+            from: () => ({ 
+              where: () => ({ 
+                orderBy: () => ({ 
+                  limit: () => ({ 
+                    execute: () => Promise.resolve([])
+                  })
+                }),
+                all: () => [] 
+              })
+            })
+          })
         }
       }
       return currentTestDb.db
@@ -54,7 +76,18 @@ export function setupDatabaseMocks(vi: { mock: typeof import('vitest').vi.mock; 
         // Return a no-op database during cleanup instead of throwing
         return {
           insert: () => ({ values: () => ({ execute: () => Promise.resolve() }) }),
-          select: () => ({ from: () => ({ where: () => ({ all: () => [] }) }) })
+          select: () => ({ 
+            from: () => ({ 
+              where: () => ({ 
+                orderBy: () => ({ 
+                  limit: () => ({ 
+                    execute: () => Promise.resolve([])
+                  })
+                }),
+                all: () => [] 
+              })
+            })
+          })
         }
       }
       return currentTestDb.db
