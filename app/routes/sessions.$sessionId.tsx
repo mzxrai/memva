@@ -54,8 +54,8 @@ export default function SessionDetail() {
   const { session } = useSessionStatus(sessionId);
   const { events } = useEventPolling(sessionId);
   
-  const [prompt, setPrompt] = useState("");
-  
+  const [prompt, setPrompt] = useState(""); 
+
   if (!session) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -77,10 +77,13 @@ export default function SessionDetail() {
       <div className="px-4 py-6 border-b border-zinc-800">
         <div className="container mx-auto max-w-7xl">
           <h1 className="text-3xl font-semibold text-zinc-100 mb-2">{session.title || 'Untitled Session'}</h1>
-          <div className="text-sm text-zinc-400">
-            <span>Project: {session.project_path}</span>
+          <div className="text-sm text-zinc-400 flex items-center">
+            <span className="flex items-center gap-1.5">
+              <RiFolder3Line className="w-4 h-4 text-zinc-500" />
+              <span className="font-mono">{session.project_path}</span>
+            </span>
             <span className="mx-2">•</span>
-            <span>Status: {session.status}</span>
+            <span className="capitalize">{session.status}</span>
           </div>
         </div>
       </div>

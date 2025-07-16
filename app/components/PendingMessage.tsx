@@ -10,31 +10,30 @@ interface PendingMessageProps {
 }
 
 const actionVerbs = [
-  'Crunching',
+  'Thinking',
+  'Noodling',
+  'Crafting',
+  'Building',
   'Pondering',
-  'Contemplating',
+  'Computing',
+  'Analyzing',
+  'Crunching',
+  'Reasoning',
+  'Wrangling',
+  'Churning',
+  'Processing',
   'Cogitating',
   'Ruminating',
-  'Deliberating',
-  'Noodling',
-  'Percolating',
-  'Brewing',
-  'Vibing',
-  'Processing',
-  'Computing',
-  'Calculating',
-  'Analyzing',
-  'Synthesizing',
-  'Fibberglibbiting',
-  'Mulling over',
-  'Puzzling through',
-  'Deciphering',
   'Unraveling',
   'Dissecting',
-  'Churning through',
-  'Sifting through',
-  'Wrangling',
-  'Untangling'
+  'Untangling',
+  'Evaluating',
+  'Calculating',
+  'Percolating',
+  'Deciphering',
+  'Considering',
+  'Formulating',
+  'Synthesizing'
 ]
 
 function formatElapsedTime(startTime: number): string {
@@ -133,30 +132,40 @@ export function PendingMessage({ tokenCount = 0, startTime }: PendingMessageProp
         <MessageHeader icon={RiSparklingLine} title="Claude" />
         
         {/* Loading indicator content */}
-        <div className="flex items-center text-sm text-zinc-400 font-mono">
+        <div className="inline-grid grid-cols-[auto_7rem_auto_6rem_auto_4rem] items-center gap-3 text-sm text-zinc-400 font-mono">
           {/* Spinner */}
-          <div className="w-4 h-4 mr-3 border-2 border-zinc-600 border-t-zinc-400 rounded-full animate-spin" />
+          <div className="w-4 h-4 border-2 border-zinc-600 border-t-zinc-400 rounded-full animate-spin" />
           
-          {/* Action verb */}
-          <span className="mr-3 animate-pulse">
-            {currentVerb.length > 15 ? currentVerb.substring(0, 15) + '...' : currentVerb + '...'}
+          {/* Action verb - fixed width container */}
+          <div className="min-w-0">
+            <span className="block whitespace-nowrap overflow-hidden text-ellipsis animate-pulse">
+              {currentVerb}...
+            </span>
+          </div>
+          
+          {/* Separator */}
+          <span className="text-zinc-500 justify-self-center">
+            {tokenCount > 0 ? '•' : ''}
           </span>
           
-          {tokenCount > 0 && (
-            <>
-              <span className="text-zinc-500 mr-3">•</span>
-              <span className="mr-3">
-                {formatTokenCount(displayedTokenCount)} tokens
-              </span>
-            </>
-          )}
+          {/* Token count - fixed width container */}
+          <div className="min-w-0 text-center">
+            <span className="block whitespace-nowrap">
+              {tokenCount > 0 ? `${formatTokenCount(displayedTokenCount)} tokens` : ''}
+            </span>
+          </div>
           
-          {startTime && (
-            <>
-              <span className="text-zinc-500 mr-3">•</span>
-              <span>{elapsedTime}</span>
-            </>
-          )}
+          {/* Separator */}
+          <span className="text-zinc-500 justify-self-center">
+            {startTime ? '•' : ''}
+          </span>
+          
+          {/* Elapsed time - fixed width container */}
+          <div className="min-w-0 text-left">
+            <span className="block whitespace-nowrap">
+              {startTime ? elapsedTime : ''}
+            </span>
+          </div>
         </div>
       </MessageContainer>
     </BaseEventWrapper>

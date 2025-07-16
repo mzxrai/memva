@@ -2,7 +2,7 @@ import type { Route } from "./+types/home";
 import { Link, useLoaderData, Form, redirect } from "react-router";
 import { listSessions, getSessionWithStats, createSession, type SessionWithStats } from "../db/sessions.service";
 import { formatDistanceToNow } from "date-fns";
-import { RiFolder3Line, RiTimeLine, RiPulseLine, RiArchiveLine, RiPlayFill } from "react-icons/ri";
+import { RiFolder3Line, RiTimeLine, RiPulseLine, RiArchiveLine } from "react-icons/ri";
 import clsx from "clsx";
 import { useState, type FormEvent } from "react";
 
@@ -94,36 +94,16 @@ export default function Home() {
           <Form 
             method="post" 
             onSubmit={handleSubmit}
-            className="p-4 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-xl space-y-3"
+            className="p-4 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-xl"
           >
-            <div className="flex gap-3">
-              <input
-                type="text"
-                name="title"
-                value={sessionTitle}
-                onChange={(e) => setSessionTitle(e.target.value)}
-                placeholder="Session title"
-                className="flex-1 px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem]"
-              />
-              <button
-                type="submit"
-                disabled={!sessionTitle.trim() || !sessionPrompt.trim()}
-                className="pl-5 pr-7 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium rounded-lg transition-colors focus:outline-none focus:bg-zinc-700 flex items-center gap-2 font-mono text-[0.9375rem] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-zinc-800"
-              >
-                <RiPlayFill className="w-5 h-5" />
-                Start
-              </button>
-            </div>
-            <div>
-              <textarea
-                name="prompt"
-                value={sessionPrompt}
-                onChange={(e) => setSessionPrompt(e.target.value)}
-                placeholder="What would you like Claude Code to help you with? (e.g., 'Build a React component', 'Debug this error', 'Write unit tests')"
-                className="w-full px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem] resize-none"
-                rows={2}
-              />
-            </div>
+            <input
+              type="text"
+              name="title"
+              value={sessionTitle}
+              onChange={(e) => setSessionTitle(e.target.value)}
+              placeholder="Start a new Claude Code session: ask, brainstorm, build"
+              className="w-full px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem]"
+            />
           </Form>
         </div>
 
@@ -156,7 +136,10 @@ export default function Home() {
                   "hover:shadow-lg hover:shadow-zinc-950/50",
                   "transform hover:scale-[1.02]",
                   "transition-all duration-150",
-                  "cursor-pointer"
+                  "cursor-pointer",
+                  "min-h-[200px]",
+                  "grid grid-rows-[1fr_auto_auto_auto]",
+                  "gap-4"
                 )}
               >
                 {/* Status Badge */}
@@ -175,12 +158,12 @@ export default function Home() {
                 </div>
 
                 {/* Title */}
-                <h3 className="text-lg font-medium text-zinc-100 mb-3 pr-20">
+                <h3 className="text-lg font-medium text-zinc-100 pr-20 min-h-[3rem] line-clamp-2">
                   {session.title || "Untitled Session"}
                 </h3>
 
                 {/* Project Path */}
-                <div className="flex items-center gap-2 text-sm text-zinc-400 mb-4">
+                <div className="flex items-center gap-2 text-sm text-zinc-400">
                   <RiFolder3Line className="w-4 h-4 text-zinc-500" />
                   <span className="font-mono text-xs truncate">
                     {session.project_path}
@@ -188,7 +171,7 @@ export default function Home() {
                 </div>
 
                 {/* Created Date */}
-                <div className="flex items-center gap-2 text-sm text-zinc-500 mb-4">
+                <div className="flex items-center gap-2 text-sm text-zinc-500">
                   <RiTimeLine className="w-4 h-4" />
                   <span>
                     {formatDistanceToNow(new Date(session.created_at), {
@@ -197,40 +180,13 @@ export default function Home() {
                   </span>
                 </div>
 
-                {/* Event Stats */}
-                {isSessionWithStats(session) && (
-                  <div className="space-y-3">
-                    {/* Event Count and Duration */}
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-zinc-400">
-                        {session.event_count} event{session.event_count !== 1 ? "s" : ""}
-                      </span>
-                      <span className="text-zinc-500">
-                        {session.duration_minutes} min
-                      </span>
-                    </div>
-
-                    {/* Event Type Pills */}
-                    {Object.keys(session.event_types).length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {Object.entries(session.event_types).map(([type, count]) => (
-                          <span
-                            key={type}
-                            className={clsx(
-                              "px-2 py-1 text-xs rounded-full",
-                              "border",
-                              type === "user" && "bg-blue-500/10 border-blue-500/30 text-blue-400",
-                              type === "assistant" && "bg-purple-500/10 border-purple-500/30 text-purple-400",
-                              type === "summary" && "bg-amber-500/10 border-amber-500/30 text-amber-400"
-                            )}
-                          >
-                            {type}: {count}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* Event Count */}
+                <div className="text-sm text-zinc-400">
+                  {(() => {
+                    const count = isSessionWithStats(session) ? session.event_count : 0;
+                    return `${count} event${count !== 1 ? "s" : ""}`;
+                  })()}
+                </div>
 
                 {/* Hover Gradient */}
                 <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-zinc-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />

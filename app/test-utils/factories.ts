@@ -155,10 +155,19 @@ export function createMockToolUse(toolName: string, input: Record<string, unknow
   }
 }
 
+// Todo item type for TodoWrite factory
+export type TodoItem = {
+  id: string
+  content: string
+  status: 'pending' | 'in_progress' | 'completed'
+  priority: 'high' | 'medium' | 'low'
+}
+
 // Common Tool Use Examples
 export const MOCK_TOOLS = {
   read: (filePath: string) => createMockToolUse('Read', { file_path: filePath }),
   write: (filePath: string, content: string) => createMockToolUse('Write', { file_path: filePath, content }),
   bash: (command: string) => createMockToolUse('Bash', { command }),
-  edit: (filePath: string, oldString: string, newString: string) => createMockToolUse('Edit', { file_path: filePath, old_string: oldString, new_string: newString })
+  edit: (filePath: string, oldString: string, newString: string) => createMockToolUse('Edit', { file_path: filePath, old_string: oldString, new_string: newString }),
+  todoWrite: (todos: TodoItem[]) => createMockToolUse('TodoWrite', { todos })
 }
