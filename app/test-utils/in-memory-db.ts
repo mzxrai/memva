@@ -7,7 +7,8 @@ import { sessions, events } from '../db/schema'
 export type TestDatabase = {
   db: ReturnType<typeof drizzle>
   sqlite: Database.Database
-  createSession: (input: { title?: string; project_path: string; claude_status?: string }) => typeof sessions.$inferInsert & { id: string }
+  createSession: (input: { id?: string; title?: string; project_path: string; claude_status?: string }) => typeof sessions.$inferInsert & { id: string }
+  getSession: (sessionId: string) => typeof sessions.$inferSelect | undefined
   insertEvent: (event: typeof events.$inferInsert) => void
   getEventsForSession: (sessionId: string) => Array<typeof events.$inferSelect>
   cleanup: () => void
@@ -84,9 +85,9 @@ export function setupInMemoryDb(): TestDatabase {
   `)
   
   // Helper functions
-  const createSession = (input: { title?: string; project_path: string; claude_status?: string }) => {
+  const createSession = (input: { id?: string; title?: string; project_path: string; claude_status?: string }) => {
     const session = {
-      id: crypto.randomUUID(),
+      id: input.id || crypto.randomUUID(),
       title: input.title || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -103,6 +104,10 @@ export function setupInMemoryDb(): TestDatabase {
     db.insert(events).values(event).run()
   }
 
+  const getSession = (sessionId: string) => {
+    return db.select().from(sessions).where(eq(sessions.id, sessionId)).get()
+  }
+
   const getEventsForSession = (sessionId: string) => {
     return db.select().from(events).where(eq(events.memva_session_id, sessionId)).all()
   }
@@ -115,6 +120,7 @@ export function setupInMemoryDb(): TestDatabase {
     db,
     sqlite,
     createSession,
+    getSession,
     insertEvent,
     getEventsForSession,
     cleanup

@@ -95,6 +95,52 @@ export function setupDatabaseMocks(vi: { mock: typeof import('vitest').vi.mock; 
     closeDatabase: vi.fn(),
     resetDatabase: vi.fn()
   }))
+
+  // Mock database service modules to use the test database
+  vi.mock('../db/event-session.service', async () => {
+    const actual = await vi.importActual('../db/event-session.service') as any
+    return {
+      ...actual,
+      getEventsForSession: vi.fn(async (sessionId: string) => {
+        if (!currentTestDb) return []
+        return currentTestDb.getEventsForSession(sessionId)
+      }),
+      associateEventsWithSession: vi.fn(async (eventIds: string[], sessionId: string) => {
+        if (!currentTestDb) return 0
+        // Use the actual implementation but with test database
+        const { associateEventsWithSession } = actual
+        return associateEventsWithSession(eventIds, sessionId)
+      }),
+      getClaudeSessionsForMemvaSession: vi.fn(async (sessionId: string) => {
+        if (!currentTestDb) return []
+        // Use the actual implementation but with test database
+        const { getClaudeSessionsForMemvaSession } = actual
+        return getClaudeSessionsForMemvaSession(sessionId)
+      })
+    }
+  })
+
+  // Mock sessions service to use test database
+  vi.mock('../db/sessions.service', async () => {
+    const actual = await vi.importActual('../db/sessions.service') as any
+    return {
+      ...actual,
+      getSession: vi.fn(async (sessionId: string) => {
+        if (!currentTestDb) return null
+        return currentTestDb.getSession(sessionId)
+      }),
+      createSession: vi.fn(async (sessionData: any) => {
+        if (!currentTestDb) return sessionData
+        return currentTestDb.createSession(sessionData)
+      }),
+      updateSession: vi.fn(async (sessionId: string, updates: any) => {
+        if (!currentTestDb) return sessionId
+        // Use the actual implementation but with test database
+        const { updateSession } = actual
+        return updateSession(sessionId, updates)
+      })
+    }
+  })
 }
 
 /**
