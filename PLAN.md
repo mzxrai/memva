@@ -154,28 +154,28 @@ const session = db.select().from(sessions).where(eq(sessions.id, id)).get()
   - [x] No Pattern 2 usage remaining
   - [x] All tests still pass
 
-### Phase 4: Simplify Test Mocking (20 minutes)
+### Phase 4: Simplify Test Mocking (20 minutes) ✅ COMPLETED
 
 **Goal**: Reduce test complexity per CLAUDE.md guidelines
 
 **Tasks**:
-- [ ] **Task 4.1**: Remove Pattern 2 mocking
-  - [ ] In `app/test-utils/database-mocking.ts`:
-    - [ ] Remove `getDb()` mock function (lines 52-73)
-    - [ ] Remove `getDatabase()` mock function (lines 74-97)
-    - [ ] Keep only Pattern 1 (db index) and Pattern 3 (service functions) mocks
-  - [ ] **Test**: Run full test suite to verify no regressions
+- [x] **Task 4.1**: Remove Pattern 2 mocking
+  - [x] In `app/test-utils/database-mocking.ts`:
+    - [x] Remove `getDb()` mock function (lines 52-73)
+    - [x] Remove `getDatabase()` mock function (lines 74-97)
+    - [x] Keep only Pattern 1 (db index) and Pattern 3 (service functions) mocks
+  - [x] **Test**: Run full test suite to verify no regressions
 
-- [ ] **Task 4.2**: Verify mock strategy per CLAUDE.md
-  - [ ] Confirm external APIs mocked at boundary (MSW)
-  - [ ] Confirm database uses in-memory SQLite
-  - [ ] Confirm internal services use real implementations
-  - [ ] Confirm test data uses factories
+- [x] **Task 4.2**: Verify mock strategy per CLAUDE.md
+  - [x] Confirm external APIs mocked at boundary (MSW)
+  - [x] Confirm database uses in-memory SQLite
+  - [x] Confirm internal services use real implementations
+  - [x] Confirm test data uses factories
 
-- [ ] **Phase 4 Checkpoint**:
-  - [ ] All tests pass with simplified mocking
-  - [ ] Test complexity reduced (~30% fewer mock patterns)
-  - [ ] CLAUDE.md mock strategy hierarchy followed
+- [x] **Phase 4 Checkpoint**:
+  - [x] All tests pass with simplified mocking
+  - [x] Test complexity reduced (~30% fewer mock patterns)
+  - [x] CLAUDE.md mock strategy hierarchy followed
 
 ### Phase 5: Clean Up and Documentation (15 minutes)
 
