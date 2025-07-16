@@ -251,11 +251,11 @@ describe('Job Worker Processing', () => {
         activeJobs.add(job.id)
         maxConcurrentJobs.value = Math.max(maxConcurrentJobs.value, activeJobs.size)
         
-        // Simulate work
+        // Simulate longer work to ensure jobs overlap
         setTimeout(() => {
           activeJobs.delete(job.id)
           callback(null, { processed: true })
-        }, 200)
+        }, 800)
       })
       worker.registerHandler('concurrent-job', testHandler)
       
@@ -267,7 +267,7 @@ describe('Job Worker Processing', () => {
       await worker.start()
       
       // Wait for all jobs to complete
-      await waitForCondition(() => testHandler.mock.calls.length >= 5, 5000)
+      await waitForCondition(() => testHandler.mock.calls.length >= 5, 8000)
       
       // Should have processed multiple jobs concurrently
       expect(maxConcurrentJobs.value).toBeGreaterThanOrEqual(3)
@@ -293,7 +293,7 @@ describe('Job Worker Processing', () => {
         setTimeout(() => {
           activeJobs.delete(job.id)
           callback(null, { processed: true })
-        }, 300)
+        }, 1000)
       })
       worker.registerHandler('limited-job', testHandler)
       
@@ -304,8 +304,8 @@ describe('Job Worker Processing', () => {
       
       await worker.start()
       
-      // Wait for all jobs to complete
-      await waitForCondition(() => testHandler.mock.calls.length >= 6, 10000)
+      // Wait for all jobs to complete  
+      await waitForCondition(() => testHandler.mock.calls.length >= 6, 12000)
       
       // Should never exceed the concurrency limit
       expect(maxConcurrentJobs.value).toBeLessThanOrEqual(2)

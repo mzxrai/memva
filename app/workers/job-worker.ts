@@ -34,7 +34,7 @@ export class JobWorker {
     // Initialize polling queue to claim jobs from database
     this.pollingQueue = new Queue(this.pollForJobs.bind(this), {
       concurrent: 1, // Only one polling operation at a time
-      afterProcessDelay: 1000 // Poll every second
+      afterProcessDelay: 200 // Poll more frequently for better concurrency
     })
   }
 
@@ -91,7 +91,7 @@ export class JobWorker {
       if (this._isRunning) {
         this.pollingQueue.push('poll')
       }
-    }, 1000)
+    }, 200)
     
     // Initial poll
     this.pollingQueue.push('poll')
@@ -111,10 +111,19 @@ export class JobWorker {
         return
       }
 
-      // Try to claim a job from the database
-      const claimedJob = await claimNextJob()
+      // Calculate how many jobs we can claim based on current queue capacity
+      const stats = this.queue.getStats()
+      const runningJobs = stats.running || 0
+      const availableSlots = this.config.concurrent - runningJobs
       
-      if (claimedJob) {
+      // Claim multiple jobs if we have capacity
+      for (let i = 0; i < availableSlots; i++) {
+        const claimedJob = await claimNextJob()
+        
+        if (!claimedJob) {
+          break // No more jobs available
+        }
+        
         // Check if we have a handler for this job type
         const handler = this.handlers.get(claimedJob.type)
         
