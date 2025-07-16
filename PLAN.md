@@ -62,19 +62,19 @@ Implement a SQLite-based background job queue using Better Queue for concurrent 
 - [x] Commit: Worker foundation
 
 ### Job Processing
-- [ ] Test: Should poll for and claim jobs
-- [ ] Test: Should execute job handlers with progress tracking
-- [ ] Test: Should handle job handler errors and retries
-- [ ] Test: Should support configurable concurrency
-- [ ] Implementation: Add job processing logic
-- [ ] Commit: Job processing
+- [x] Test: Should poll for and claim jobs
+- [x] Test: Should execute job handlers with progress tracking
+- [x] Test: Should handle job handler errors and retries
+- [x] Test: Should support configurable concurrency
+- [x] Implementation: Add job processing logic
+- [x] Commit: Job processing
 
 ### Worker Management
-- [ ] Test: Should provide worker statistics
-- [ ] Test: Should handle worker shutdown gracefully
-- [ ] Test: Should support job handler registration at runtime
-- [ ] Implementation: Add worker management features
-- [ ] Commit: Worker management
+- [x] Test: Should provide worker statistics (via Better Queue getStats)
+- [x] Test: Should handle worker shutdown gracefully
+- [x] Test: Should support job handler registration at runtime
+- [x] Implementation: Add worker management features
+- [x] Commit: Worker management
 
 ## Phase 5: Job Types & Handlers (TDD)
 
@@ -180,6 +180,6 @@ Implement a SQLite-based background job queue using Better Queue for concurrent 
 - ✅ Clean commit history with frequent commits
 
 ## Current Status
-**Phase**: Completed Phase 4 - Job Worker Foundation ✅
-**Last Commit**: Job worker foundation implementation
-**Next Task**: Phase 4 - Job Processing
+**Phase**: Completed Phase 4 - Job Worker (Complete) ✅
+**Last Commit**: Concurrency fixes - all 18 job worker tests passing
+**Next Task**: Phase 5 - Job Types & Handlers
