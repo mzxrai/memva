@@ -105,17 +105,16 @@ const components: Components = {
     
     if (!inline && language) {
       return (
-        <div className="my-3">
+        <div className="my-3 font-mono">
           <SyntaxHighlighter
             language={language}
             style={vscDarkPlus}
             customStyle={{
               margin: 0,
               borderRadius: '0.5rem',
-              fontSize: '0.875rem',
+              fontSize: '0.875rem', // 14px
               padding: '1rem',
               background: 'rgba(255, 255, 255, 0.02)', // very subtle white frost on black
-              fontFamily: '"JetBrains Mono", "SF Mono", Monaco, "Courier New", monospace',
             }}
           >
             {String(children).replace(/\n$/, '')}
