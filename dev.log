@@ -7863,3 +7863,32 @@ No routes matched location "/.well-known/appspecific/com.chrome.devtools.json"
 5:14:20 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
 5:14:20 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
 5:14:20 PM [vite] (ssr) page reload app/components/events/tools/WebSearchToolDisplay.tsx
+5:18:54 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:18:54 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:18:54 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:18:54 PM [vite] (ssr) page reload app/components/events/tools/WebSearchToolDisplay.tsx
+Loaded 5 sessions from database
+Sessions with stats: 5
+Error: No route matches URL "/.well-known/appspecific/com.chrome.devtools.json"
+    at getInternalRouterError (file:///Users/mbm-premva/dev/memva/node_modules/react-router/dist/development/chunk-QMGIS6GS.mjs:4514:5)
+    at Object.query (file:///Users/mbm-premva/dev/memva/node_modules/react-router/dist/development/chunk-QMGIS6GS.mjs:2728:19)
+    at handleDocumentRequest (file:///Users/mbm-premva/dev/memva/node_modules/react-router/dist/development/chunk-QMGIS6GS.mjs:11037:40)
+    at requestHandler (file:///Users/mbm-premva/dev/memva/node_modules/react-router/dist/development/chunk-QMGIS6GS.mjs:10952:24)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at nodeHandler (/Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3335:30)
+    at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3341:17
+No routes matched location "/.well-known/appspecific/com.chrome.devtools.json" 
+Loaded 5 sessions from database
+Sessions with stats: 5
+5:21:41 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:21:41 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:21:41 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:21:41 PM [vite] (ssr) page reload app/components/events/tools/WebSearchToolDisplay.tsx
+Loaded 5 sessions from database
+Sessions with stats: 5
+5:22:10 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:22:10 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:22:10 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:22:10 PM [vite] (ssr) page reload app/components/events/tools/WebSearchToolDisplay.tsx
+Loaded 5 sessions from database
+Sessions with stats: 5
