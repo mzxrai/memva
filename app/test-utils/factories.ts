@@ -76,18 +76,17 @@ export function createMockUserEvent(content: string, overrides?: Partial<Event>)
   })
 }
 
-export function createMockAssistantEvent(content: string): {
-  type: 'assistant'
-  message: {
-    content: Array<{ type: 'text'; text: string }>
-  }
-} {
-  return {
-    type: 'assistant',
-    message: {
-      content: [{ type: 'text', text: content }]
-    }
-  }
+export function createMockAssistantEvent(content: string, overrides?: Partial<Event>): Event {
+  return createMockEvent({
+    event_type: 'assistant',
+    data: {
+      type: 'assistant',
+      message: {
+        content: [{ type: 'text', text: content }]
+      }
+    },
+    ...overrides
+  })
 }
 
 export function createMockSystemEvent(content: string, sessionId: string, overrides?: Partial<Event>): Event {

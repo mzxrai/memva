@@ -1,8 +1,9 @@
 import { createRequire } from 'module'
 import { claimNextJob, completeJob, failJob, type Job } from '../db/jobs.service'
+import type BetterQueue from 'better-queue'
 
 const require = createRequire(import.meta.url)
-const Queue = require('better-queue')
+const Queue = require('better-queue') as typeof BetterQueue
 
 export type JobWorkerConfig = {
   concurrent?: number
@@ -13,8 +14,8 @@ export type JobWorkerConfig = {
 export type JobHandler = (job: unknown, callback: (error: Error | null, result?: unknown) => void) => void
 
 export class JobWorker {
-  public readonly queue: Queue
-  private pollingQueue: Queue
+  public readonly queue: BetterQueue
+  private pollingQueue: BetterQueue
   public readonly config: Required<JobWorkerConfig>
   private handlers: Map<string, JobHandler> = new Map()
   private _isRunning = false

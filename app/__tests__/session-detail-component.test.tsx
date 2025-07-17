@@ -34,7 +34,6 @@ vi.mock('../services/claude-code.service', () => ({
 
 import { useSessionStatus } from '../hooks/useSessionStatus'
 import { useEventPolling } from '../hooks/useEventPolling'
-import { sendPromptToClaudeCode } from '../services/claude-code.service'
 import { useLoaderData } from 'react-router'
 
 describe('SessionDetail Component', () => {

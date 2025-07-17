@@ -15,23 +15,23 @@ interface WriteToolDisplayProps {
 // Get file information for Write events
 const getWriteFileInfo = (toolCall: ToolUseContent): { content: string; fileName: string; lineCount: number; sizeEstimate: string } | null => {
   if (toolCall.name !== 'Write' || !toolCall.input || typeof toolCall.input !== 'object') return null
-  
+
   const params = toolCall.input as Record<string, unknown>
   const content = params.content as string
   const filePath = params.file_path as string
-  
+
   if (content === undefined || content === null || !filePath) return null
-  
+
   const lines = content.split('\n')
   // Handle empty content - empty string results in [''] which is 1 line
   const lineCount = content === '' ? 1 : lines.length
   const sizeInBytes = new Blob([content]).size
-  const sizeEstimate = sizeInBytes < 1024 
+  const sizeEstimate = sizeInBytes < 1024
     ? `${sizeInBytes} B`
     : sizeInBytes < 1024 * 1024
-    ? `${Math.round(sizeInBytes / 1024)} KB`
-    : `${Math.round(sizeInBytes / (1024 * 1024))} MB`
-  
+      ? `${Math.round(sizeInBytes / 1024)} KB`
+      : `${Math.round(sizeInBytes / (1024 * 1024))} MB`
+
   return {
     content,
     fileName: filePath.split('/').pop() || filePath,
@@ -42,28 +42,32 @@ const getWriteFileInfo = (toolCall: ToolUseContent): { content: string; fileName
 
 export const WriteToolDisplay = memo(({ toolCall, hasResult, result }: WriteToolDisplayProps) => {
   const [showWritePreview, setShowWritePreview] = useState(false)
-  
+
   // Only show if this is a Write tool with successful result
-  // Real Write tool results come as strings like "File created successfully at: /path/to/file"
-  const isSuccessfulWrite = hasResult && 
-    result && 
-    (
-      // Handle object format (for tests)
-      (typeof result === 'object' && 'success' in result && (result as { success: boolean }).success) ||
-      // Handle string format (for real usage)
-      (typeof result === 'string' && result.includes('successfully'))
-    )
-    
-  if (!isSuccessfulWrite) {
+  // Expect result format: {content: string, is_error: boolean}
+  if (!hasResult || !result || typeof result !== 'object' || result === null) {
     return null
   }
-  
+
+  const sdkResult = result as { content?: string, is_error?: boolean }
+
+  if (sdkResult.content === undefined) {
+    return null
+  }
+
+  const isError = sdkResult.is_error === true
+
+  // Don't show if there was an error
+  if (isError) {
+    return null
+  }
+
   const writeFileInfo = getWriteFileInfo(toolCall)
-  
+
   if (!writeFileInfo) {
     return null
   }
-  
+
   return (
     <div className="py-2">
       <div className={clsx(
@@ -74,16 +78,16 @@ export const WriteToolDisplay = memo(({ toolCall, hasResult, result }: WriteTool
         <span className={colors.text.secondary}>
           {writeFileInfo.fileName}
         </span>
-        
+
         <span className={colors.text.tertiary}>
           {writeFileInfo.lineCount} line{writeFileInfo.lineCount !== 1 ? 's' : ''}
         </span>
-        
+
         <span className={colors.text.tertiary}>
           {writeFileInfo.sizeEstimate}
         </span>
       </div>
-      
+
       {/* File preview - always show first ~10 lines in diff style */}
       <div className={clsx(
         colors.background.secondary,
@@ -99,7 +103,7 @@ export const WriteToolDisplay = memo(({ toolCall, hasResult, result }: WriteTool
           {(() => {
             const lines = writeFileInfo.content.split('\n')
             const previewLines = showWritePreview ? lines : lines.slice(0, 10)
-            
+
             return (
               <div>
                 {previewLines.map((line, index) => {
@@ -122,7 +126,7 @@ export const WriteToolDisplay = memo(({ toolCall, hasResult, result }: WriteTool
                       )}>
                         {lineNumber}
                       </div>
-                      
+
                       {/* + indicator */}
                       <div className={clsx(
                         'line-indicator select-none px-2',
@@ -132,7 +136,7 @@ export const WriteToolDisplay = memo(({ toolCall, hasResult, result }: WriteTool
                       )}>
                         +
                       </div>
-                      
+
                       {/* Code content */}
                       <div className={clsx(
                         'flex-1 pr-12',
@@ -151,7 +155,7 @@ export const WriteToolDisplay = memo(({ toolCall, hasResult, result }: WriteTool
             )
           })()}
         </div>
-        
+
         {/* Show more/less button at bottom */}
         {writeFileInfo.lineCount > 10 && (
           <div className={clsx(

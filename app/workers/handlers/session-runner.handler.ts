@@ -32,21 +32,57 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
     let hasError = false
     let errorMessage = ''
     
-    // Create initial user event for the prompt
-    const { createEventFromMessage, storeEvent } = await import('../../db/events.service')
-    const userEvent = createEventFromMessage({
-      message: {
-        type: 'user',
-        content: prompt.trim(),
-        session_id: '' // Will be populated by Claude Code SDK
-      },
-      memvaSessionId: sessionId,
-      projectPath: session.project_path,
-      parentUuid: null,
-      timestamp: new Date().toISOString()
-    })
+    // Check if we need to create a user event
+    // If there are no events yet, this is from homepage and we need to create the user event
+    const { getEventsForSession } = await import('../../db/event-session.service')
+    const existingEvents = await getEventsForSession(sessionId)
     
-    await storeEvent(userEvent)
+    if (existingEvents.length === 0) {
+      // This is from homepage - create the user event
+      const { createEventFromMessage, storeEvent } = await import('../../db/events.service')
+      const userEvent = createEventFromMessage({
+        message: {
+          type: 'user',
+          content: prompt.trim(),
+          session_id: '' // Will be populated by Claude Code SDK
+        },
+        memvaSessionId: sessionId,
+        projectPath: session.project_path,
+        parentUuid: null,
+        timestamp: new Date().toISOString()
+      })
+      
+      await storeEvent(userEvent)
+      console.log('[SessionRunner] Created user event for homepage submission')
+    } else {
+      console.log('[SessionRunner] User event already exists, skipping creation')
+    }
+    
+    // Get the latest Claude session ID for resumption
+    // IMPORTANT: Only resume if this is NOT a new session from homepage
+    let resumeSessionId: string | undefined = undefined
+    
+    if (existingEvents.length > 0) {
+      // This is an existing conversation - get the Claude session ID to resume
+      const { getLatestClaudeSessionId } = await import('../../db/sessions.service')
+      const claudeSessionId = await getLatestClaudeSessionId(sessionId)
+      console.log(`[SessionRunner] getLatestClaudeSessionId returned: ${claudeSessionId}`)
+      
+      // Only set resumeSessionId if we actually got a non-null value
+      if (claudeSessionId) {
+        resumeSessionId = claudeSessionId
+        console.log('[SessionRunner] Will resume existing conversation with Claude session ID:', resumeSessionId)
+      } else {
+        console.log('[SessionRunner] No Claude session ID found to resume (this might be the first response still pending)')
+      }
+    } else {
+      console.log('[SessionRunner] New session from homepage - NOT resuming any Claude session')
+    }
+    
+    // Get the latest event to use as parent UUID
+    const events = await getEventsForSession(sessionId)
+    const lastEvent = events.length > 0 ? events[0] : null
+    const initialParentUuid = lastEvent?.uuid || null
     
     // Execute Claude Code SDK interaction
     try {
@@ -54,7 +90,8 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
         prompt,
         projectPath: session.project_path,
         memvaSessionId: sessionId,
-        initialParentUuid: userEvent.uuid,
+        resumeSessionId,
+        initialParentUuid,
         onMessage: () => {
           messagesProcessed++
           // Messages are automatically stored by the service

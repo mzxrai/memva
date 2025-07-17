@@ -24,6 +24,7 @@ export async function streamClaudeCodeResponse({
   resumeSessionId,
   initialParentUuid
 }: StreamClaudeCodeOptions): Promise<{ lastSessionId?: string }> {
+  console.log(`[streamClaudeCodeResponse] Called with resumeSessionId: ${resumeSessionId}`)
   const controller = abortController || new AbortController()
   let lastEventUuid: string | null = initialParentUuid || null
   let lastSessionId: string | undefined
@@ -31,7 +32,8 @@ export async function streamClaudeCodeResponse({
   let cancellationEventStored = false
   let messageCount = 0
   
-  console.log(`[Claude Code] Starting stream for session ${memvaSessionId}`)
+  console.log(`[Claude Code] Starting stream for memva session ${memvaSessionId}`)
+  console.log(`[Claude Code] Prompt: "${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}"`)
   
   // Monitor abort signal
   controller.signal.addEventListener('abort', () => {

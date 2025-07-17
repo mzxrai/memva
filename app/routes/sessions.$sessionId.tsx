@@ -2,7 +2,7 @@ import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useParams, Form, useLoaderData, useNavigation } from "react-router";
 import { useSSEEvents } from "../hooks/useSSEEvents";
 import { useSessionStatus } from "../hooks/useSessionStatus";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { RiFolder3Line } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
 import { PendingMessage } from "../components/PendingMessage";
@@ -98,9 +98,6 @@ export default function SessionDetail() {
   // Use SSE for real-time new events
   const { newEvents } = useSSEEvents(sessionId);
   
-  // Track when form submission started for PendingMessage
-  const submissionStartTime = useRef<number | null>(null);
-  
   // Combine initial events from loader with new events from SSE
   // Remove duplicates by uuid and sort by timestamp
   const { displayEvents, toolResults } = useMemo(() => {
@@ -155,15 +152,8 @@ export default function SessionDetail() {
               if (item && typeof item === 'object' && 'type' in item && item.type === 'tool_result') {
                 const toolResult = item as unknown as { tool_use_id: string; content: unknown };
                 if (toolResult.tool_use_id) {
-                  // Map the tool_use_id to the result for lookup by AssistantMessageEvent
-                  // Wrap tool result content in standardized format that components expect
-                  const standardizedResult = {
-                    content: typeof toolResult.content === 'string' ? toolResult.content : JSON.stringify(toolResult.content),
-                    is_error: false
-                  };
-                  
                   toolResults.set(toolResult.tool_use_id, {
-                    result: standardizedResult,
+                    result: toolResult,
                     isError: false
                   });
                 }
@@ -178,16 +168,40 @@ export default function SessionDetail() {
   }, [initialEvents, newEvents]);
   
   const [prompt, setPrompt] = useState("");
+  const [waitingSince, setWaitingSince] = useState<number | null>(null);
   
   // Track form submission state
-  const isSubmitting = navigation.state === "submitting" && navigation.formAction === `/sessions/${sessionId}`;
+  const isSubmitting = navigation.state === "submitting";
   
-  // Set submission start time when form is submitted or when status becomes processing
+  // When form submits, record the timestamp
   useEffect(() => {
-    if ((isSubmitting || session?.claude_status === 'processing') && !submissionStartTime.current) {
-      submissionStartTime.current = Date.now();
+    if (isSubmitting) {
+      setWaitingSince(Date.now());
     }
-  }, [isSubmitting, session?.claude_status]);
+  }, [isSubmitting]);
+  
+  // Hide pending when we get a result event newer than our submission
+  useEffect(() => {
+    if (waitingSince) {
+      const hasNewResult = newEvents.some(e => 
+        e.event_type === 'result' && 
+        new Date(e.timestamp).getTime() > waitingSince
+      );
+      
+      if (hasNewResult) {
+        setWaitingSince(null);
+      }
+    }
+  }, [newEvents, waitingSince]);
+  
+  // On page load: if processing, show pending
+  useEffect(() => {
+    if (session?.claude_status === 'processing' && !waitingSince) {
+      setWaitingSince(Date.now());
+    }
+  }, []); // Only on mount
+  
+  const showPending = waitingSince !== null;
   
   // Clear form when submission completes
   useEffect(() => {
@@ -210,13 +224,6 @@ export default function SessionDetail() {
   // Determine UI state based on claude_status
   const isProcessing = session.claude_status === 'processing';
   const hasError = session.claude_status === 'error';
-  
-  // Reset submission start time when processing completes
-  useEffect(() => {
-    if (session.claude_status !== 'processing' && submissionStartTime.current) {
-      submissionStartTime.current = null;
-    }
-  }, [session.claude_status]);
 
   return (
     <div className="h-screen bg-zinc-950 flex flex-col overflow-hidden">
@@ -260,17 +267,13 @@ export default function SessionDetail() {
                 isStreaming={false}
               />
             ))}
-            {/* Show PendingMessage when processing */}
-            {(() => {
-              // Check if we have a result event which signals completion
-              const hasResultEvent = displayEvents.some(e => e.event_type === 'result');
-              return (isProcessing || isSubmitting) && !hasResultEvent && submissionStartTime.current && (
-                <PendingMessage 
-                  tokenCount={0}
-                  startTime={submissionStartTime.current}
-                />
-              );
-            })()}
+            {/* Show PendingMessage based on simple state */}
+            {showPending && waitingSince && (
+              <PendingMessage 
+                tokenCount={0}
+                startTime={waitingSince}
+              />
+            )}
           </div>
         )}
       </div>

@@ -34,6 +34,7 @@ export default async function handleRequest(
   responseStatusCode: number,
   responseHeaders: Headers,
   routerContext: EntryContext,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _loadContext?: AppLoadContext
 ) {
   // Initialize job system on first request

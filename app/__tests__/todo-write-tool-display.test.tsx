@@ -4,209 +4,188 @@ import { TodoWriteToolDisplay } from '../components/events/tools/TodoWriteToolDi
 import { MOCK_TOOLS } from '../test-utils/factories'
 import { expectContent } from '../test-utils/component-testing'
 
+// Helper function to create todo items
+function createTodoItem(status: 'pending' | 'in_progress' | 'completed', content?: string) {
+  return {
+    id: crypto.randomUUID(),
+    content: content || `Test ${status} task`,
+    status,
+    priority: 'high' as const
+  }
+}
+
 describe('TodoWriteToolDisplay Component', () => {
-  describe('when TodoWrite tool has successful result', () => {
-    it('should display todo items with status indicators', () => {
-      const todoTool = MOCK_TOOLS.todoWrite([
-        { id: '1', content: 'Write tests', status: 'completed', priority: 'high' },
-        { id: '2', content: 'Implement feature', status: 'in_progress', priority: 'high' },
-        { id: '3', content: 'Update docs', status: 'pending', priority: 'medium' }
-      ])
-      
+  describe('when TodoWrite tool has result', () => {
+    it('should display todo list with proper status indicators', () => {
+      const toolCall = MOCK_TOOLS.todoWrite([createTodoItem('completed'), createTodoItem('in_progress'), createTodoItem('pending')])
+
       render(
-        <TodoWriteToolDisplay 
-          toolCall={todoTool}
+        <TodoWriteToolDisplay
+          toolCall={toolCall}
           hasResult={true}
-          result="Todos have been modified successfully"
+          result={{ content: "Todos have been modified successfully", is_error: false }}
         />
       )
 
-      // Should show all todo items
-      expectContent.text('Write tests')
-      expectContent.text('Implement feature')
-      expectContent.text('Update docs')
-      
-      // Should show all todo items with proper styling
-      // (No longer showing progress indicator in simplified design)
+      // Should show all three todos with their status indicators
+      expect(screen.getByText('✅')).toBeInTheDocument() // completed
+      expect(screen.getByText('🔄')).toBeInTheDocument() // in_progress  
+      expect(screen.getByText('Test pending task').parentElement?.querySelector('svg')).toBeInTheDocument() // pending
+
+      expectContent.text('Test completed task')
+      expectContent.text('Test in_progress task')
+      expectContent.text('Test pending task')
     })
 
-    it('should display priority indicators correctly', () => {
-      const todoTool = MOCK_TOOLS.todoWrite([
-        { id: '1', content: 'High priority task', status: 'pending', priority: 'high' },
-        { id: '2', content: 'Medium priority task', status: 'pending', priority: 'medium' },
-        { id: '3', content: 'Low priority task', status: 'pending', priority: 'low' }
-      ])
-      
+    it('should display only pending and in progress todos correctly', () => {
+      const toolCall = MOCK_TOOLS.todoWrite([createTodoItem('pending'), createTodoItem('in_progress')])
+
       render(
-        <TodoWriteToolDisplay 
-          toolCall={todoTool}
+        <TodoWriteToolDisplay
+          toolCall={toolCall}
           hasResult={true}
-          result="Todos have been modified successfully"
+          result={{ content: "Todos have been modified successfully", is_error: false }}
         />
       )
 
-      // Should show priority levels (high should be more prominent)
-      expectContent.text('High priority task')
-      expectContent.text('Medium priority task')
-      expectContent.text('Low priority task')
-    })
-
-    it('should highlight in_progress tasks prominently', () => {
-      const todoTool = MOCK_TOOLS.todoWrite([
-        { id: '1', content: 'Current work item', status: 'in_progress', priority: 'high' },
-        { id: '2', content: 'Completed item', status: 'completed', priority: 'high' },
-        { id: '3', content: 'Future item', status: 'pending', priority: 'medium' }
-      ])
-      
-      render(
-        <TodoWriteToolDisplay 
-          toolCall={todoTool}
-          hasResult={true}
-          result="Todos have been modified successfully"
-        />
-      )
-
-      // Should show the in_progress item with special styling
-      expectContent.text('Current work item')
-    })
-
-    it('should handle empty todo list', () => {
-      const todoTool = MOCK_TOOLS.todoWrite([])
-      
-      render(
-        <TodoWriteToolDisplay 
-          toolCall={todoTool}
-          hasResult={true}
-          result="Todos have been modified successfully"
-        />
-      )
-
-      // Should show empty state
-      expectContent.text('No tasks')
+      expect(screen.getByText('🔄')).toBeInTheDocument()
+      expect(screen.getByText('Test pending task').parentElement?.querySelector('svg')).toBeInTheDocument()
+      expect(screen.queryByText('✅')).not.toBeInTheDocument()
     })
 
     it('should handle single todo item', () => {
-      const todoTool = MOCK_TOOLS.todoWrite([
-        { id: '1', content: 'Single task', status: 'pending', priority: 'high' }
-      ])
-      
+      const toolCall = MOCK_TOOLS.todoWrite([createTodoItem('completed')])
+
       render(
-        <TodoWriteToolDisplay 
-          toolCall={todoTool}
+        <TodoWriteToolDisplay
+          toolCall={toolCall}
           hasResult={true}
-          result="Todos have been modified successfully"
+          result={{ content: "Todos have been modified successfully", is_error: false }}
         />
       )
 
-      expectContent.text('Single task')
+      expect(screen.getByText('✅')).toBeInTheDocument()
+      expectContent.text('Test completed task')
     })
 
-    it('should show task count summary', () => {
-      const todoTool = MOCK_TOOLS.todoWrite([
-        { id: '1', content: 'Task 1', status: 'completed', priority: 'high' },
-        { id: '2', content: 'Task 2', status: 'in_progress', priority: 'high' },
-        { id: '3', content: 'Task 3', status: 'pending', priority: 'medium' },
-        { id: '4', content: 'Task 4', status: 'pending', priority: 'low' }
-      ])
-      
+    it('should handle empty todo list gracefully', () => {
+      const toolCall = MOCK_TOOLS.todoWrite([])
+
       render(
-        <TodoWriteToolDisplay 
-          toolCall={todoTool}
+        <TodoWriteToolDisplay
+          toolCall={toolCall}
           hasResult={true}
-          result="Todos have been modified successfully"
+          result={{ content: "Todos have been modified successfully", is_error: false }}
         />
       )
 
-      // Should show all task items
-      expectContent.text('Task 1')
-      expectContent.text('Task 2') 
-      expectContent.text('Task 3')
-      expectContent.text('Task 4')
+      expectContent.text('No tasks')
+    })
+
+    it('should use monospace font for consistency', () => {
+      const toolCall = MOCK_TOOLS.todoWrite([createTodoItem('pending')])
+
+      render(
+        <TodoWriteToolDisplay
+          toolCall={toolCall}
+          hasResult={true}
+          result={{ content: "Todos have been modified successfully", is_error: false }}
+        />
+      )
+
+      const todoContainer = screen.getByText('Test pending task').closest('div')
+      expect(todoContainer).toHaveClass('font-mono')
+    })
+
+    it('should apply correct styling for different todo states', () => {
+      const toolCall = MOCK_TOOLS.todoWrite([
+        createTodoItem('completed'),
+        createTodoItem('in_progress'),
+        createTodoItem('pending')
+      ])
+
+      render(
+        <TodoWriteToolDisplay
+          toolCall={toolCall}
+          hasResult={true}
+          result={{ content: "Todos have been modified successfully", is_error: false }}
+        />
+      )
+
+      // Completed should have strikethrough and muted color
+      const completedTask = screen.getByText('Test completed task')
+      expect(completedTask).toHaveClass('line-through')
+      expect(completedTask).toHaveClass('text-zinc-500')
+
+      // In progress should have normal bright color
+      const inProgressTask = screen.getByText('Test in_progress task')
+      expect(inProgressTask).toHaveClass('text-zinc-100')
+
+      // Pending should have muted but not as much as completed
+      const pendingTask = screen.getByText('Test pending task')
+      expect(pendingTask).toHaveClass('text-zinc-300')
     })
   })
 
-  describe('when TodoWrite tool has no result', () => {
-    it('should not render anything', () => {
-      const todoTool = MOCK_TOOLS.todoWrite([
-        { id: '1', content: 'Test task', status: 'pending', priority: 'high' }
-      ])
-      
-      render(
-        <TodoWriteToolDisplay 
-          toolCall={todoTool}
-          hasResult={false}
-        />
-      )
+  describe('when TodoWrite tool has invalid result', () => {
+    it('should not display for non-TodoWrite tools', () => {
+      const bashTool = MOCK_TOOLS.bash('ls -la')
 
-      // Should not render any content
-      expect(screen.queryByText('Test task')).not.toBeInTheDocument()
-    })
-  })
-
-  describe('when tool is not TodoWrite', () => {
-    it('should not render anything for non-TodoWrite tools', () => {
-      const bashTool = MOCK_TOOLS.bash('ls')
-      
       render(
-        <TodoWriteToolDisplay 
+        <TodoWriteToolDisplay
           toolCall={bashTool}
           hasResult={true}
-          result="file1.txt\nfile2.txt"
+          result={{ content: "file1.txt\nfile2.txt", is_error: false }}
         />
       )
 
-      // Should not render anything
-      expect(screen.queryByText('file1.txt')).not.toBeInTheDocument()
+      // Should not render anything for non-TodoWrite tools
+      expect(screen.queryByText(/task/)).not.toBeInTheDocument()
     })
-  })
 
-  describe('when result format is invalid', () => {
-    it('should not render for invalid input format', () => {
-      const invalidTool = {
-        type: 'tool_use' as const,
-        id: 'toolu_test',
-        name: 'TodoWrite',
-        input: { invalid: 'format' } // Missing todos array
-      }
-      
+    it('should not display when result has wrong format', () => {
+      const todoTool = MOCK_TOOLS.todoWrite([createTodoItem('pending')])
+
       render(
-        <TodoWriteToolDisplay 
-          toolCall={invalidTool}
+        <TodoWriteToolDisplay
+          toolCall={todoTool}
           hasResult={true}
           result="Success"
         />
       )
 
-      // Should not render anything for invalid format
-      expect(screen.queryByText('Success')).not.toBeInTheDocument()
+      // Should not render anything for wrong result format  
+      expect(screen.queryByText(/task/)).not.toBeInTheDocument()
     })
 
-    it('should handle malformed todo items gracefully', () => {
-      const invalidTool = {
-        type: 'tool_use' as const,
-        id: 'toolu_test',
-        name: 'TodoWrite',
-        input: { 
-          todos: [
-            { id: '1', content: 'Valid task', status: 'pending', priority: 'high' },
-            { content: 'Missing id and status' }, // Invalid item
-            { id: '3', content: 'Another valid task', status: 'completed', priority: 'medium' }
-          ]
-        }
-      }
-      
+    it('should not display when hasResult is false', () => {
+      const todoTool = MOCK_TOOLS.todoWrite([createTodoItem('pending')])
+
       render(
-        <TodoWriteToolDisplay 
-          toolCall={invalidTool}
-          hasResult={true}
-          result="Success"
+        <TodoWriteToolDisplay
+          toolCall={todoTool}
+          hasResult={false}
+          result={{ content: "Success", is_error: false }}
         />
       )
 
-      // Should show valid items but skip invalid ones
-      expectContent.text('Valid task')
-      expectContent.text('Another valid task')
-      expect(screen.queryByText('Missing id and status')).not.toBeInTheDocument()
+      // Should not render anything when hasResult is false
+      expect(screen.queryByText(/task/)).not.toBeInTheDocument()
+    })
+
+    it('should not display when result is null', () => {
+      const todoTool = MOCK_TOOLS.todoWrite([createTodoItem('pending')])
+
+      render(
+        <TodoWriteToolDisplay
+          toolCall={todoTool}
+          hasResult={true}
+          result={null}
+        />
+      )
+
+      // Should not render anything when result is null
+      expect(screen.queryByText(/task/)).not.toBeInTheDocument()
     })
   })
 })

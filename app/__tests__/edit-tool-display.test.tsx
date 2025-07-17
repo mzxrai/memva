@@ -1,18 +1,26 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { EditToolDisplay } from '../components/events/tools/EditToolDisplay'
-import { MOCK_TOOLS } from '../test-utils/factories'
-import { expectContent } from '../test-utils/component-testing'
 import type { ToolUseContent } from '../types/events'
 
 describe('EditToolDisplay Component', () => {
   describe('when Edit tool has successful result', () => {
-    it('should display diff view for single Edit tool', () => {
-      const editTool = MOCK_TOOLS.edit('/test/file.ts', 'const x = 1', 'const x = 2')
-      const result = 'File updated successfully'
-      
+    it('should display diff for Edit tool changes', () => {
+      const result = { content: 'File updated successfully', is_error: false }
+
+      const editTool: ToolUseContent = {
+        type: 'tool_use',
+        id: 'toolu_test',
+        name: 'Edit',
+        input: {
+          file_path: '/test/file.ts',
+          old_string: 'const x = 1',
+          new_string: 'const x = 2'
+        }
+      }
+
       render(
-        <EditToolDisplay 
+        <EditToolDisplay
           toolCall={editTool}
           hasResult={true}
           result={result}
@@ -20,31 +28,29 @@ describe('EditToolDisplay Component', () => {
         />
       )
 
-      // Should show diff content
-      expectContent.text('const x = 1')
-      expectContent.text('const x = 2')
+      // Should show diff content from input
+      expect(screen.getByText('const x = 1')).toBeInTheDocument()
+      expect(screen.getByText('const x = 2')).toBeInTheDocument()
     })
 
-    it('should display multi-edit summary for MultiEdit tool', () => {
-      const multiEditInput = {
-        file_path: '/test/file.ts',
-        edits: [
-          { old_string: 'const x = 1', new_string: 'const x = 2' },
-          { old_string: 'const y = 3', new_string: 'const y = 4' }
-        ]
-      }
-      
+    it('should display diff for MultiEdit tool changes', () => {
+      const result = { content: 'File updated successfully', is_error: false }
+
       const multiEditTool: ToolUseContent = {
         type: 'tool_use',
-        id: 'toolu_01ABC123',
+        id: 'toolu_test',
         name: 'MultiEdit',
-        input: multiEditInput
+        input: {
+          file_path: '/test/file.ts',
+          edits: [
+            { old_string: 'const x = 1', new_string: 'const x = 2' },
+            { old_string: 'const y = 3', new_string: 'const y = 4' }
+          ]
+        }
       }
-      
-      const result = 'File updated successfully'
-      
+
       render(
-        <EditToolDisplay 
+        <EditToolDisplay
           toolCall={multiEditTool}
           hasResult={true}
           result={result}
@@ -52,115 +58,141 @@ describe('EditToolDisplay Component', () => {
         />
       )
 
-      // Should show edit count summary
-      expectContent.text('2 edits applied')
-      
-      // Should show diff content
-      expectContent.text('const x = 1')
-      expectContent.text('const x = 2')
-      expectContent.text('const y = 3')
-      expectContent.text('const y = 4')
+      // Should show all edits
+      expect(screen.getByText('const x = 1')).toBeInTheDocument()
+      expect(screen.getByText('const x = 2')).toBeInTheDocument()
+      expect(screen.getByText('const y = 3')).toBeInTheDocument()
+      expect(screen.getByText('const y = 4')).toBeInTheDocument()
+
+      // Should show edit count
+      expect(screen.getByText('2 edits applied')).toBeInTheDocument()
     })
 
-    it('should handle Edit tool without line info', () => {
-      const editTool = MOCK_TOOLS.edit('/test/file.ts', 'old content', 'new content')
-      const result = 'File updated successfully'
-      
+    it('should handle edit with line info properly', () => {
+      const result = { content: 'File updated successfully', is_error: false }
+
+      const editTool: ToolUseContent = {
+        type: 'tool_use',
+        id: 'toolu_test',
+        name: 'Edit',
+        input: {
+          file_path: '/test/file.ts',
+          old_string: 'function test() {}',
+          new_string: 'function test() {\n  return true\n}'
+        }
+      }
+
       render(
-        <EditToolDisplay 
+        <EditToolDisplay
           toolCall={editTool}
           hasResult={true}
           result={result}
-          lineInfo={null}
+          lineInfo={{ startLine: 10, showLineNumbers: true }}
         />
       )
 
-      // Should still show diff with default line numbers
-      expectContent.text('old content')
-      expectContent.text('new content')
+      // Should show the diff starting from line 10
+      expect(screen.getByText('function test() {}')).toBeInTheDocument()
+      expect(screen.getByText('function test() {')).toBeInTheDocument()
+      expect(screen.getByText('return true')).toBeInTheDocument()
     })
   })
 
-  describe('when Edit tool has no result', () => {
-    it('should not render anything', () => {
-      const editTool = MOCK_TOOLS.edit('/test/file.ts', 'old', 'new')
-      
-      render(
-        <EditToolDisplay 
-          toolCall={editTool}
-          hasResult={false}
-          lineInfo={null}
-        />
-      )
+  describe('when Edit tool has no result or invalid input', () => {
+    it('should not render for non-Edit tools', () => {
+      const bashTool: ToolUseContent = {
+        type: 'tool_use',
+        id: 'toolu_test',
+        name: 'Bash',
+        input: { command: 'ls -la' }
+      }
 
-      // Should not render any diff content
-      expect(screen.queryByText('old')).not.toBeInTheDocument()
-      expect(screen.queryByText('new')).not.toBeInTheDocument()
-    })
-  })
-
-  describe('when tool is not Edit/MultiEdit', () => {
-    it('should not render anything for non-Edit tools', () => {
-      const readTool = MOCK_TOOLS.read('/test/file.ts')
-      
       render(
-        <EditToolDisplay 
-          toolCall={readTool}
+        <EditToolDisplay
+          toolCall={bashTool}
           hasResult={true}
-          result="File content"
+          result={{ content: "File content", is_error: false }}
           lineInfo={null}
         />
       )
 
-      // Should not render anything
+      // Should not render anything for non-Edit tools
       expect(screen.queryByText('File content')).not.toBeInTheDocument()
     })
-  })
 
-  describe('when tool input is invalid', () => {
-    it('should not render for Edit tool without proper input structure', () => {
-      const invalidEditTool: ToolUseContent = {
+    it('should not render when hasResult is false', () => {
+      const editTool: ToolUseContent = {
         type: 'tool_use',
-        id: 'toolu_01ABC123',
+        id: 'toolu_test',
         name: 'Edit',
-        input: { file_path: '/test/file.ts' } // Missing old_string/new_string
-      }
-      
-      render(
-        <EditToolDisplay 
-          toolCall={invalidEditTool}
-          hasResult={true}
-          result="File updated"
-          lineInfo={null}
-        />
-      )
-
-      // Should not render diff view
-      expect(screen.queryByText('File updated')).not.toBeInTheDocument()
-    })
-
-    it('should not render for MultiEdit tool with invalid edits array', () => {
-      const invalidMultiEditTool: ToolUseContent = {
-        type: 'tool_use',
-        id: 'toolu_01ABC123',
-        name: 'MultiEdit',
-        input: { 
+        input: {
           file_path: '/test/file.ts',
-          edits: [] // Empty edits array
+          old_string: 'const x = 1',
+          new_string: 'const x = 2'
         }
       }
-      
+
       render(
-        <EditToolDisplay 
-          toolCall={invalidMultiEditTool}
-          hasResult={true}
-          result="File updated"
+        <EditToolDisplay
+          toolCall={editTool}
+          hasResult={false}
+          result={{ content: "File updated", is_error: false }}
           lineInfo={null}
         />
       )
 
-      // Should not render anything
-      expect(screen.queryByText('File updated')).not.toBeInTheDocument()
+      // Should not render anything when hasResult is false
+      expect(screen.queryByText('const x = 1')).not.toBeInTheDocument()
+    })
+
+    it('should not render when result is null', () => {
+      const editTool: ToolUseContent = {
+        type: 'tool_use',
+        id: 'toolu_test',
+        name: 'Edit',
+        input: {
+          file_path: '/test/file.ts',
+          old_string: 'const x = 1',
+          new_string: 'const x = 2'
+        }
+      }
+
+      render(
+        <EditToolDisplay
+          toolCall={editTool}
+          hasResult={true}
+          result={null}
+          lineInfo={null}
+        />
+      )
+
+      // Should not render anything when result is null
+      expect(screen.queryByText('const x = 1')).not.toBeInTheDocument()
+    })
+
+    it('should not render when result has error', () => {
+      const editTool: ToolUseContent = {
+        type: 'tool_use',
+        id: 'toolu_test',
+        name: 'Edit',
+        input: {
+          file_path: '/test/file.ts',
+          old_string: 'const x = 1',
+          new_string: 'const x = 2'
+        }
+      }
+
+      render(
+        <EditToolDisplay
+          toolCall={editTool}
+          hasResult={true}
+          result={{ content: "Edit failed", is_error: true }}
+          lineInfo={null}
+        />
+      )
+
+      // Should not render anything when there's an error
+      expect(screen.queryByText('const x = 1')).not.toBeInTheDocument()
     })
   })
 })

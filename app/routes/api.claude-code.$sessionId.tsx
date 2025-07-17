@@ -1,7 +1,6 @@
 import type { Route } from "./+types/api.claude-code.$sessionId"
 import { getSession, getLatestClaudeSessionId, updateClaudeSessionId } from "../db/sessions.service"
 import { streamClaudeCodeResponse } from "../services/claude-code.server"
-import { createEventFromMessage, storeEvent } from "../db/events.service"
 import { getEventsForSession } from "../db/event-session.service"
 
 // GET endpoint for SSE event listening
@@ -113,22 +112,17 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   // Get the latest Claude session ID if we're resuming
   const existingClaudeSessionId = await getLatestClaudeSessionId(params.sessionId)
+  console.log('[API] Retrieved Claude session ID for resumption:', existingClaudeSessionId)
   
-  // Store user prompt as an event
-  const userEvent = createEventFromMessage({
-    message: {
-      type: 'user',
-      content: prompt.trim(),
-      session_id: existingClaudeSessionId || ''  // Use existing session ID if resuming
-    },
-    memvaSessionId: params.sessionId,
-    projectPath: session.project_path,
-    parentUuid: null,
-    timestamp: new Date().toISOString()
-  })
+  // Get the latest event to use as parent UUID
+  const events = await getEventsForSession(params.sessionId)
+  const lastEvent = events.length > 0 ? events[0] : null // events are ordered newest first
+  const lastParentUuid = lastEvent?.uuid || null
   
-  await storeEvent(userEvent)
-  console.log(`[API] Stored user prompt as event with UUID: ${userEvent.uuid}`)
+  // Don't store user event here - it's already stored by the page action
+  // Just log that we're processing the prompt
+  console.log(`[API] Processing prompt for session ${params.sessionId}`)
+  console.log(`[API] Last parent UUID: ${lastParentUuid}`)
 
   const headers = new Headers({
     "Content-Type": "text/event-stream",
@@ -148,15 +142,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
   })
   
-  // Use the existing Claude session ID we already retrieved
-  const resumeSessionId = existingClaudeSessionId
-  console.log('[API] Retrieved Claude session ID for resumption:', resumeSessionId)
-  
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder()
       // Track stream state through controller.desiredSize
-      const lastParentUuid = userEvent.uuid
       
       // Simple check if stream is closed
       const checkStreamClosed = () => {
@@ -180,16 +169,8 @@ export async function action({ request, params }: Route.ActionArgs) {
         }
       }
       
-      // Send the user message immediately with complete event structure
-      sendMessage({
-        uuid: userEvent.uuid,
-        event_type: userEvent.event_type,
-        timestamp: userEvent.timestamp,
-        memva_session_id: userEvent.memva_session_id,
-        data: userEvent.data  // Keep data nested
-      })
+      // Don't send the user message here - let SSE polling pick it up to avoid duplicates
       
-
       try {
         const result = await streamClaudeCodeResponse({
           prompt: prompt.trim(),
@@ -202,7 +183,7 @@ export async function action({ request, params }: Route.ActionArgs) {
           },
           abortController,
           memvaSessionId: params.sessionId,
-          resumeSessionId: resumeSessionId || undefined,
+          resumeSessionId: existingClaudeSessionId || undefined,
           initialParentUuid: lastParentUuid,
           onStoredEvent: (event) => {
             console.log(`[API] onStoredEvent called for type=${event.event_type}, aborted=${abortController.signal.aborted}`)

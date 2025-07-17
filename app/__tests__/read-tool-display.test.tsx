@@ -5,102 +5,86 @@ import { MOCK_TOOLS } from '../test-utils/factories'
 import { expectContent } from '../test-utils/component-testing'
 
 describe('ReadToolDisplay Component', () => {
-  describe('when Read tool has successful result', () => {
-    it('should display line count for single line result', () => {
-      const readTool = MOCK_TOOLS.read('/test/file.ts')
-      const result = 'console.log("Hello World")'
-      
-      render(
-        <ReadToolDisplay 
-          toolCall={readTool}
-          hasResult={true}
-          result={result}
-        />
-      )
+  describe('when Read tool has result', () => {
+    it('should display line count for read content', () => {
+      const result = { content: 'console.log("Hello World")', is_error: false }
+      const toolCall = MOCK_TOOLS.read('/app/test.js')
+
+      render(<ReadToolDisplay toolCall={toolCall} hasResult={true} result={result} />)
+
+      expectContent.text('1 line loaded')
+    })
+
+    it('should handle multi-line file contents', () => {
+      const result = { content: 'import React from "react"\n\nfunction App() {\n  return <div>Hello</div>\n}', is_error: false }
+      const toolCall = MOCK_TOOLS.read('/app/App.tsx')
+
+      render(<ReadToolDisplay toolCall={toolCall} hasResult={true} result={result} />)
+
+      expectContent.text('5 lines loaded')
+    })
+
+    it('should show expand button for long content', () => {
+      const longResult = { content: 'a'.repeat(150), is_error: false } // Long content that should be expandable
+      const toolCall = MOCK_TOOLS.read('/app/large.txt')
+
+      render(<ReadToolDisplay toolCall={toolCall} hasResult={true} result={longResult} />)
+
+      // Should show expand button for long content
+      const expandButton = screen.getByRole('button', { name: /expand/i })
+      expect(expandButton).toBeInTheDocument()
 
       // Should show line count
       expectContent.text('1 line loaded')
     })
 
-    it('should display line count for multi-line result', () => {
-      const readTool = MOCK_TOOLS.read('/test/file.ts')
-      const result = 'import React from "react"\n\nfunction App() {\n  return <div>Hello</div>\n}'
-      
-      render(
-        <ReadToolDisplay 
-          toolCall={readTool}
-          hasResult={true}
-          result={result}
-        />
-      )
+    it('should handle empty files', () => {
+      const result = { content: '', is_error: false }
+      const toolCall = MOCK_TOOLS.read('/app/empty.txt')
 
-      // Should show plural lines
-      expectContent.text('5 lines loaded')
+      render(<ReadToolDisplay toolCall={toolCall} hasResult={true} result={result} />)
+
+      expectContent.text('0 lines loaded')
     })
 
-    it('should show expand button for long content and expand when clicked', () => {
-      const readTool = MOCK_TOOLS.read('/test/file.ts')
-      const longResult = 'a'.repeat(150) // Long content that should be expandable
-      
-      render(
-        <ReadToolDisplay 
-          toolCall={readTool}
-          hasResult={true}
-          result={longResult}
-        />
-      )
+    it('should handle whitespace-only files', () => {
+      const result = { content: '   \n  \n  ', is_error: false }
+      const toolCall = MOCK_TOOLS.read('/app/whitespace.txt')
+
+      render(<ReadToolDisplay toolCall={toolCall} hasResult={true} result={result} />)
+
+      expectContent.text('3 lines loaded')
+    })
+
+    it('should expand and show file content when expand button is clicked', () => {
+      const longContent = 'Line 1\n'.repeat(20)
+      const result = { content: longContent, is_error: false }
+      const toolCall = MOCK_TOOLS.read('/app/test.txt')
+
+      render(<ReadToolDisplay toolCall={toolCall} hasResult={true} result={result} />)
 
       // Should show expand button
       const expandButton = screen.getByRole('button', { name: /expand/i })
-      expect(expandButton).toBeInTheDocument()
 
       // Click to expand
       fireEvent.click(expandButton)
 
-      // Should show full content and collapse button
-      expect(screen.getByRole('button', { name: /collapse/i })).toBeInTheDocument()
-      expect(screen.getByLabelText('code block')).toBeInTheDocument()
-    })
+      // Should show the content - there should be multiple "Line 1" instances now visible
+      const line1Elements = screen.getAllByText('Line 1')
+      expect(line1Elements.length).toBeGreaterThan(1) // Should have multiple instances visible
 
-    it('should handle empty file result', () => {
-      const readTool = MOCK_TOOLS.read('/test/empty.txt')
-      const result = ''
-      
-      render(
-        <ReadToolDisplay 
-          toolCall={readTool}
-          hasResult={true}
-          result={result}
-        />
-      )
-
-      // Should show 0 lines for empty file
-      expectContent.text('0 lines loaded')
-    })
-
-    it('should handle file with only whitespace', () => {
-      const readTool = MOCK_TOOLS.read('/test/whitespace.txt')
-      const result = '   \n  \n  '
-      
-      render(
-        <ReadToolDisplay 
-          toolCall={readTool}
-          hasResult={true}
-          result={result}
-        />
-      )
-
-      // Should count actual lines including whitespace
-      expectContent.text('3 lines loaded')
+      // Should show collapse button
+      const collapseButton = screen.getByRole('button', { name: /collapse/i })
+      expect(collapseButton).toBeInTheDocument()
     })
   })
 
   describe('when Read tool has no result', () => {
     it('should not render anything', () => {
       const readTool = MOCK_TOOLS.read('/test/file.ts')
-      
+
       render(
-        <ReadToolDisplay 
+        <ReadToolDisplay
           toolCall={readTool}
           hasResult={false}
         />
@@ -114,12 +98,12 @@ describe('ReadToolDisplay Component', () => {
   describe('when tool is not Read', () => {
     it('should not render anything for non-Read tools', () => {
       const bashTool = MOCK_TOOLS.bash('ls')
-      
+
       render(
-        <ReadToolDisplay 
+        <ReadToolDisplay
           toolCall={bashTool}
           hasResult={true}
-          result="file1.txt\nfile2.txt"
+          result={{ content: "file1.txt\nfile2.txt", is_error: false }}
         />
       )
 
@@ -131,9 +115,9 @@ describe('ReadToolDisplay Component', () => {
   describe('when result format is invalid', () => {
     it('should not render for non-string result', () => {
       const readTool = MOCK_TOOLS.read('/test/file.ts')
-      
+
       render(
-        <ReadToolDisplay 
+        <ReadToolDisplay
           toolCall={readTool}
           hasResult={true}
           result={{ stdout: 'not a string' }}
@@ -146,9 +130,9 @@ describe('ReadToolDisplay Component', () => {
 
     it('should handle null result gracefully', () => {
       const readTool = MOCK_TOOLS.read('/test/file.ts')
-      
+
       render(
-        <ReadToolDisplay 
+        <ReadToolDisplay
           toolCall={readTool}
           hasResult={true}
           result={null}

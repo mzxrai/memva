@@ -13,31 +13,44 @@ interface ReadToolDisplayProps {
 
 // Format Read tool result based on result structure
 const formatReadResult = (result: unknown): { status: 'success' | 'error', brief: string, full?: string } | null => {
-  if (typeof result !== 'string') {
+  if (!result || typeof result !== 'object' || result === null) {
     return null
   }
-  
-  const lines = result.split('\n')
-  const lineCount = result === '' ? 0 : lines.length
+
+  const sdkResult = result as { content?: string, is_error?: boolean }
+
+  if (sdkResult.content === undefined) {
+    return null
+  }
+
+  const content = sdkResult.content
+  const isError = sdkResult.is_error === true
+
+  if (isError) {
+    return { status: 'error', brief: 'Error reading file', full: content }
+  }
+
+  const lines = content.split('\n')
+  const lineCount = content === '' ? 0 : lines.length
   const brief = `${lineCount} line${lineCount !== 1 ? 's' : ''} loaded`
-  
-  return { status: 'success', brief, full: result }
+
+  return { status: 'success', brief, full: content }
 }
 
 export const ReadToolDisplay = memo(({ toolCall, hasResult, result }: ReadToolDisplayProps) => {
   const [showFullResult, setShowFullResult] = useState(false)
-  
+
   // Only show for Read tools with results (allow empty string)
   if (toolCall.name !== 'Read' || !hasResult || result == null) {
     return null
   }
-  
+
   const formattedResult = formatReadResult(result)
-  
+
   if (!formattedResult) {
     return null
   }
-  
+
   return (
     <div className="py-2">
       <div className={clsx(
@@ -73,7 +86,7 @@ export const ReadToolDisplay = memo(({ toolCall, hasResult, result }: ReadToolDi
           {formattedResult.brief}
         </span>
       </div>
-      
+
       {/* Expanded result view */}
       {showFullResult && formattedResult.full && (
         <div className="mt-2">
