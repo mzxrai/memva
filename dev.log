@@ -5986,3 +5986,1880 @@ WriteToolDisplay debug: {
   hasContent: true,
   isError: undefined
 }
+[SessionRunner] User event already exists, skipping creation
+[getLatestClaudeSessionId] For memva session 2f9ffc9b-f411-4f88-993e-8a6bf61d5357, found Claude session: 307ad176-fe9d-4104-a09b-d51477743d83
+[SessionRunner] getLatestClaudeSessionId returned: 307ad176-fe9d-4104-a09b-d51477743d83
+[SessionRunner] Will resume existing conversation with Claude session ID: 307ad176-fe9d-4104-a09b-d51477743d83
+[streamClaudeCodeResponse] Called with resumeSessionId: 307ad176-fe9d-4104-a09b-d51477743d83
+[Claude Code] Starting stream for memva session 2f9ffc9b-f411-4f88-993e-8a6bf61d5357
+[Claude Code] Prompt: "Very nice! Can you test the "ls" tool as well?"
+[Claude Code] Attempting to resume session: 307ad176-fe9d-4104-a09b-d51477743d83
+[Claude Code] Query options: {
+  "maxTurns": 100,
+  "cwd": "/Users/mbm-premva/dev/memva",
+  "permissionMode": "acceptEdits",
+  "allowedTools": [
+    "Read",
+    "Write",
+    "Bash"
+  ],
+  "resume": "307ad176-fe9d-4104-a09b-d51477743d83"
+}
+[Claude Code] Message 1 received: type=system, aborted=false, timestamp=2025-07-17T21:08:55.276Z
+[Claude Code] Storing event type=system at 2025-07-17T21:08:55.276Z
+[Claude Code] Message 2 received: type=assistant, aborted=false, timestamp=2025-07-17T21:08:56.772Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:08:56.772Z
+[Claude Code] Message 3 received: type=result, aborted=false, timestamp=2025-07-17T21:08:56.773Z
+[Claude Code] Storing event type=result at 2025-07-17T21:08:56.773Z
+[Claude Code] Error caught: Error: Claude Code process exited with code 1
+    at ChildProcess.<anonymous> (file:///Users/mbm-premva/dev/memva/node_modules/@anthropic-ai/claude-code/sdk.mjs:193:25)
+    at ChildProcess.emit (node:events:507:28)
+    at maybeClose (node:internal/child_process:1101:16)
+    at Process.ChildProcess._handle.onexit (node:internal/child_process:305:5)
+    at Process.callbackTrampoline (node:internal/async_hooks:130:17)
+[Claude Code] Error details: {
+  name: 'Error',
+  message: 'Claude Code process exited with code 1',
+  aborted: false
+}
+[SessionRunner] User event already exists, skipping creation
+[getLatestClaudeSessionId] For memva session 2f9ffc9b-f411-4f88-993e-8a6bf61d5357, found Claude session: 472cfbf9-9ee0-4b32-820d-9a186aaa30fb
+[SessionRunner] getLatestClaudeSessionId returned: 472cfbf9-9ee0-4b32-820d-9a186aaa30fb
+[SessionRunner] Will resume existing conversation with Claude session ID: 472cfbf9-9ee0-4b32-820d-9a186aaa30fb
+[streamClaudeCodeResponse] Called with resumeSessionId: 472cfbf9-9ee0-4b32-820d-9a186aaa30fb
+[Claude Code] Starting stream for memva session 2f9ffc9b-f411-4f88-993e-8a6bf61d5357
+[Claude Code] Prompt: "Very nice! Can you test the "ls" tool as well?"
+[Claude Code] Attempting to resume session: 472cfbf9-9ee0-4b32-820d-9a186aaa30fb
+[Claude Code] Query options: {
+  "maxTurns": 100,
+  "cwd": "/Users/mbm-premva/dev/memva",
+  "permissionMode": "acceptEdits",
+  "allowedTools": [
+    "Read",
+    "Write",
+    "Bash"
+  ],
+  "resume": "472cfbf9-9ee0-4b32-820d-9a186aaa30fb"
+}
+(node:64945) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 exit listeners added to [process]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+[Claude Code] Message 1 received: type=system, aborted=false, timestamp=2025-07-17T21:08:58.601Z
+[Claude Code] Storing event type=system at 2025-07-17T21:08:58.601Z
+[Claude Code] Message 2 received: type=assistant, aborted=false, timestamp=2025-07-17T21:08:59.996Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:08:59.996Z
+[Claude Code] Message 3 received: type=result, aborted=false, timestamp=2025-07-17T21:08:59.997Z
+[Claude Code] Storing event type=result at 2025-07-17T21:08:59.997Z
+[Claude Code] Error caught: Error: Claude Code process exited with code 1
+    at ChildProcess.<anonymous> (file:///Users/mbm-premva/dev/memva/node_modules/@anthropic-ai/claude-code/sdk.mjs:193:25)
+    at ChildProcess.emit (node:events:507:28)
+    at maybeClose (node:internal/child_process:1101:16)
+    at Process.ChildProcess._handle.onexit (node:internal/child_process:305:5)
+    at Process.callbackTrampoline (node:internal/async_hooks:130:17)
+[Claude Code] Error details: {
+  name: 'Error',
+  message: 'Claude Code process exited with code 1',
+  aborted: false
+}
+[SessionRunner] User event already exists, skipping creation
+[getLatestClaudeSessionId] For memva session 2f9ffc9b-f411-4f88-993e-8a6bf61d5357, found Claude session: d14da000-c408-414d-a8ba-7a30347f51a2
+[SessionRunner] getLatestClaudeSessionId returned: d14da000-c408-414d-a8ba-7a30347f51a2
+[SessionRunner] Will resume existing conversation with Claude session ID: d14da000-c408-414d-a8ba-7a30347f51a2
+[streamClaudeCodeResponse] Called with resumeSessionId: d14da000-c408-414d-a8ba-7a30347f51a2
+[Claude Code] Starting stream for memva session 2f9ffc9b-f411-4f88-993e-8a6bf61d5357
+[Claude Code] Prompt: "Very nice! Can you test the "ls" tool as well?"
+[Claude Code] Attempting to resume session: d14da000-c408-414d-a8ba-7a30347f51a2
+[Claude Code] Query options: {
+  "maxTurns": 100,
+  "cwd": "/Users/mbm-premva/dev/memva",
+  "permissionMode": "acceptEdits",
+  "allowedTools": [
+    "Read",
+    "Write",
+    "Bash"
+  ],
+  "resume": "d14da000-c408-414d-a8ba-7a30347f51a2"
+}
+[Claude Code] Message 1 received: type=system, aborted=false, timestamp=2025-07-17T21:09:01.836Z
+[Claude Code] Storing event type=system at 2025-07-17T21:09:01.836Z
+[Claude Code] Message 2 received: type=assistant, aborted=false, timestamp=2025-07-17T21:09:03.095Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:09:03.095Z
+[Claude Code] Message 3 received: type=result, aborted=false, timestamp=2025-07-17T21:09:03.096Z
+[Claude Code] Storing event type=result at 2025-07-17T21:09:03.096Z
+[Claude Code] Error caught: Error: Claude Code process exited with code 1
+    at ChildProcess.<anonymous> (file:///Users/mbm-premva/dev/memva/node_modules/@anthropic-ai/claude-code/sdk.mjs:193:25)
+    at ChildProcess.emit (node:events:507:28)
+    at maybeClose (node:internal/child_process:1101:16)
+    at Socket.<anonymous> (node:internal/child_process:457:11)
+    at Socket.emit (node:events:507:28)
+    at Pipe.<anonymous> (node:net:351:12)
+    at Pipe.callbackTrampoline (node:internal/async_hooks:130:17)
+[Claude Code] Error details: {
+  name: 'Error',
+  message: 'Claude Code process exited with code 1',
+  aborted: false
+}
+WriteToolDisplay debug: {
+  toolCall: 'Write',
+  toolId: 'toolu_01NcrytHiPWGPDpJatugPtF1',
+  hasResult: true,
+  result: {
+    type: 'tool_result',
+    content: 'File has not been read yet. Read it first before writing to it.',
+    is_error: true,
+    tool_use_id: 'toolu_01NcrytHiPWGPDpJatugPtF1'
+  },
+  toolResult: {
+    type: 'tool_result',
+    content: 'File has not been read yet. Read it first before writing to it.',
+    is_error: true,
+    tool_use_id: 'toolu_01NcrytHiPWGPDpJatugPtF1'
+  },
+  sdkResult: {
+    content: 'File has not been read yet. Read it first before writing to it.',
+    is_error: true
+  },
+  hasContent: true,
+  isError: true
+}
+WriteToolDisplay debug: {
+  toolCall: 'Write',
+  toolId: 'toolu_01KfpTGNuuJZUqv7ndTSn5VL',
+  hasResult: true,
+  result: {
+    type: 'tool_result',
+    content: 'File has not been read yet. Read it first before writing to it.',
+    is_error: true,
+    tool_use_id: 'toolu_01KfpTGNuuJZUqv7ndTSn5VL'
+  },
+  toolResult: {
+    type: 'tool_result',
+    content: 'File has not been read yet. Read it first before writing to it.',
+    is_error: true,
+    tool_use_id: 'toolu_01KfpTGNuuJZUqv7ndTSn5VL'
+  },
+  sdkResult: {
+    content: 'File has not been read yet. Read it first before writing to it.',
+    is_error: true
+  },
+  hasContent: true,
+  isError: true
+}
+WriteToolDisplay debug: {
+  toolCall: 'Write',
+  toolId: 'toolu_01LYzjQd5yKt6Kxkcqxttt96',
+  hasResult: true,
+  result: {
+    type: 'tool_result',
+    content: 'File has not been read yet. Read it first before writing to it.',
+    is_error: true,
+    tool_use_id: 'toolu_01LYzjQd5yKt6Kxkcqxttt96'
+  },
+  toolResult: {
+    type: 'tool_result',
+    content: 'File has not been read yet. Read it first before writing to it.',
+    is_error: true,
+    tool_use_id: 'toolu_01LYzjQd5yKt6Kxkcqxttt96'
+  },
+  sdkResult: {
+    content: 'File has not been read yet. Read it first before writing to it.',
+    is_error: true
+  },
+  hasContent: true,
+  isError: true
+}
+WriteToolDisplay debug: {
+  toolCall: 'Write',
+  toolId: 'toolu_01FAk3s1445fsd5S1XHrqPcS',
+  hasResult: true,
+  result: {
+    tool_use_id: 'toolu_01FAk3s1445fsd5S1XHrqPcS',
+    type: 'tool_result',
+    content: 'File created successfully at: /Users/mbm-premva/dev/memva/echo_party.py'
+  },
+  toolResult: {
+    tool_use_id: 'toolu_01FAk3s1445fsd5S1XHrqPcS',
+    type: 'tool_result',
+    content: 'File created successfully at: /Users/mbm-premva/dev/memva/echo_party.py'
+  },
+  sdkResult: {
+    content: 'File created successfully at: /Users/mbm-premva/dev/memva/echo_party.py',
+    is_error: undefined
+  },
+  hasContent: true,
+  isError: undefined
+}
+WriteToolDisplay debug: {
+  toolCall: 'Write',
+  toolId: 'toolu_01Rv6MUFUkhpf2TXXab7i4sw',
+  hasResult: true,
+  result: {
+    type: 'tool_result',
+    content: 'File has not been read yet. Read it first before writing to it.',
+    is_error: true,
+    tool_use_id: 'toolu_01Rv6MUFUkhpf2TXXab7i4sw'
+  },
+  toolResult: {
+    type: 'tool_result',
+    content: 'File has not been read yet. Read it first before writing to it.',
+    is_error: true,
+    tool_use_id: 'toolu_01Rv6MUFUkhpf2TXXab7i4sw'
+  },
+  sdkResult: {
+    content: 'File has not been read yet. Read it first before writing to it.',
+    is_error: true
+  },
+  hasContent: true,
+  isError: true
+}
+WriteToolDisplay debug: {
+  toolCall: 'Write',
+  toolId: 'toolu_01Ln9yd9duQPhkNzmjEFwakW',
+  hasResult: true,
+  result: {
+    tool_use_id: 'toolu_01Ln9yd9duQPhkNzmjEFwakW',
+    type: 'tool_result',
+    content: 'File created successfully at: /Users/mbm-premva/dev/memva/test_write_file.txt'
+  },
+  toolResult: {
+    tool_use_id: 'toolu_01Ln9yd9duQPhkNzmjEFwakW',
+    type: 'tool_result',
+    content: 'File created successfully at: /Users/mbm-premva/dev/memva/test_write_file.txt'
+  },
+  sdkResult: {
+    content: 'File created successfully at: /Users/mbm-premva/dev/memva/test_write_file.txt',
+    is_error: undefined
+  },
+  hasContent: true,
+  isError: undefined
+}
+Loaded 3 sessions from database
+Sessions with stats: 3
+Loaded 3 sessions from database
+Sessions with stats: 3
+Loaded 3 sessions from database
+Sessions with stats: 3
+[SessionRunner] User event already exists, skipping creation
+[getLatestClaudeSessionId] For memva session 4824126a-8306-4b29-9b79-80e633530479, found Claude session: 9f2a9996-9707-4d5e-8c29-85c4194f70c1
+[SessionRunner] getLatestClaudeSessionId returned: 9f2a9996-9707-4d5e-8c29-85c4194f70c1
+[SessionRunner] Will resume existing conversation with Claude session ID: 9f2a9996-9707-4d5e-8c29-85c4194f70c1
+[streamClaudeCodeResponse] Called with resumeSessionId: 9f2a9996-9707-4d5e-8c29-85c4194f70c1
+[Claude Code] Starting stream for memva session 4824126a-8306-4b29-9b79-80e633530479
+[Claude Code] Prompt: "can you write me apython script that prints this o..."
+[Claude Code] Attempting to resume session: 9f2a9996-9707-4d5e-8c29-85c4194f70c1
+[Claude Code] Query options: {
+  "maxTurns": 100,
+  "cwd": "/Users/mbm-premva/dev/memva",
+  "permissionMode": "acceptEdits",
+  "allowedTools": [
+    "Read",
+    "Write",
+    "Bash"
+  ],
+  "resume": "9f2a9996-9707-4d5e-8c29-85c4194f70c1"
+}
+[Claude Code] Message 1 received: type=system, aborted=false, timestamp=2025-07-17T21:41:47.792Z
+[Claude Code] Storing event type=system at 2025-07-17T21:41:47.792Z
+[Claude Code] Message 2 received: type=assistant, aborted=false, timestamp=2025-07-17T21:41:51.684Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:41:51.684Z
+[Claude Code] Message 3 received: type=assistant, aborted=false, timestamp=2025-07-17T21:42:03.217Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:42:03.217Z
+[Claude Code] Message 4 received: type=user, aborted=false, timestamp=2025-07-17T21:42:03.344Z
+[Claude Code] Storing event type=user at 2025-07-17T21:42:03.345Z
+[Claude Code] Message 5 received: type=assistant, aborted=false, timestamp=2025-07-17T21:42:06.748Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:42:06.748Z
+[Claude Code] Message 6 received: type=assistant, aborted=false, timestamp=2025-07-17T21:42:08.196Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:42:08.196Z
+[Claude Code] Message 7 received: type=user, aborted=false, timestamp=2025-07-17T21:42:09.187Z
+[Claude Code] Storing event type=user at 2025-07-17T21:42:09.187Z
+[Claude Code] Message 8 received: type=assistant, aborted=false, timestamp=2025-07-17T21:42:12.155Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:42:12.155Z
+[Claude Code] Message 9 received: type=assistant, aborted=false, timestamp=2025-07-17T21:42:16.459Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:42:16.459Z
+[Claude Code] Message 10 received: type=user, aborted=false, timestamp=2025-07-17T21:42:16.525Z
+[Claude Code] Storing event type=user at 2025-07-17T21:42:16.525Z
+[Claude Code] Message 11 received: type=assistant, aborted=false, timestamp=2025-07-17T21:42:26.097Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:42:26.097Z
+[Claude Code] Message 12 received: type=user, aborted=false, timestamp=2025-07-17T21:42:26.187Z
+[Claude Code] Storing event type=user at 2025-07-17T21:42:26.187Z
+[Claude Code] Message 13 received: type=assistant, aborted=false, timestamp=2025-07-17T21:42:29.213Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:42:29.213Z
+[Claude Code] Message 14 received: type=assistant, aborted=false, timestamp=2025-07-17T21:42:30.647Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:42:30.647Z
+[Claude Code] Message 15 received: type=user, aborted=false, timestamp=2025-07-17T21:42:30.818Z
+[Claude Code] Storing event type=user at 2025-07-17T21:42:30.818Z
+[Claude Code] Message 16 received: type=assistant, aborted=false, timestamp=2025-07-17T21:42:35.134Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:42:35.134Z
+[Claude Code] Message 17 received: type=result, aborted=false, timestamp=2025-07-17T21:42:35.153Z
+[Claude Code] Storing event type=result at 2025-07-17T21:42:35.153Z
+[Claude Code] Finished processing 17 messages for session 4824126a-8306-4b29-9b79-80e633530479
+[SessionRunner] User event already exists, skipping creation
+[getLatestClaudeSessionId] For memva session 4824126a-8306-4b29-9b79-80e633530479, found Claude session: e2de2e6f-3424-49a7-9a7d-596f8983014f
+[SessionRunner] getLatestClaudeSessionId returned: e2de2e6f-3424-49a7-9a7d-596f8983014f
+[SessionRunner] Will resume existing conversation with Claude session ID: e2de2e6f-3424-49a7-9a7d-596f8983014f
+[streamClaudeCodeResponse] Called with resumeSessionId: e2de2e6f-3424-49a7-9a7d-596f8983014f
+[Claude Code] Starting stream for memva session 4824126a-8306-4b29-9b79-80e633530479
+[Claude Code] Prompt: "sexy! thank ya!"
+[Claude Code] Attempting to resume session: e2de2e6f-3424-49a7-9a7d-596f8983014f
+[Claude Code] Query options: {
+  "maxTurns": 100,
+  "cwd": "/Users/mbm-premva/dev/memva",
+  "permissionMode": "acceptEdits",
+  "allowedTools": [
+    "Read",
+    "Write",
+    "Bash"
+  ],
+  "resume": "e2de2e6f-3424-49a7-9a7d-596f8983014f"
+}
+[Claude Code] Message 1 received: type=system, aborted=false, timestamp=2025-07-17T21:43:12.088Z
+[Claude Code] Storing event type=system at 2025-07-17T21:43:12.088Z
+[Claude Code] Message 2 received: type=assistant, aborted=false, timestamp=2025-07-17T21:43:14.771Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:43:14.771Z
+[Claude Code] Message 3 received: type=result, aborted=false, timestamp=2025-07-17T21:43:14.781Z
+[Claude Code] Storing event type=result at 2025-07-17T21:43:14.781Z
+[Claude Code] Finished processing 3 messages for session 4824126a-8306-4b29-9b79-80e633530479
+Loaded 3 sessions from database
+Sessions with stats: 3
+Loaded 3 sessions from database
+Sessions with stats: 3
+Loaded 3 sessions from database
+Sessions with stats: 3
+Loaded 3 sessions from database
+Sessions with stats: 3
+Loaded 3 sessions from database
+Sessions with stats: 3
+Loaded 3 sessions from database
+Sessions with stats: 3
+[SessionRunner] Created user event for homepage submission
+[SessionRunner] New session from homepage - NOT resuming any Claude session
+[streamClaudeCodeResponse] Called with resumeSessionId: undefined
+[Claude Code] Starting stream for memva session 0e3a19fd-f098-4c6d-9282-b90b2ca64637
+[Claude Code] Prompt: "can you write me a python script that ls's all fil..."
+[Claude Code] Query options: {
+  "maxTurns": 100,
+  "cwd": "/Users/mbm-premva/dev/memva",
+  "permissionMode": "acceptEdits",
+  "allowedTools": [
+    "Read",
+    "Write",
+    "Bash"
+  ]
+}
+[Claude Code] Message 1 received: type=system, aborted=false, timestamp=2025-07-17T21:44:24.630Z
+[Claude Code] Storing event type=system at 2025-07-17T21:44:24.630Z
+[Claude Code] Message 2 received: type=assistant, aborted=false, timestamp=2025-07-17T21:44:27.648Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:44:27.648Z
+[Claude Code] Message 3 received: type=assistant, aborted=false, timestamp=2025-07-17T21:44:39.150Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:44:39.150Z
+[Claude Code] Message 4 received: type=user, aborted=false, timestamp=2025-07-17T21:44:39.251Z
+[Claude Code] Storing event type=user at 2025-07-17T21:44:39.251Z
+Loaded 4 sessions from database
+Sessions with stats: 4
+[Claude Code] Message 5 received: type=assistant, aborted=false, timestamp=2025-07-17T21:44:43.803Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:44:43.803Z
+[Claude Code] Message 6 received: type=user, aborted=false, timestamp=2025-07-17T21:44:43.988Z
+[Claude Code] Storing event type=user at 2025-07-17T21:44:43.988Z
+[Claude Code] Message 7 received: type=assistant, aborted=false, timestamp=2025-07-17T21:44:48.404Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:44:48.404Z
+[Claude Code] Message 8 received: type=result, aborted=false, timestamp=2025-07-17T21:44:48.441Z
+[Claude Code] Storing event type=result at 2025-07-17T21:44:48.442Z
+[Claude Code] Finished processing 8 messages for session 0e3a19fd-f098-4c6d-9282-b90b2ca64637
+[SessionRunner] Created user event for homepage submission
+[SessionRunner] New session from homepage - NOT resuming any Claude session
+[streamClaudeCodeResponse] Called with resumeSessionId: undefined
+[Claude Code] Starting stream for memva session 286cad83-c31e-4599-833f-5206ea741902
+[Claude Code] Prompt: "hi, can you show me what it looks like when you us..."
+[Claude Code] Query options: {
+  "maxTurns": 100,
+  "cwd": "/Users/mbm-premva/dev/memva",
+  "permissionMode": "acceptEdits",
+  "allowedTools": [
+    "Read",
+    "Write",
+    "Bash"
+  ]
+}
+[Claude Code] Message 1 received: type=system, aborted=false, timestamp=2025-07-17T21:45:09.466Z
+[Claude Code] Storing event type=system at 2025-07-17T21:45:09.466Z
+Loaded 5 sessions from database
+Sessions with stats: 5
+[Claude Code] Message 2 received: type=assistant, aborted=false, timestamp=2025-07-17T21:45:14.155Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:45:14.155Z
+[Claude Code] Message 3 received: type=assistant, aborted=false, timestamp=2025-07-17T21:45:17.607Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:45:17.607Z
+[Claude Code] Message 4 received: type=assistant, aborted=false, timestamp=2025-07-17T21:45:33.882Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:45:33.882Z
+[Claude Code] Message 5 received: type=user, aborted=false, timestamp=2025-07-17T21:46:02.581Z
+[Claude Code] Storing event type=user at 2025-07-17T21:46:02.582Z
+[Claude Code] Message 6 received: type=assistant, aborted=false, timestamp=2025-07-17T21:46:06.943Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:46:06.944Z
+4:46:36 PM [react-router] Config saved
+Loaded 5 sessions from database
+Sessions with stats: 5
+[Claude Code] Message 7 received: type=user, aborted=false, timestamp=2025-07-17T21:46:53.084Z
+[Claude Code] Storing event type=user at 2025-07-17T21:46:53.084Z
+[Claude Code] Message 8 received: type=assistant, aborted=false, timestamp=2025-07-17T21:46:58.384Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:46:58.384Z
+4:47:05 PM [vite] (client) page reload /Users/mbm-premva/dev/memva/app/components/events/tools/index.ts
+4:47:05 PM [vite] (client) page reload /Users/mbm-premva/dev/memva/app/components/events/tools/index.ts
+4:47:05 PM [vite] (client) page reload app/components/events/tools/index.ts
+4:47:05 PM [vite] (ssr) page reload app/components/events/tools/index.ts
+4:47:29 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:47:29 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:47:29 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:47:29 PM [vite] (ssr) page reload app/components/events/ToolCallDisplay.tsx
+[Claude Code] Message 9 received: type=user, aborted=false, timestamp=2025-07-17T21:47:45.248Z
+[Claude Code] Storing event type=user at 2025-07-17T21:47:45.248Z
+[Claude Code] Message 10 received: type=user, aborted=false, timestamp=2025-07-17T21:48:10.686Z
+[Claude Code] Storing event type=user at 2025-07-17T21:48:10.686Z
+[Claude Code] Message 11 received: type=assistant, aborted=false, timestamp=2025-07-17T21:48:16.079Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:48:16.079Z
+[Claude Code] Message 12 received: type=result, aborted=false, timestamp=2025-07-17T21:48:16.120Z
+[Claude Code] Storing event type=result at 2025-07-17T21:48:16.121Z
+[Claude Code] Finished processing 12 messages for session 286cad83-c31e-4599-833f-5206ea741902
+4:48:31 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:48:31 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:48:31 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:48:31 PM [vite] (ssr) page reload app/components/events/ToolCallDisplay.tsx
+4:48:58 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:48:58 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:48:58 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:48:58 PM [vite] (ssr) page reload app/components/events/ToolCallDisplay.tsx
+4:49:09 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:49:09 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:49:09 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:49:09 PM [vite] (ssr) page reload app/components/events/ToolCallDisplay.tsx
+ReferenceError: formattedResult is not defined
+    at ToolCallDisplay (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:180:15)
+    at Object.react-stack-bottom-frame (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:9176:18)
+    at renderWithHooks (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:4797:19)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5232:23)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5650:15)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5358:18)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderChildrenArray (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6274:9)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6015:13)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5358:18)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderChildrenArray (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6274:9)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6015:13)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5358:18)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at finishFunctionComponent (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:4841:13)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5283:11)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderChildrenArray (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6274:9)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6015:13)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5358:18)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5358:18)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5358:18)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5358:18)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+ReferenceError: formattedResult is not defined
+    at ToolCallDisplay (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:239:11)
+    at Object.react-stack-bottom-frame (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:9176:18)
+    at renderWithHooks (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:4797:19)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5232:23)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5650:15)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5358:18)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderChildrenArray (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6274:9)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6015:13)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5358:18)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderChildrenArray (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6274:9)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6015:13)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5358:18)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at finishFunctionComponent (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:4841:13)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5283:11)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderChildrenArray (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6274:9)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6015:13)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5358:18)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5358:18)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5358:18)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+    at renderNodeDestructive (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5941:11)
+    at renderNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:6398:18)
+    at renderElement (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5358:18)
+    at retryNode (/Users/mbm-premva/dev/memva/node_modules/react-dom/cjs/react-dom-server.node.development.js:5991:31)
+4:49:22 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:49:22 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:49:22 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:49:22 PM [vite] (ssr) page reload app/components/events/ToolCallDisplay.tsx
+4:49:39 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:49:39 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:49:39 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:49:39 PM [vite] (ssr) page reload app/components/events/ToolCallDisplay.tsx
+4:49:58 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:49:58 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:49:58 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:49:58 PM [vite] (ssr) page reload app/components/events/ToolCallDisplay.tsx
+Loaded 5 sessions from database
+Sessions with stats: 5
+Loaded 5 sessions from database
+Sessions with stats: 5
+Loaded 5 sessions from database
+Sessions with stats: 5
+4:51:50 PM [vite] (client) page reload /Users/mbm-premva/dev/memva/beautiful_datetime.py
+4:51:50 PM [vite] (client) page reload /Users/mbm-premva/dev/memva/beautiful_datetime.py
+4:51:50 PM [vite] (client) page reload beautiful_datetime.py
+4:51:50 PM [vite] (ssr) page reload beautiful_datetime.py
+4:51:54 PM [vite] (client) page reload /Users/mbm-premva/dev/memva/ls_files.py
+4:51:54 PM [vite] (client) page reload /Users/mbm-premva/dev/memva/ls_files.py
+4:51:54 PM [vite] (client) page reload ls_files.py
+4:51:54 PM [vite] (ssr) page reload ls_files.py
+[SessionRunner] User event already exists, skipping creation
+[getLatestClaudeSessionId] For memva session 286cad83-c31e-4599-833f-5206ea741902, found Claude session: 83732d22-1c1d-449e-a0e3-5a48e1a7d371
+[SessionRunner] getLatestClaudeSessionId returned: 83732d22-1c1d-449e-a0e3-5a48e1a7d371
+[SessionRunner] Will resume existing conversation with Claude session ID: 83732d22-1c1d-449e-a0e3-5a48e1a7d371
+[streamClaudeCodeResponse] Called with resumeSessionId: 83732d22-1c1d-449e-a0e3-5a48e1a7d371
+[Claude Code] Starting stream for memva session 286cad83-c31e-4599-833f-5206ea741902
+[Claude Code] Prompt: "can you use your ls tool to list the files in the ..."
+[Claude Code] Attempting to resume session: 83732d22-1c1d-449e-a0e3-5a48e1a7d371
+[Claude Code] Query options: {
+  "maxTurns": 100,
+  "cwd": "/Users/mbm-premva/dev/memva",
+  "permissionMode": "acceptEdits",
+  "allowedTools": [
+    "Read",
+    "Write",
+    "Bash"
+  ],
+  "resume": "83732d22-1c1d-449e-a0e3-5a48e1a7d371"
+}
+[Claude Code] Message 1 received: type=system, aborted=false, timestamp=2025-07-17T21:52:30.473Z
+[Claude Code] Storing event type=system at 2025-07-17T21:52:30.473Z
+[Claude Code] Message 2 received: type=assistant, aborted=false, timestamp=2025-07-17T21:52:34.795Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:52:34.796Z
+[Claude Code] Message 3 received: type=user, aborted=false, timestamp=2025-07-17T21:52:34.889Z
+[Claude Code] Storing event type=user at 2025-07-17T21:52:34.889Z
+[Claude Code] Message 4 received: type=assistant, aborted=false, timestamp=2025-07-17T21:52:39.594Z
+[Claude Code] Storing event type=assistant at 2025-07-17T21:52:39.594Z
+[Claude Code] Message 5 received: type=result, aborted=false, timestamp=2025-07-17T21:52:39.624Z
+[Claude Code] Storing event type=result at 2025-07-17T21:52:39.625Z
+[Claude Code] Finished processing 5 messages for session 286cad83-c31e-4599-833f-5206ea741902
+4:54:46 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:54:46 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:54:46 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+4:54:46 PM [vite] (ssr) page reload app/components/events/ToolCallDisplay.tsx
+4:54:52 PM [vite] (client) page reload /Users/mbm-premva/dev/memva/app/components/events/tools/index.ts
+4:54:52 PM [vite] (client) page reload /Users/mbm-premva/dev/memva/app/components/events/tools/index.ts
+4:54:52 PM [vite] (client) page reload app/components/events/tools/index.ts
+4:54:52 PM [vite] (ssr) page reload app/components/events/tools/index.ts
+4:54:56 PM [vite] (client) hmr update /app/components/events/tools/FallbackToolDisplay.tsx, /app/app.css
+4:54:56 PM [vite] (client) hmr update /app/components/events/tools/FallbackToolDisplay.tsx, /app/app.css
+4:54:56 PM [vite] (client) hmr update /app/components/events/tools/FallbackToolDisplay.tsx, /app/app.css
+4:54:56 PM [vite] (ssr) page reload app/components/events/tools/FallbackToolDisplay.tsx
+4:54:56 PM [react-router] Config saved
+5:00:49 PM [react-router] Config saved
+5:01:03 PM [vite] (client) page reload /Users/mbm-premva/dev/memva/app/components/events/tools/index.ts
+5:01:03 PM [vite] (client) page reload /Users/mbm-premva/dev/memva/app/components/events/tools/index.ts
+5:01:03 PM [vite] (client) page reload app/components/events/tools/index.ts
+5:01:03 PM [vite] (ssr) page reload app/components/events/tools/index.ts
+5:01:29 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+5:01:29 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+5:01:29 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+5:01:29 PM [vite] (ssr) page reload app/components/events/ToolCallDisplay.tsx
+5:01:29 PM [vite] Internal server error: Failed to resolve import "@/types/events" from "app/components/events/tools/WebSearchToolDisplay.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:2:31
+  2  |  import { Fragment, jsxDEV } from "react/jsx-dev-runtime";
+  3  |  import { memo, useState } from "react";
+  4  |  import { ToolUseContent } from "@/types/events";
+     |                                  ^
+  5  |  import { colors, spacing, borders, iconSizes, typography } from "@/constants/design";
+  6  |  import { RiArrowDownSLine, RiArrowUpSLine } from "react-icons/ri";
+      at TransformPluginContext._formatLog (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:42499:41)
+      at TransformPluginContext.error (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:42496:16)
+      at normalizeUrl (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:40475:23)
+      at processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:40594:37
+      at async Promise.all (index 4)
+      at TransformPluginContext.transform (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:40521:7)
+      at EnvironmentPluginContainer.transform (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:42294:18)
+      at loadAndTransform (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:35735:27)
+5:01:29 PM [vite] (client) Pre-transform error: Failed to resolve import "@/types/events" from "app/components/events/tools/WebSearchToolDisplay.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:2:31
+  2  |  import { Fragment, jsxDEV } from "react/jsx-dev-runtime";
+  3  |  import { memo, useState } from "react";
+  4  |  import { ToolUseContent } from "@/types/events";
+     |                                  ^
+  5  |  import { colors, spacing, borders, iconSizes, typography } from "@/constants/design";
+  6  |  import { RiArrowDownSLine, RiArrowUpSLine } from "react-icons/ri";
+5:01:29 PM [vite] (ssr) Error when evaluating SSR module virtual:react-router/server-build: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:29 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:31 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:33 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:35 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:37 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:39 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:40 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+5:01:40 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+5:01:40 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+5:01:40 PM [vite] (ssr) page reload app/components/events/ToolCallDisplay.tsx
+5:01:40 PM [vite] (client) Pre-transform error: Failed to resolve import "@/types/events" from "app/components/events/tools/WebSearchToolDisplay.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:2:31
+  2  |  import { Fragment, jsxDEV } from "react/jsx-dev-runtime";
+  3  |  import { memo, useState } from "react";
+  4  |  import { ToolUseContent } from "@/types/events";
+     |                                  ^
+  5  |  import { colors, spacing, borders, iconSizes, typography } from "@/constants/design";
+  6  |  import { RiArrowDownSLine, RiArrowUpSLine } from "react-icons/ri";
+5:01:41 PM [vite] (ssr) Error when evaluating SSR module virtual:react-router/server-build: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:41 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:43 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:45 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:47 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:49 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:51 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:52 PM [vite] (client) hmr update /app/app.css, /app/components/events/ToolCallDisplay.tsx
+5:01:52 PM [vite] (client) hmr update /app/app.css, /app/components/events/ToolCallDisplay.tsx
+5:01:52 PM [vite] (client) hmr update /app/app.css, /app/components/events/ToolCallDisplay.tsx
+5:01:52 PM [vite] (ssr) page reload app/components/events/tools/WebSearchToolDisplay.tsx
+5:01:52 PM [vite] Internal server error: Failed to resolve import "@/types/events" from "app/components/events/tools/WebSearchToolDisplay.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:2:31
+  2  |  import { Fragment, jsxDEV } from "react/jsx-dev-runtime";
+  3  |  import { memo, useState } from "react";
+  4  |  import { ToolUseContent } from "@/types/events";
+     |                                  ^
+  5  |  import { colors, spacing, borders, iconSizes, typography } from "@/constants/design";
+  6  |  import { RiArrowDownSLine, RiArrowUpSLine } from "react-icons/ri";
+      at TransformPluginContext._formatLog (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:42499:41)
+      at TransformPluginContext.error (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:42496:16)
+      at normalizeUrl (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:40475:23)
+      at processTicksAndRejections (node:internal/process/task_queues:105:5)
+      at file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:40594:37
+      at async Promise.all (index 4)
+      at TransformPluginContext.transform (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:40521:7)
+      at EnvironmentPluginContainer.transform (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:42294:18)
+      at loadAndTransform (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:35735:27)
+5:01:52 PM [vite] (client) Pre-transform error: Failed to resolve import "@/types/events" from "app/components/events/tools/WebSearchToolDisplay.tsx". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:2:31
+  2  |  import { Fragment, jsxDEV } from "react/jsx-dev-runtime";
+  3  |  import { memo, useState } from "react";
+  4  |  import { ToolUseContent } from "@/types/events";
+     |                                  ^
+  5  |  import { colors, spacing, borders, iconSizes, typography } from "@/constants/design";
+  6  |  import { RiArrowDownSLine, RiArrowUpSLine } from "react-icons/ri";
+5:01:53 PM [vite] (ssr) Error when evaluating SSR module virtual:react-router/server-build: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:53 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:55 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:57 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:01:59 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:02:01 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:02:03 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:02:05 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:02:07 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:02:09 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:02:11 PM [vite] Internal server error: Cannot find module '@/types/events' imported from '/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx'
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:46813:19)
+      at RunnableDevEnvironment.fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47904:12)
+      at fetchModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:47858:21)
+      at handleInvoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:38973:28)
+      at EventEmitter.listenerForInvokeHandler (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:39046:25)
+      at EventEmitter.emit (node:events:507:28)
+      at Object.send (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25190:40)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:621:34)
+      at Object.invoke (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:682:34)
+      at SSRCompatModuleRunner.getModuleInformation (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1205:94)
+      at SSRCompatModuleRunner.cachedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1191:21)
+      at request (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1227:99)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/tools/WebSearchToolDisplay.tsx:6:37)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/ToolCallDisplay.tsx:27:32)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/AssistantMessageEvent.tsx:10:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/components/events/EventRenderer.tsx:7:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval (/Users/mbm-premva/dev/memva/app/routes/sessions.$sessionId.tsx:13:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at eval ( virtual:react-router/server-build:18:31)
+      at ESModulesEvaluator.runInlinedModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1062:5)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1284:61)
+      at SSRCompatModuleRunner.directRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25274:23)
+      at SSRCompatModuleRunner.cachedRequest (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1180:76)
+      at SSRCompatModuleRunner.import (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/module-runner.js:1117:12)
+      at instantiateModule (file:///Users/mbm-premva/dev/memva/node_modules/vite/dist/node/chunks/dep-DBxKXgDP.js:25231:12)
+      at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3328:27
+5:02:13 PM [vite] (client) hmr update /app/app.css, /app/components/events/ToolCallDisplay.tsx
+5:02:13 PM [vite] (client) hmr update /app/app.css, /app/components/events/ToolCallDisplay.tsx
+5:02:13 PM [vite] (client) hmr update /app/app.css, /app/components/events/ToolCallDisplay.tsx
+5:02:13 PM [vite] (ssr) page reload app/components/events/tools/WebSearchToolDisplay.tsx
+5:03:37 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:03:37 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:03:37 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:03:37 PM [vite] (ssr) page reload app/components/events/tools/WebSearchToolDisplay.tsx
+5:03:53 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:03:53 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:03:53 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:03:53 PM [vite] (ssr) page reload app/components/events/tools/WebSearchToolDisplay.tsx
+Error: No route matches URL "/.well-known/appspecific/com.chrome.devtools.json"
+    at getInternalRouterError (file:///Users/mbm-premva/dev/memva/node_modules/react-router/dist/development/chunk-QMGIS6GS.mjs:4514:5)
+    at Object.query (file:///Users/mbm-premva/dev/memva/node_modules/react-router/dist/development/chunk-QMGIS6GS.mjs:2728:19)
+    at handleDocumentRequest (file:///Users/mbm-premva/dev/memva/node_modules/react-router/dist/development/chunk-QMGIS6GS.mjs:11037:40)
+    at requestHandler (file:///Users/mbm-premva/dev/memva/node_modules/react-router/dist/development/chunk-QMGIS6GS.mjs:10952:24)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at nodeHandler (/Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3335:30)
+    at /Users/mbm-premva/dev/memva/node_modules/@react-router/dev/dist/vite.js:3341:17
+No routes matched location "/.well-known/appspecific/com.chrome.devtools.json" 
+5:07:38 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+5:07:38 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+5:07:38 PM [vite] (client) hmr update /app/components/events/ToolCallDisplay.tsx, /app/app.css
+5:07:38 PM [vite] (ssr) page reload app/components/events/ToolCallDisplay.tsx
+5:08:43 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:08:43 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:08:43 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:08:43 PM [vite] (ssr) page reload app/components/events/tools/WebSearchToolDisplay.tsx
+5:14:20 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:14:20 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:14:20 PM [vite] (client) hmr update /app/components/events/tools/WebSearchToolDisplay.tsx, /app/app.css
+5:14:20 PM [vite] (ssr) page reload app/components/events/tools/WebSearchToolDisplay.tsx

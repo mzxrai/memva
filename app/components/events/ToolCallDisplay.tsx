@@ -21,6 +21,7 @@ import { EditToolDisplay } from './tools/EditToolDisplay'
 import { BashToolDisplay } from './tools/BashToolDisplay'
 import { ReadToolDisplay } from './tools/ReadToolDisplay'
 import { TodoWriteToolDisplay } from './tools/TodoWriteToolDisplay'
+import { WebSearchToolDisplay } from './tools/WebSearchToolDisplay'
 import type { ToolUseContent } from '../../types/events'
 import clsx from 'clsx'
 
@@ -370,7 +371,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       </div>
       
       {/* Result section - minimal inline display */}
-      {formattedResult && toolCall.name !== 'Write' && toolCall.name !== 'Bash' && toolCall.name !== 'Read' && toolCall.name !== 'TodoWrite' && (
+      {formattedResult && toolCall.name !== 'Write' && toolCall.name !== 'Bash' && toolCall.name !== 'Read' && toolCall.name !== 'TodoWrite' && toolCall.name !== 'WebSearch' && (
         <div className="py-2">
           <div className={clsx(
             'flex items-center gap-2',
@@ -452,6 +453,15 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       {/* TodoWrite tool result section */}
       {toolCall.name === 'TodoWrite' && (
         <TodoWriteToolDisplay 
+          toolCall={toolCall}
+          hasResult={hasResult}
+          result={result}
+        />
+      )}
+      
+      {/* WebSearch tool result section */}
+      {toolCall.name === 'WebSearch' && (
+        <WebSearchToolDisplay 
           toolCall={toolCall}
           hasResult={hasResult}
           result={result}
