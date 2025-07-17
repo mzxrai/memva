@@ -228,8 +228,8 @@ describe('ToolCallDisplay component', () => {
         <ToolCallDisplay toolCall={bashTool} result={result} hasResult={true} />
       )
 
-      // Should show error indicator via BashToolDisplay
-      expect(screen.getByText(/✗ Error/)).toBeInTheDocument()
+      // Should show the actual error content instead of "✗ Error"
+      expect(screen.getByText(/command not found: invalid-command/)).toBeInTheDocument()
     })
 
     it('should collapse long results by default', () => {
@@ -294,8 +294,8 @@ describe('ToolCallDisplay component', () => {
         <ToolCallDisplay toolCall={bashTool} result={result} hasResult={true} />
       )
 
-      // Should show error via BashToolDisplay
-      expect(screen.getByText(/✗ Error/)).toBeInTheDocument()
+      // Should show the actual error content instead of "✗ Error"
+      expect(screen.getByText(/Permission denied/)).toBeInTheDocument()
     })
 
     it('should not show result section when result is null', () => {

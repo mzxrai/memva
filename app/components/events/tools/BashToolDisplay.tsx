@@ -155,7 +155,7 @@ export const BashToolDisplay = memo(({ toolCall, hasResult, result }: BashToolDi
                 <>
                   {'\n'}
                   <span className="inline-flex items-center gap-2">
-                    <span>{expandIndicator}</span>
+                    <span className={typography.size.xs}>{expandIndicator}</span>
                     <button
                       onClick={() => setShowFullResult(true)}
                       className={clsx(

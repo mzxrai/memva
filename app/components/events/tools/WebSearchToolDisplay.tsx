@@ -18,6 +18,7 @@ interface WebSearchLink {
 
 export const WebSearchToolDisplay = memo(({ toolCall, hasResult, result }: WebSearchToolDisplayProps) => {
   const [showFullContent, setShowFullContent] = useState(false)
+  const [showAllLinks, setShowAllLinks] = useState(false)
 
   if (toolCall.name !== 'WebSearch' || !hasResult || !result) {
     return null
@@ -150,37 +151,12 @@ export const WebSearchToolDisplay = memo(({ toolCall, hasResult, result }: WebSe
 
   // Prepare content for display
   const contentLines = mainContent.split('\n').filter(line => line.trim())
-  const previewLines = contentLines.slice(0, 3)
-  const hasMoreContent = contentLines.length > 3
+  const firstLine = contentLines[0] || ''
+  const hasMoreContent = contentLines.length > 1
 
-  // Prepare a unified display with links embedded
-  const previewWithLinks = () => {
-    const linkElements = links.slice(0, 3).map((link) => (
-      `[${link.title}](${link.url})`
-    )).join('\n')
-    
-    if (linkElements && previewLines.length > 0) {
-      return `${linkElements}\n\n${previewLines.join('\n')}`
-    } else if (linkElements) {
-      return linkElements
-    } else {
-      return previewLines.join('\n')
-    }
-  }
-
-  const fullContentWithLinks = () => {
-    const allLinkElements = links.map((link) => (
-      `[${link.title}](${link.url})`
-    )).join('\n')
-    
-    if (allLinkElements && mainContent) {
-      return `${allLinkElements}\n\n${mainContent}`
-    } else if (allLinkElements) {
-      return allLinkElements
-    } else {
-      return mainContent
-    }
-  }
+  // Display links (3 or all)
+  const displayLinks = showAllLinks ? links : links.slice(0, 3)
+  const hasMoreLinks = links.length > 3
 
   return (
     <div className="py-2">
@@ -189,77 +165,146 @@ export const WebSearchToolDisplay = memo(({ toolCall, hasResult, result }: WebSe
         typography.size.sm,
         colors.text.secondary
       )}>
-        {showFullContent ? (
-          <div>
-            <MarkdownRenderer content={fullContentWithLinks()} />
-            <div className="mt-2 flex items-center gap-2">
-              <button
-                onClick={() => setShowFullContent(false)}
-                className={clsx(
-                  'flex items-center justify-center',
-                  'w-5 h-5',
-                  'border border-zinc-700',
-                  'bg-zinc-800/50',
-                  'hover:bg-zinc-700/50',
-                  'rounded',
-                  'flex-shrink-0',
-                  transition.fast
-                )}
-                aria-label="Collapse"
-              >
-                <RiArrowDownSLine className={clsx(
-                  'w-3 h-3',
-                  colors.text.tertiary,
-                  transition.fast,
-                  'rotate-180'
-                )} />
-              </button>
-              <span className={clsx(
-                typography.size.sm,
-                colors.text.tertiary
-              )}>
-                Show less
-              </span>
-            </div>
+        {/* Links section */}
+        {displayLinks.length > 0 && (
+          <div className="mb-2">
+            {displayLinks.map((link, index) => (
+              <div key={index}>
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={clsx(
+                    colors.accent.blue.text,
+                    'hover:underline',
+                    'break-words',
+                    'block'
+                  )}
+                >
+                  {link.title}
+                </a>
+              </div>
+            ))}
+            {hasMoreLinks && !showAllLinks && (
+              <div className="mt-1 flex items-center gap-2">
+                <button
+                  onClick={() => setShowAllLinks(true)}
+                  className={clsx(
+                    'flex items-center justify-center',
+                    'w-5 h-5',
+                    'border border-zinc-700',
+                    'bg-zinc-800/50',
+                    'hover:bg-zinc-700/50',
+                    'rounded',
+                    'flex-shrink-0',
+                    transition.fast
+                  )}
+                  aria-label="Show all links"
+                >
+                  <RiArrowDownSLine className={clsx(
+                    'w-3 h-3',
+                    colors.text.tertiary,
+                    transition.fast
+                  )} />
+                </button>
+                <span className={clsx(typography.size.xs, colors.text.tertiary)}>
+                  +{links.length - 3} more links
+                </span>
+              </div>
+            )}
+            {hasMoreLinks && showAllLinks && (
+              <div className="mt-1 flex items-center gap-2">
+                <button
+                  onClick={() => setShowAllLinks(false)}
+                  className={clsx(
+                    'flex items-center justify-center',
+                    'w-5 h-5',
+                    'border border-zinc-700',
+                    'bg-zinc-800/50',
+                    'hover:bg-zinc-700/50',
+                    'rounded',
+                    'flex-shrink-0',
+                    transition.fast
+                  )}
+                  aria-label="Show fewer links"
+                >
+                  <RiArrowDownSLine className={clsx(
+                    'w-3 h-3',
+                    colors.text.tertiary,
+                    transition.fast,
+                    'rotate-180'
+                  )} />
+                </button>
+                <span className={clsx(typography.size.xs, colors.text.tertiary)}>
+                  Show less
+                </span>
+              </div>
+            )}
           </div>
-        ) : (
+        )}
+
+        {/* Content section - show only first line or full content */}
+        {firstLine && (
           <div>
-            <MarkdownRenderer content={previewWithLinks()} />
-            {(hasMoreContent || links.length > 3) && (
-              <>
-                <div className={clsx(typography.size.xs, colors.text.tertiary, 'mt-1')}>
-                  {links.length > 3 && `(+${links.length - 3} more links) `}
-                  {hasMoreContent && `(+${contentLines.length - 3} more lines)`}
-                </div>
-                <div className="mt-2 flex items-center gap-2">
-                  <button
-                    onClick={() => setShowFullContent(true)}
-                    className={clsx(
-                      'flex items-center justify-center',
-                      'w-5 h-5',
-                      'border border-zinc-700',
-                      'bg-zinc-800/50',
-                      'hover:bg-zinc-700/50',
-                      'rounded',
-                      'flex-shrink-0',
-                      transition.fast
-                    )}
-                    aria-label="Expand"
-                  >
-                    <RiArrowDownSLine className={clsx(
-                      'w-3 h-3',
-                      colors.text.tertiary,
-                      transition.fast
-                    )} />
-                  </button>
-                  <span className={clsx(
-                    typography.size.sm,
-                    colors.text.tertiary
-                  )}>
-                    Show full content
-                  </span>
-                </div>
-              </>
+            {showFullContent ? (
+              <MarkdownRenderer content={mainContent} />
+            ) : (
+              <MarkdownRenderer content={firstLine} />
+            )}
+            {hasMoreContent && !showFullContent && (
+              <div className="mt-1 flex items-center gap-2">
+                <button
+                  onClick={() => setShowFullContent(true)}
+                  className={clsx(
+                    'flex items-center justify-center',
+                    'w-5 h-5',
+                    'border border-zinc-700',
+                    'bg-zinc-800/50',
+                    'hover:bg-zinc-700/50',
+                    'rounded',
+                    'flex-shrink-0',
+                    transition.fast
+                  )}
+                  aria-label="Show full content"
+                >
+                  <RiArrowDownSLine className={clsx(
+                    'w-3 h-3',
+                    colors.text.tertiary,
+                    transition.fast
+                  )} />
+                </button>
+                <span className={clsx(typography.size.xs, colors.text.tertiary)}>
+                  +{contentLines.length - 1} more lines
+                </span>
+              </div>
+            )}
+            {hasMoreContent && showFullContent && (
+              <div className="mt-1 flex items-center gap-2">
+                <button
+                  onClick={() => setShowFullContent(false)}
+                  className={clsx(
+                    'flex items-center justify-center',
+                    'w-5 h-5',
+                    'border border-zinc-700',
+                    'bg-zinc-800/50',
+                    'hover:bg-zinc-700/50',
+                    'rounded',
+                    'flex-shrink-0',
+                    transition.fast
+                  )}
+                  aria-label="Show less content"
+                >
+                  <RiArrowDownSLine className={clsx(
+                    'w-3 h-3',
+                    colors.text.tertiary,
+                    transition.fast,
+                    'rotate-180'
+                  )} />
+                </button>
+                <span className={clsx(typography.size.xs, colors.text.tertiary)}>
+                  Show less
+                </span>
+              </div>
             )}
           </div>
         )}
