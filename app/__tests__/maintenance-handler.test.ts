@@ -53,7 +53,7 @@ describe('Maintenance Handler', () => {
       maintenanceHandler(mockJob, callback)
       
       // Wait for the async operation to complete
-      await waitForCondition(() => callbackCalled, 5000)
+      await waitForCondition(() => callbackCalled, { timeoutMs: 5000 })
       
       expect(callbackResult).toBeDefined()
       expect(callbackResult).toEqual({
@@ -88,7 +88,7 @@ describe('Maintenance Handler', () => {
       
       maintenanceHandler(invalidJob, callback)
       
-      await waitForCondition(() => callbackCalled, 1000)
+      await waitForCondition(() => callbackCalled, { timeoutMs: 1000 })
       
       expect(callbackError).toBeInstanceOf(Error)
       expect(callbackError?.message).toContain('olderThanDays is required')
@@ -117,7 +117,7 @@ describe('Maintenance Handler', () => {
       
       maintenanceHandler(mockJob, callback)
       
-      await waitForCondition(() => callbackCalled, 1000)
+      await waitForCondition(() => callbackCalled, { timeoutMs: 1000 })
       
       expect(callbackError).toBeInstanceOf(Error)
       expect(callbackError?.message).toContain('olderThanDays must be positive')
@@ -149,7 +149,7 @@ describe('Maintenance Handler', () => {
       
       maintenanceHandler(mockJob, callback)
       
-      await waitForCondition(() => callbackCalled, 5000)
+      await waitForCondition(() => callbackCalled, { timeoutMs: 5000 })
       
       expect(callbackResult).toBeDefined()
       expect(callbackResult).toEqual({
@@ -184,7 +184,7 @@ describe('Maintenance Handler', () => {
       
       maintenanceHandler(mockJob, callback)
       
-      await waitForCondition(() => callbackCalled, 5000)
+      await waitForCondition(() => callbackCalled, { timeoutMs: 5000 })
       
       // This test might pass or fail depending on database state
       // The important thing is that it handles errors gracefully
@@ -218,7 +218,7 @@ describe('Maintenance Handler', () => {
       
       maintenanceHandler(mockJob, callback)
       
-      await waitForCondition(() => callbackCalled, 5000)
+      await waitForCondition(() => callbackCalled, { timeoutMs: 5000 })
       
       expect(callbackResult).toBeDefined()
       expect(callbackResult).toEqual({
@@ -254,7 +254,7 @@ describe('Maintenance Handler', () => {
       
       maintenanceHandler(invalidJob, callback)
       
-      await waitForCondition(() => callbackCalled, 1000)
+      await waitForCondition(() => callbackCalled, { timeoutMs: 1000 })
       
       expect(callbackError).toBeInstanceOf(Error)
       expect(callbackError?.message).toContain('backupPath is required')
@@ -283,7 +283,7 @@ describe('Maintenance Handler', () => {
       
       maintenanceHandler(mockJob, callback)
       
-      await waitForCondition(() => callbackCalled, 5000)
+      await waitForCondition(() => callbackCalled, { timeoutMs: 5000 })
       
       expect(callbackError).toBeInstanceOf(Error)
       expect(callbackError?.message).toContain('Backup failed')
@@ -314,7 +314,7 @@ describe('Maintenance Handler', () => {
       
       maintenanceHandler(invalidJob, callback)
       
-      await waitForCondition(() => callbackCalled, 1000)
+      await waitForCondition(() => callbackCalled, { timeoutMs: 1000 })
       
       expect(callbackError).toBeInstanceOf(Error)
       expect(callbackError?.message).toContain('Missing required field: operation')
@@ -342,7 +342,7 @@ describe('Maintenance Handler', () => {
       
       maintenanceHandler(invalidJob, callback)
       
-      await waitForCondition(() => callbackCalled, 1000)
+      await waitForCondition(() => callbackCalled, { timeoutMs: 1000 })
       
       expect(callbackError).toBeInstanceOf(Error)
       expect(callbackError?.message).toContain('Unknown maintenance operation')
@@ -373,7 +373,7 @@ describe('Maintenance Handler', () => {
       
       maintenanceHandler(mockJob, callback)
       
-      await waitForCondition(() => callbackCalled, 5000)
+      await waitForCondition(() => callbackCalled, { timeoutMs: 5000 })
       
       expect(callbackResult).toBeDefined()
       // Should include progress/timing information

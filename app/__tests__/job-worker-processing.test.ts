@@ -41,7 +41,7 @@ describe('Job Worker Processing', () => {
       await worker.start()
       
       // Wait for the job to be processed
-      await waitForCondition(() => testHandler.mock.calls.length > 0, 5000)
+      await waitForCondition(() => testHandler.mock.calls.length > 0, { timeoutMs: 5000 })
       
       expect(testHandler).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -74,7 +74,7 @@ describe('Job Worker Processing', () => {
       await worker.start()
       
       // Wait for processing
-      await waitForCondition(() => testHandler.mock.calls.length > 0, 5000)
+      await waitForCondition(() => testHandler.mock.calls.length > 0, { timeoutMs: 5000 })
       
       // Only the known job should be processed
       expect(testHandler).toHaveBeenCalledTimes(1)
@@ -109,7 +109,7 @@ describe('Job Worker Processing', () => {
       await worker.start()
       
       // Wait for all jobs to be processed
-      await waitForCondition(() => processedJobs.length === 3, 5000)
+      await waitForCondition(() => processedJobs.length === 3, { timeoutMs: 5000 })
       
       // Jobs should be processed in priority order (highest first)
       expect((processedJobs[0] as any).data.message).toBe('high')
@@ -143,7 +143,7 @@ describe('Job Worker Processing', () => {
       await worker.start()
       
       // Wait for handler to be called
-      await waitForCondition(() => progressCallback !== null, 5000)
+      await waitForCondition(() => progressCallback !== null, { timeoutMs: 5000 })
       
       // Check that job status was updated to running
       const runningJob = await getJob(job.id)
@@ -154,7 +154,7 @@ describe('Job Worker Processing', () => {
       await waitForCondition(async () => {
         const completedJob = await getJob(job.id)
         return completedJob?.status === 'completed'
-      }, 5000)
+      }, { timeoutMs: 5000 })
       
       // Check final job status
       const completedJob = await getJob(job.id)
@@ -185,7 +185,7 @@ describe('Job Worker Processing', () => {
       await waitForCondition(async () => {
         const failedJob = await getJob(job.id)
         return failedJob?.status === 'failed' || failedJob?.status === 'pending'
-      }, 5000)
+      }, { timeoutMs: 5000 })
       
       const failedJob = await getJob(job.id)
       
@@ -218,7 +218,7 @@ describe('Job Worker Processing', () => {
       await worker.start()
       
       // Wait for all retry attempts
-      await waitForCondition(() => callCount >= 2, 5000)
+      await waitForCondition(() => callCount >= 2, { timeoutMs: 5000 })
       
       expect(testHandler).toHaveBeenCalledTimes(2)
       
@@ -226,7 +226,7 @@ describe('Job Worker Processing', () => {
       await waitForCondition(async () => {
         const finalJob = await getJob(job.id)
         return finalJob?.status === 'failed'
-      }, 5000)
+      }, { timeoutMs: 5000 })
       
       const finalJob = await getJob(job.id)
       expect(finalJob?.status).toBe('failed')
@@ -267,7 +267,7 @@ describe('Job Worker Processing', () => {
       await worker.start()
       
       // Wait for all jobs to complete
-      await waitForCondition(() => testHandler.mock.calls.length >= 5, 8000)
+      await waitForCondition(() => testHandler.mock.calls.length >= 5, { timeoutMs: 8000 })
       
       // Should have processed multiple jobs concurrently
       expect(maxConcurrentJobs.value).toBeGreaterThanOrEqual(3)
@@ -305,7 +305,7 @@ describe('Job Worker Processing', () => {
       await worker.start()
       
       // Wait for all jobs to complete  
-      await waitForCondition(() => testHandler.mock.calls.length >= 6, 12000)
+      await waitForCondition(() => testHandler.mock.calls.length >= 6, { timeoutMs: 12000 })
       
       // Should never exceed the concurrency limit
       expect(maxConcurrentJobs.value).toBeLessThanOrEqual(2)
