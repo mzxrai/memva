@@ -261,12 +261,16 @@ export default function SessionDetail() {
               />
             ))}
             {/* Show PendingMessage when processing */}
-            {(isProcessing || isSubmitting) && submissionStartTime.current && (
-              <PendingMessage 
-                tokenCount={0}
-                startTime={submissionStartTime.current}
-              />
-            )}
+            {(() => {
+              // Check if we have a result event which signals completion
+              const hasResultEvent = displayEvents.some(e => e.event_type === 'result');
+              return (isProcessing || isSubmitting) && !hasResultEvent && submissionStartTime.current && (
+                <PendingMessage 
+                  tokenCount={0}
+                  startTime={submissionStartTime.current}
+                />
+              );
+            })()}
           </div>
         )}
       </div>
