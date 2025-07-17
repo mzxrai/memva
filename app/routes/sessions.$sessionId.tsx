@@ -3,7 +3,7 @@ import { useParams, Form, useLoaderData, useNavigation } from "react-router";
 import { useSSEEvents } from "../hooks/useSSEEvents";
 import { useSessionStatus } from "../hooks/useSessionStatus";
 import { useState, useMemo, useEffect, useRef } from "react";
-import { RiSendPlaneFill, RiFolder3Line } from "react-icons/ri";
+import { RiFolder3Line } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
 import { PendingMessage } from "../components/PendingMessage";
 import { getSession } from "../db/sessions.service";
@@ -277,8 +277,8 @@ export default function SessionDetail() {
           <div className="container mx-auto max-w-7xl">
             <div className="relative">
               <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 p-4">
-                <Form method="post" className="flex gap-3">
-                  <div className="flex-1 flex items-center px-5 py-3.5 bg-zinc-800/60 border border-zinc-700/50 rounded-xl focus-within:border-zinc-600 focus-within:bg-zinc-800/80 transition-all duration-200">
+                <Form method="post">
+                  <div className="flex items-center px-5 py-3.5 bg-zinc-800/60 border border-zinc-700/50 rounded-xl focus-within:border-zinc-600 focus-within:bg-zinc-800/80 transition-all duration-200">
                     <span className="text-zinc-500 font-mono mr-4 select-none">{'>'}</span>
                     <input
                       name="prompt"
@@ -288,16 +288,9 @@ export default function SessionDetail() {
                       disabled={isProcessing || isSubmitting}
                       className="flex-1 bg-transparent text-zinc-100 focus:outline-none disabled:opacity-50 font-mono text-[0.9375rem]"
                       role="textbox"
+                      placeholder={isProcessing || isSubmitting ? "Processing..." : "Ask Claude Code anything..."}
                     />
                   </div>
-                  <button
-                    type="submit"
-                    disabled={!prompt.trim() || isProcessing || isSubmitting}
-                    className="px-6 py-3.5 bg-zinc-700/90 hover:bg-zinc-600/90 text-zinc-100 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:bg-zinc-600/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg font-mono text-[0.9375rem]"
-                  >
-                    <RiSendPlaneFill className="w-5 h-5" />
-                    Send
-                  </button>
                 </Form>
               </div>
             </div>

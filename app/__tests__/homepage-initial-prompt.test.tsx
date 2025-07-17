@@ -15,6 +15,19 @@ vi.mock('../services/claude-code.service', () => ({
   sendPromptToClaudeCode: vi.fn()
 }))
 
+// Mock job creation
+vi.mock('../db/jobs.service', () => ({
+  createJob: vi.fn().mockResolvedValue({ id: 'test-job-id' })
+}))
+
+vi.mock('../workers/job-types', () => ({
+  createSessionRunnerJob: vi.fn((data) => ({
+    type: 'session-runner',
+    data,
+    priority: 8
+  }))
+}))
+
 // The event-session.service is already mocked by setupDatabaseMocks
 // We just need to make sure the test database is set up correctly
 
@@ -51,15 +64,11 @@ describe('Homepage Initial Prompt Behavior', () => {
     render(<Stub />)
 
     // Wait for home page to load
-    await waitFor(() => screen.getByPlaceholderText(/session title/i))
+    await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
     
-    // Enter title and prompt, then submit
-    const titleInput = screen.getByPlaceholderText(/session title/i)
-    const promptInput = screen.getByPlaceholderText(/what would you like claude code to help/i)
-    
-    await user.type(titleInput, 'Help me implement a new feature')
-    await user.type(promptInput, 'I need help implementing a new feature')
-    await user.click(screen.getByRole('button', { name: /start/i }))
+    // Enter prompt and submit with Enter key
+    const input = screen.getByPlaceholderText(/start a new claude code session/i)
+    await user.type(input, 'Help me implement a new feature{Enter}')
 
     // Should navigate to session page and display the session with correct title
     await waitFor(() => {
@@ -89,7 +98,7 @@ describe('Homepage Initial Prompt Behavior', () => {
     render(<Stub />)
 
     // Wait for home page to load
-    await waitFor(() => screen.getByPlaceholderText(/session title/i))
+    await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
     
     // Enter prompt and submit with Enter key
     const input = screen.getByPlaceholderText(/start a new claude code session/i)
@@ -123,15 +132,11 @@ describe('Homepage Initial Prompt Behavior', () => {
     render(<Stub />)
 
     // Wait for home page to load
-    await waitFor(() => screen.getByPlaceholderText(/session title/i))
+    await waitFor(() => screen.getByPlaceholderText(/start a new claude code session/i))
     
     // Create a new session
-    const titleInput = screen.getByPlaceholderText(/session title/i)
-    const promptInput = screen.getByPlaceholderText(/what would you like claude code to help/i)
-    
-    await user.type(titleInput, 'Test session')
-    await user.type(promptInput, 'Test prompt')
-    await user.click(screen.getByRole('button', { name: /start/i }))
+    const input = screen.getByPlaceholderText(/start a new claude code session/i)
+    await user.type(input, 'Test session{Enter}')
 
     // Should show session page with session details
     await waitFor(() => {

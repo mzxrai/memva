@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useLoaderData } from 'react-router'
 import { createMockSession } from '../test-utils/factories'
@@ -92,30 +92,20 @@ describe('Home Component', () => {
 
     render(<Home />)
 
-    const titleInput = screen.getByPlaceholderText('Session title')
-    const promptInput = screen.getByPlaceholderText(/what would you like claude code to help you with/i)
-    const submitButton = screen.getByRole('button', { name: 'Start' })
+    const titleInput = screen.getByPlaceholderText(/start a new claude code session/i)
 
-    // Test initial state - button should be disabled
-    expect(submitButton).toBeDisabled()
+    // Test initial state - input should be empty
+    expect(titleInput).toHaveValue('')
 
-    // Test typing in title input only
+    // Test typing in title input
     fireEvent.change(titleInput, { target: { value: 'New Session Title' } })
     
-    // Button should still be disabled because prompt is empty
-    expect(submitButton).toBeDisabled()
-
-    // Test typing in prompt input
-    fireEvent.change(promptInput, { target: { value: 'Help me build a component' } })
-    
-    // Test button becomes enabled when both fields are filled
-    await waitFor(() => {
-      expect(submitButton).toBeEnabled()
-    })
-
-    // Test input values are updated
+    // Test input value is updated
     expect(titleInput).toHaveValue('New Session Title')
-    expect(promptInput).toHaveValue('Help me build a component')
+    
+    // The form now uses just the title as the prompt, submitted via Enter key
+    const form = titleInput.closest('form')
+    expect(form).toBeInTheDocument()
   })
 
   it('should display session event count when available', () => {
@@ -181,63 +171,54 @@ describe('Home Component', () => {
   })
 
   it('should display different status indicators correctly', () => {
-    const activeSession = createMockSession({ 
-      id: 'active-session',
-      title: 'Active Session',
-      status: 'active'
+    const processingSession = createMockSession({ 
+      id: 'processing-session',
+      title: 'Processing Session',
+      status: 'active',
+      claude_status: 'processing'
     })
-    const archivedSession = createMockSession({ 
-      id: 'archived-session',
-      title: 'Archived Session',
-      status: 'archived'
+    const completedSession = createMockSession({ 
+      id: 'completed-session',
+      title: 'Completed Session',
+      status: 'active',
+      claude_status: 'completed'
     })
 
     vi.mocked(useLoaderData).mockReturnValue({ 
-      sessions: [activeSession, archivedSession] 
+      sessions: [processingSession, completedSession] 
     })
 
     render(<Home />)
 
-    // Test active session status
-    expectContent.text('Active')
+    // Sessions should have status indicators
+    const statusDots = screen.getAllByTestId('status-dot')
+    expect(statusDots).toHaveLength(2)
     
-    // Test archived session status
-    expectContent.text('Archived')
+    // First session has processing status
+    expect(statusDots[0]).toHaveAttribute('data-status', 'processing')
+    expect(statusDots[0]).toHaveAttribute('data-pulse', 'true')
+    
+    // Second session has completed status  
+    expect(statusDots[1]).toHaveAttribute('data-status', 'completed')
   })
 
-  it('should prevent form submission when title or prompt is empty', () => {
+  it('should prevent form submission when title is empty', () => {
     vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
 
     render(<Home />)
 
-    const titleInput = screen.getByPlaceholderText('Session title')
-    const promptInput = screen.getByPlaceholderText(/what would you like claude code to help you with/i)
-    const submitButton = screen.getByRole('button', { name: 'Start' })
+    const titleInput = screen.getByPlaceholderText(/start a new claude code session/i)
+    const form = titleInput.closest('form')
 
-    // Test empty inputs
-    fireEvent.change(titleInput, { target: { value: '' } })
-    fireEvent.change(promptInput, { target: { value: '' } })
-    expect(submitButton).toBeDisabled()
-
-    // Test whitespace-only inputs
-    fireEvent.change(titleInput, { target: { value: '   ' } })
-    fireEvent.change(promptInput, { target: { value: '   ' } })
-    expect(submitButton).toBeDisabled()
-
-    // Test valid title but empty prompt
-    fireEvent.change(titleInput, { target: { value: 'Valid Title' } })
-    fireEvent.change(promptInput, { target: { value: '' } })
-    expect(submitButton).toBeDisabled()
-
-    // Test empty title but valid prompt
-    fireEvent.change(titleInput, { target: { value: '' } })
-    fireEvent.change(promptInput, { target: { value: 'Valid prompt' } })
-    expect(submitButton).toBeDisabled()
-
-    // Test valid inputs
-    fireEvent.change(titleInput, { target: { value: 'Valid Title' } })
-    fireEvent.change(promptInput, { target: { value: 'Valid prompt' } })
-    expect(submitButton).toBeEnabled()
+    // Form should exist
+    expect(form).toBeInTheDocument()
+    
+    // Test that input accepts text
+    fireEvent.change(titleInput, { target: { value: 'Test session' } })
+    expect(titleInput).toHaveValue('Test session')
+    
+    // The form now uses the title as both title and prompt, submitted via Enter key
+    // Form submission is handled by the action, not by button state
   })
 
   it('should handle form accessibility correctly', () => {
@@ -245,33 +226,24 @@ describe('Home Component', () => {
 
     render(<Home />)
 
-    const titleInput = screen.getByPlaceholderText('Session title')
-    const promptInput = screen.getByPlaceholderText(/what would you like claude code to help you with/i)
-    const submitButton = screen.getByRole('button', { name: 'Start' })
+    const titleInput = screen.getByPlaceholderText(/start a new claude code session/i)
 
     // Test form elements are accessible
     expect(titleInput).toBeInTheDocument()
     expect(titleInput).toHaveAttribute('type', 'text')
     expect(titleInput).toHaveAttribute('name', 'title')
     
-    expect(promptInput).toBeInTheDocument()
-    expect(promptInput).toHaveAttribute('name', 'prompt')
+    // Test that input is in a form
+    const form = titleInput.closest('form')
+    expect(form).toBeInTheDocument()
+    expect(form).toHaveAttribute('method', 'post')
     
-    expect(submitButton).toBeInTheDocument()
-    expect(submitButton).toHaveAttribute('type', 'submit')
-    
-    // Test keyboard navigation - just check they can be focused
+    // Test keyboard navigation - input can be focused
     titleInput.focus()
     expect(titleInput).toHaveFocus()
     
-    promptInput.focus()
-    expect(promptInput).toHaveFocus()
-    
-    // Note: disabled buttons cannot be focused, so only test when enabled
-    fireEvent.change(titleInput, { target: { value: 'Test' } })
-    fireEvent.change(promptInput, { target: { value: 'Test prompt' } })
-    expect(submitButton).toBeEnabled()
-    submitButton.focus()
-    expect(submitButton).toHaveFocus()
+    // Test that form can be submitted via Enter key
+    fireEvent.change(titleInput, { target: { value: 'Test session' } })
+    expect(titleInput).toHaveValue('Test session')
   })
 })

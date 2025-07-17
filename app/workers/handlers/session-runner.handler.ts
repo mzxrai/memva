@@ -32,12 +32,29 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
     let hasError = false
     let errorMessage = ''
     
+    // Create initial user event for the prompt
+    const { createEventFromMessage, storeEvent } = await import('../../db/events.service')
+    const userEvent = createEventFromMessage({
+      message: {
+        type: 'user',
+        content: prompt.trim(),
+        session_id: '' // Will be populated by Claude Code SDK
+      },
+      memvaSessionId: sessionId,
+      projectPath: session.project_path,
+      parentUuid: null,
+      timestamp: new Date().toISOString()
+    })
+    
+    await storeEvent(userEvent)
+    
     // Execute Claude Code SDK interaction
     try {
       await streamClaudeCodeResponse({
         prompt,
         projectPath: session.project_path,
         memvaSessionId: sessionId,
+        initialParentUuid: userEvent.uuid,
         onMessage: () => {
           messagesProcessed++
           // Messages are automatically stored by the service

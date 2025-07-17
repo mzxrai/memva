@@ -75,10 +75,9 @@ function isSessionWithStats(session: SessionWithStats | { id: string }): session
 export default function Home() {
   const { sessions } = useLoaderData<typeof loader>();
   const [sessionTitle, setSessionTitle] = useState("");
-  const [sessionPrompt] = useState("");
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    if (!sessionTitle.trim() || !sessionPrompt.trim()) {
+    if (!sessionTitle.trim()) {
       e.preventDefault();
     }
   };
@@ -106,6 +105,7 @@ export default function Home() {
               placeholder="Start a new Claude Code session: ask, brainstorm, build"
               className="w-full px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem]"
             />
+            <input type="hidden" name="prompt" value={sessionTitle} />
           </Form>
         </div>
 
