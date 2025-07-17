@@ -1,4 +1,5 @@
 import { setupServer } from 'msw/node'
+import { http, HttpResponse } from 'msw'
 import { beforeAll, afterEach, afterAll } from 'vitest'
 
 // Mock the Claude Code SDK module
@@ -60,7 +61,22 @@ vi.mock('@anthropic-ai/claude-code', () => ({
 
 // Define handlers that will be shared across tests
 export const handlers = [
-  // Default handlers can be added here
+  // Mock the session detail API endpoint
+  http.get('/api/session/:sessionId', ({ params }) => {
+    const { sessionId } = params
+    return HttpResponse.json({
+      session: {
+        id: sessionId,
+        title: 'Test Session',
+        project_path: '/test/project',
+        status: 'ready',
+        claude_session_id: 'mock-session-id',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      },
+      events: []
+    })
+  })
 ]
 
 // Setup the MSW server

@@ -46,7 +46,7 @@ describe('Homepage Job Dispatch', () => {
     expect(sessionsInDb).toHaveLength(1)
     expect(sessionsInDb[0]).toMatchObject({
       title: 'New Session',
-      claude_status: 'not_started'
+      claude_status: 'processing' // Updated to processing immediately after creation
     })
 
     // Verify job was created
@@ -64,7 +64,7 @@ describe('Homepage Job Dispatch', () => {
     })
   })
 
-  it('should set initial status to not_started', async () => {
+  it('should set status to processing after creation', async () => {
     const { action } = await import('../routes/home')
     
     const formData = new FormData()
@@ -79,7 +79,7 @@ describe('Homepage Job Dispatch', () => {
 
     const sessionsInDb = testDb.db.select().from(sessions).all()
     expect(sessionsInDb).toHaveLength(1)
-    expect(sessionsInDb[0].claude_status).toBe('not_started')
+    expect(sessionsInDb[0].claude_status).toBe('processing') // Updated immediately to show pending state
   })
 
   it('should redirect to session detail page immediately', async () => {
