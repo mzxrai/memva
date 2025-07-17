@@ -54,6 +54,10 @@ export async function action({ request }: Route.ActionArgs) {
     }
   });
   
+  // Update claude_status to processing so pending message shows immediately
+  const { updateSessionClaudeStatus } = await import('../db/sessions.service');
+  await updateSessionClaudeStatus(session.id, 'processing');
+  
   // Create session-runner job
   const { createJob } = await import('../db/jobs.service');
   const { createSessionRunnerJob } = await import('../workers/job-types');
