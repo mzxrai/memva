@@ -421,34 +421,42 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       )}
       
       {/* Write tool file preview section */}
-      <WriteToolDisplay 
-        toolCall={toolCall}
-        hasResult={hasResult}
-        result={result}
-        isStreaming={isStreaming}
-        isError={isError}
-      />
+      {toolCall.name === 'Write' && (
+        <WriteToolDisplay 
+          toolCall={toolCall}
+          hasResult={hasResult}
+          result={result}
+          isStreaming={isStreaming}
+          isError={isError}
+        />
+      )}
       
       {/* Bash tool result section */}
-      <BashToolDisplay 
-        toolCall={toolCall}
-        hasResult={hasResult}
-        result={result}
-      />
+      {toolCall.name === 'Bash' && (
+        <BashToolDisplay 
+          toolCall={toolCall}
+          hasResult={hasResult}
+          result={result}
+        />
+      )}
       
       {/* Read tool result section */}
-      <ReadToolDisplay 
-        toolCall={toolCall}
-        hasResult={hasResult}
-        result={result}
-      />
+      {toolCall.name === 'Read' && (
+        <ReadToolDisplay 
+          toolCall={toolCall}
+          hasResult={hasResult}
+          result={result}
+        />
+      )}
       
       {/* TodoWrite tool result section */}
-      <TodoWriteToolDisplay 
-        toolCall={toolCall}
-        hasResult={hasResult}
-        result={result}
-      />
+      {toolCall.name === 'TodoWrite' && (
+        <TodoWriteToolDisplay 
+          toolCall={toolCall}
+          hasResult={hasResult}
+          result={result}
+        />
+      )}
     </div>
   )
 })

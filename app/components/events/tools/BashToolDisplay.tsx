@@ -28,7 +28,28 @@ const formatBashResult = (result: unknown): { status: 'success' | 'error', brief
   const isError = sdkResult.is_error === true
   
   if (isError) {
-    return { status: 'error', brief: '✗ Error', full: content }
+    // Show actual error content in the brief, with same formatting logic as success
+    if (!content) {
+      return { status: 'error', brief: '✗ Error' }
+    }
+    
+    const errorLines = content.split('\n').filter(line => line.trim())
+    
+    if (errorLines.length === 0) {
+      return { status: 'error', brief: '✗ Error' }
+    } else if (errorLines.length === 1 && errorLines[0].length > 100) {
+      // Handle long single line errors
+      const line = errorLines[0]
+      const brief = line.substring(0, 100) + '…\n(show full output)'
+      return { status: 'error', brief, full: content }
+    } else if (errorLines.length <= 3) {
+      // Show all lines if 3 or fewer
+      return { status: 'error', brief: errorLines.join('\n') }
+    } else {
+      // Show first 3 lines with more indicator
+      const preview = errorLines.slice(0, 3).join('\n')
+      return { status: 'error', brief: `${preview}\n(+${errorLines.length - 3} more lines)`, full: content }
+    }
   }
   
   if (!content) {

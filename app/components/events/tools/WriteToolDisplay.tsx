@@ -43,13 +43,38 @@ const getWriteFileInfo = (toolCall: ToolUseContent): { content: string; fileName
 export const WriteToolDisplay = memo(({ toolCall, hasResult, result }: WriteToolDisplayProps) => {
   const [showWritePreview, setShowWritePreview] = useState(false)
 
-  // Only show if this is a Write tool with successful result
-  // Expect result format: {content: string, is_error: boolean}
+  // Only show if we have a result
+  // Expect result format: {content: string, is_error?: boolean}
   if (!hasResult || !result || typeof result !== 'object' || result === null) {
     return null
   }
 
-  const sdkResult = result as { content?: string, is_error?: boolean }
+  // Handle both nested tool_result structure and direct result structure
+  const toolResult = result as { type?: string, tool_use_id?: string, content?: unknown, is_error?: boolean }
+  
+  // For tool_result structure, content is the message and is_error is at top level
+  let sdkResult: { content?: string, is_error?: boolean }
+  if (toolResult.type === 'tool_result') {
+    sdkResult = {
+      content: toolResult.content as string,
+      is_error: toolResult.is_error
+    }
+  } else {
+    // For other structures, assume the whole result is the SDK result
+    sdkResult = result as { content?: string, is_error?: boolean }
+  }
+
+  // Debug logging
+  console.log('WriteToolDisplay debug:', {
+    toolCall: toolCall.name,
+    toolId: toolCall.id,
+    hasResult,
+    result,
+    toolResult,
+    sdkResult,
+    hasContent: sdkResult.content !== undefined,
+    isError: sdkResult.is_error
+  })
 
   if (sdkResult.content === undefined) {
     return null
@@ -57,9 +82,22 @@ export const WriteToolDisplay = memo(({ toolCall, hasResult, result }: WriteTool
 
   const isError = sdkResult.is_error === true
 
-  // Don't show if there was an error
+  // Handle error display
   if (isError) {
-    return null
+    const errorContent = typeof sdkResult.content === 'string' ? sdkResult.content : 'Write operation failed'
+    
+    return (
+      <div className="py-2">
+        <div className={clsx(
+          typography.font.mono,
+          typography.size.sm,
+          colors.accent.red.text,
+          'whitespace-pre-wrap'
+        )}>
+          {errorContent}
+        </div>
+      </div>
+    )
   }
 
   const writeFileInfo = getWriteFileInfo(toolCall)
