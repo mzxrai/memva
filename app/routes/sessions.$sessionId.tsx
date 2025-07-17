@@ -2,13 +2,12 @@ import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useParams, Form, useLoaderData, useNavigation } from "react-router";
 import { useSSEEvents } from "../hooks/useSSEEvents";
 import { useSessionStatus } from "../hooks/useSessionStatus";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { RiFolder3Line } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
 import { PendingMessage } from "../components/PendingMessage";
 import { getSession } from "../db/sessions.service";
 import { getEventsForSession } from "../db/event-session.service";
-import type { AnyEvent } from "../types/events";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const sessionId = params.sessionId;
@@ -90,6 +89,9 @@ export default function SessionDetail() {
   const sessionId = params.sessionId as string;
   const navigation = useNavigation();
   const { session: initialSession, events: initialEvents } = useLoaderData<typeof loader>();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isInitialMount = useRef(true);
+  const [isVisible, setIsVisible] = useState(false);
   
   // Poll for session status updates
   const { session: polledSession } = useSessionStatus(sessionId);
@@ -173,6 +175,64 @@ export default function SessionDetail() {
   // Track form submission state
   const isSubmitting = navigation.state === "submitting";
   
+  // Define showPending early so it can be used in effects
+  const showPending = waitingSince !== null;
+  
+  // Initial positioning - ensure last message is visible WITHOUT visible scrolling
+  useEffect(() => {
+    // Only do initial scroll if we have events OR if we're showing pending
+    if ((displayEvents.length > 0 || showPending) && scrollContainerRef.current && isInitialMount.current) {
+      const container = scrollContainerRef.current;
+      
+      // Use ResizeObserver to detect when content stops changing
+      let resizeTimeout: ReturnType<typeof setTimeout>;
+      let lastHeight = 0;
+      
+      const scrollToBottom = () => {
+        const scrollHeight = container.scrollHeight;
+        const clientHeight = container.clientHeight;
+        const maxScroll = scrollHeight - clientHeight;
+        
+        if (maxScroll > 0) {
+          container.scrollTop = maxScroll;
+        }
+      };
+      
+      const observer = new ResizeObserver(() => {
+        clearTimeout(resizeTimeout);
+        
+        const currentHeight = container.scrollHeight;
+        if (currentHeight !== lastHeight) {
+          lastHeight = currentHeight;
+          scrollToBottom();
+          
+          // Wait for stability
+          resizeTimeout = setTimeout(() => {
+            scrollToBottom();
+            setIsVisible(true);
+            isInitialMount.current = false;
+            observer.disconnect();
+          }, 100);
+        }
+      });
+      
+      // Start observing
+      observer.observe(container);
+      
+      // Initial scroll
+      scrollToBottom();
+      
+      // Cleanup
+      return () => {
+        clearTimeout(resizeTimeout);
+        observer.disconnect();
+      };
+    } else if (displayEvents.length === 0 && !showPending) {
+      setIsVisible(true);
+    }
+  }, [displayEvents.length, showPending]);
+  
+  
   // When form submits, record the timestamp
   useEffect(() => {
     if (isSubmitting) {
@@ -201,7 +261,40 @@ export default function SessionDetail() {
     }
   }, []); // Only on mount
   
-  const showPending = waitingSince !== null;
+  // Track if we should auto-scroll (user is near bottom)
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  
+  // Check if user is near bottom whenever they scroll
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    const handleScroll = () => {
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+      setShouldAutoScroll(isNearBottom);
+    };
+    
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+  
+  // Auto-scroll when content changes (new messages, pending state, etc)
+  useEffect(() => {
+    if (!isInitialMount.current && scrollContainerRef.current && shouldAutoScroll) {
+      const container = scrollContainerRef.current;
+      
+      // Scroll to bottom whenever content changes and we should auto-scroll
+      requestAnimationFrame(() => {
+        const scrollHeight = container.scrollHeight;
+        const clientHeight = container.clientHeight;
+        const maxScroll = scrollHeight - clientHeight;
+        
+        if (maxScroll > 0) {
+          container.scrollTop = maxScroll;
+        }
+      });
+    }
+  }, [displayEvents.length, showPending, shouldAutoScroll, newEvents.length]);
   
   // Clear form when submission completes
   useEffect(() => {
@@ -252,27 +345,29 @@ export default function SessionDetail() {
       )}
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        {displayEvents.length === 0 && !isProcessing && !isSubmitting ? (
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-32" ref={scrollContainerRef} style={{ opacity: isVisible ? 1 : 0 }}>
+        {displayEvents.length === 0 && !isProcessing && !isSubmitting && !showPending ? (
           <div className="h-full flex items-center justify-center">
             <p className="text-zinc-500">No messages yet. Start by asking Claude Code something!</p>
           </div>
         ) : (
-          <div className="min-h-full flex flex-col justify-start pt-6 pb-32">
+          <div className="container mx-auto max-w-7xl py-4">
             {displayEvents.map((event) => (
-              <EventRenderer
-                key={event.uuid}
-                event={event as AnyEvent}
-                toolResults={toolResults}
-                isStreaming={false}
-              />
+              <div key={event.uuid} className="message-container">
+                <EventRenderer
+                  event={event}
+                  toolResults={toolResults}
+                  isStreaming={false}
+                />
+              </div>
             ))}
-            {/* Show PendingMessage based on simple state */}
-            {showPending && waitingSince && (
-              <PendingMessage 
-                tokenCount={0}
-                startTime={waitingSince}
-              />
+            {showPending && (
+              <div className="message-container">
+                <PendingMessage 
+                  tokenCount={0}
+                  startTime={waitingSince}
+                />
+              </div>
             )}
           </div>
         )}
@@ -280,7 +375,7 @@ export default function SessionDetail() {
 
       {/* Floating input form */}
       <div className="fixed bottom-0 left-0 right-0 pb-7 z-30">
-        <div className="px-4">
+        <div>
           <div className="container mx-auto max-w-7xl">
             <div className="relative">
               <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 p-4">

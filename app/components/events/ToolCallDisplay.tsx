@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, useMemo } from 'react'
+import { useState, memo, useMemo } from 'react'
 import type { ComponentType } from 'react'
 import {
   RiFileTextLine,
@@ -145,7 +145,8 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
 export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, className, isStreaming = false, isError = false }: ToolCallDisplayProps) => {
   // Auto-expand Edit/MultiEdit tools to show diff by default, but NOT during streaming
   const isEditTool = toolCall.name === 'Edit' || toolCall.name === 'MultiEdit'
-  const [isExpanded, setIsExpanded] = useState(isEditTool && !isStreaming)
+  // Synchronously expand edit tools when they have results
+  const [isExpanded, setIsExpanded] = useState((isEditTool && !isStreaming) || (isEditTool && hasResult))
   const [showFullResult, setShowFullResult] = useState(false)
   
   // Check if this is an interrupted bash command
@@ -157,12 +158,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
     (result as { interrupted?: boolean }).interrupted === true
   
   
-  // Auto-expand Edit tools when streaming completes
-  useEffect(() => {
-    if (isEditTool && !isStreaming && !isExpanded) {
-      setIsExpanded(true)
-    }
-  }, [isEditTool, isStreaming, isExpanded])
+  // Removed useEffect that caused delayed expansion - now handled synchronously in initial state
   
   const Icon = toolIcons[toolCall.name] || RiToolsLine
   const primaryParam = getPrimaryParam(toolCall.name, toolCall.input)

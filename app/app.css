@@ -112,3 +112,10 @@ body {
 .animate-spin-smooth {
   animation: spin-smooth 1s linear infinite;
 }
+
+/* Performance optimization for message containers */
+.message-container {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 150px;
+}
+

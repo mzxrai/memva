@@ -1,5 +1,6 @@
 import { useState, memo } from 'react'
 import { RiArrowDownSLine } from 'react-icons/ri'
+import stripAnsi from 'strip-ansi'
 import { colors, typography, transition } from '../../../constants/design'
 import type { ToolUseContent } from '../../../types/events'
 import clsx from 'clsx'
@@ -22,7 +23,8 @@ const formatBashResult = (result: unknown): { status: 'success' | 'error', brief
     return null
   }
   
-  const content = sdkResult.content.trim()
+  // Strip ANSI escape codes from the content
+  const content = stripAnsi(sdkResult.content.trim())
   const isError = sdkResult.is_error === true
   
   if (isError) {
