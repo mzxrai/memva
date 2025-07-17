@@ -131,7 +131,7 @@ export const EditToolDisplay = memo(({ toolCall, hasResult, result, lineInfo }: 
         transition.fast,
         showFullDiff && 'rotate-180'
       )} />
-      {showFullDiff ? 'Show less' : `Show all ${lineCount} lines`}
+      {showFullDiff ? 'Show less' : `Show ${lineCount - 10} more lines`}
     </button>
   )
 

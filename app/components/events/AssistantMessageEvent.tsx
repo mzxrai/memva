@@ -1,12 +1,13 @@
 import { type ReactNode } from 'react'
-import { RiSparklingLine, RiBrainLine } from 'react-icons/ri'
+import { RiSparklingLine } from 'react-icons/ri'
 import { BaseEventWrapper } from './BaseEventWrapper'
 import { MessageContainer } from './MessageContainer'
 import { MessageHeader } from './MessageHeader'
 import { ToolCallDisplay } from './ToolCallDisplay'
 import { CodeBlock } from './CodeBlock'
 import { MarkdownRenderer } from '../MarkdownRenderer'
-import { colors, typography, radius, iconSize } from '../../constants/design'
+import { ThinkingDisplay } from './tools/ThinkingDisplay'
+import { colors, typography } from '../../constants/design'
 import type { AnyEvent, AssistantMessageContent } from '../../types/events'
 import clsx from 'clsx'
 
@@ -33,32 +34,7 @@ function renderContent(content: AssistantMessageContent, toolResults?: Map<strin
     }
     
     case 'thinking':
-      return (
-        <details className={clsx(
-          colors.background.tertiary,
-          colors.border.subtle,
-          'border',
-          radius.lg,
-          'p-3 mt-2'
-        )}>
-          <summary className={clsx(
-            'flex items-center gap-2',
-            typography.size.sm,
-            colors.text.secondary,
-            'cursor-pointer select-none'
-          )}>
-            <RiBrainLine className={clsx(iconSize.sm, colors.text.tertiary)} />
-            <span>Thinking process</span>
-          </summary>
-          <div className={clsx(
-            'mt-3',
-            '[&_p]:text-zinc-400',
-            '[&_code]:text-zinc-300'
-          )}>
-            <MarkdownRenderer content={content.text || ''} />
-          </div>
-        </details>
-      )
+      return <ThinkingDisplay content={content} />
     
     default:
       return (

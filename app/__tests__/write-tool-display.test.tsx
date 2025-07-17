@@ -47,7 +47,7 @@ describe('WriteToolDisplay Component', () => {
       expect(screen.queryByText('line 11')).not.toBeInTheDocument()
 
       // Should show expand button for files > 10 lines
-      expectContent.text('Show all 15 lines')
+      expectContent.text('Show 5 more lines')
     })
 
     it('should expand to show all lines when expand button is clicked', () => {
@@ -62,7 +62,7 @@ describe('WriteToolDisplay Component', () => {
         />
       )
 
-      const expandButton = screen.getByText('Show all 15 lines')
+      const expandButton = screen.getByText('Show 5 more lines')
       fireEvent.click(expandButton)
 
       // Should now show all lines
@@ -205,7 +205,7 @@ describe('WriteToolDisplay Component', () => {
         />
       )
 
-      const expandButton = screen.getByText('Show all 15 lines')
+      const expandButton = screen.getByText('Show 5 more lines')
       expect(expandButton).toHaveAttribute('aria-label', 'Show all')
 
       fireEvent.click(expandButton)
@@ -243,7 +243,7 @@ describe('WriteToolDisplay Component', () => {
         />
       )
 
-      const expandButton = screen.getByText('Show all 15 lines')
+      const expandButton = screen.getByText('Show 5 more lines')
 
       // Initially collapsed
       expect(screen.queryByText('line 15')).not.toBeInTheDocument()

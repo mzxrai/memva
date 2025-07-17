@@ -222,7 +222,7 @@ export const WriteToolDisplay = memo(({ toolCall, hasResult, result }: WriteTool
                 transition.fast,
                 showWritePreview && 'rotate-180'
               )} />
-              {showWritePreview ? 'Show less' : `Show all ${writeFileInfo.lineCount} lines`}
+              {showWritePreview ? 'Show less' : `Show ${writeFileInfo.lineCount - 10} more lines`}
             </button>
           </div>
         )}
