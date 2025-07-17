@@ -10,9 +10,9 @@ interface EditToolDisplayProps {
 }
 
 // Reconstructs the original and final file content from MultiEdit operations
-function reconstructFileFromMultiEdit(edits: Array<{ old_string: string; new_string: string }>): { 
-  originalContent: string; 
-  finalContent: string 
+function reconstructFileFromMultiEdit(edits: Array<{ old_string: string; new_string: string }>): {
+  originalContent: string;
+  finalContent: string
 } {
   if (edits.length === 0) {
     return { originalContent: '', finalContent: '' }
@@ -29,19 +29,19 @@ function reconstructFileFromMultiEdit(edits: Array<{ old_string: string; new_str
   // For multiple edits, create a simple but effective reconstruction
   // Since MultiEdit edits are typically applied to different parts of the same file,
   // we'll concatenate them with clear separators to show the context
-  
+
   const originalParts = edits.map((edit, index) => {
     // Add a comment to show which edit this is
     const marker = `// Edit ${index + 1}/${edits.length}`
     return `${marker}\n${edit.old_string}`
   })
-  
+
   const finalParts = edits.map((edit, index) => {
     // Add the same comment structure
     const marker = `// Edit ${index + 1}/${edits.length}`
     return `${marker}\n${edit.new_string}`
   })
-  
+
   return {
     originalContent: originalParts.join('\n\n'),
     finalContent: finalParts.join('\n\n')
@@ -51,32 +51,50 @@ function reconstructFileFromMultiEdit(edits: Array<{ old_string: string; new_str
 export const EditToolDisplay = memo(({ toolCall, hasResult, result, lineInfo }: EditToolDisplayProps) => {
   // Only show for Edit/MultiEdit tools with results
   const isEditTool = toolCall.name === 'Edit' || toolCall.name === 'MultiEdit'
-  
+
   if (!isEditTool || !hasResult || !result) {
     return null
   }
 
+  // Expect result format: {content: string, is_error: boolean}
+  if (typeof result !== 'object' || result === null) {
+    return null
+  }
+
+  const sdkResult = result as { content?: string, is_error?: boolean }
+
+  if (sdkResult.content === undefined) {
+    return null
+  }
+
+  const isError = sdkResult.is_error === true
+
+  // Don't show if there was an error
+  if (isError) {
+    return null
+  }
+
   // Check if this is an Edit tool with valid diff data
-  const isEditWithDiff = toolCall.input && 
+  const isEditWithDiff = toolCall.input &&
     typeof toolCall.input === 'object' &&
     (
       // Single Edit tool format
-      ('old_string' in toolCall.input && 
-       'new_string' in toolCall.input &&
-       typeof toolCall.input.old_string === 'string' &&
-       typeof toolCall.input.new_string === 'string') ||
+      ('old_string' in toolCall.input &&
+        'new_string' in toolCall.input &&
+        typeof toolCall.input.old_string === 'string' &&
+        typeof toolCall.input.new_string === 'string') ||
       // MultiEdit tool format  
       ('edits' in toolCall.input &&
-       Array.isArray(toolCall.input.edits) &&
-       toolCall.input.edits.length > 0 &&
-       toolCall.input.edits.every(edit => 
-         typeof edit === 'object' &&
-         edit !== null &&
-         'old_string' in edit &&
-         'new_string' in edit &&
-         typeof edit.old_string === 'string' &&
-         typeof edit.new_string === 'string'
-       ))
+        Array.isArray(toolCall.input.edits) &&
+        toolCall.input.edits.length > 0 &&
+        toolCall.input.edits.every(edit =>
+          typeof edit === 'object' &&
+          edit !== null &&
+          'old_string' in edit &&
+          'new_string' in edit &&
+          typeof edit.old_string === 'string' &&
+          typeof edit.new_string === 'string'
+        ))
     )
 
   if (!isEditWithDiff) {
@@ -84,7 +102,7 @@ export const EditToolDisplay = memo(({ toolCall, hasResult, result, lineInfo }: 
   }
 
   const input = toolCall.input as Record<string, unknown>
-  
+
   // Handle single Edit tool
   if ('old_string' in input && 'new_string' in input) {
     return (
@@ -97,12 +115,12 @@ export const EditToolDisplay = memo(({ toolCall, hasResult, result, lineInfo }: 
       />
     )
   }
-  
+
   // Handle MultiEdit tool - reconstruct full file diff
   if ('edits' in input && Array.isArray(input.edits)) {
     const edits = input.edits as Array<{ old_string: string; new_string: string }>
     const { originalContent, finalContent } = reconstructFileFromMultiEdit(edits)
-    
+
     return (
       <div>
         <div className="text-xs text-zinc-400 mb-2 font-mono">
@@ -118,7 +136,7 @@ export const EditToolDisplay = memo(({ toolCall, hasResult, result, lineInfo }: 
       </div>
     )
   }
-  
+
   return null
 })
 

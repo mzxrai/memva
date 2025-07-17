@@ -1,5 +1,5 @@
 import { db, sessions, events, type Session, type NewSession } from './index'
-import { eq, desc } from 'drizzle-orm'
+import { eq, desc, and, ne } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 
 export type CreateSessionInput = {
@@ -139,12 +139,19 @@ export async function getLatestClaudeSessionId(memvaSessionId: string): Promise<
   const result = await db
     .select({ session_id: events.session_id })
     .from(events)
-    .where(eq(events.memva_session_id, memvaSessionId))
+    .where(
+      and(
+        eq(events.memva_session_id, memvaSessionId),
+        ne(events.session_id, '')
+      )
+    )
     .orderBy(desc(events.timestamp))
     .limit(1)
     .execute()
   
-  return result[0]?.session_id || null
+  const sessionId = result[0]?.session_id || null
+  console.log(`[getLatestClaudeSessionId] For memva session ${memvaSessionId}, found Claude session: ${sessionId}`)
+  return sessionId
 }
 
 export async function updateClaudeSessionId(memvaSessionId: string, claudeSessionId: string): Promise<void> {

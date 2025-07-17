@@ -1,7 +1,87 @@
 import type { Route } from "./+types/api.claude-code.$sessionId"
 import { getSession, getLatestClaudeSessionId, updateClaudeSessionId } from "../db/sessions.service"
 import { streamClaudeCodeResponse } from "../services/claude-code.server"
-import { createEventFromMessage, storeEvent } from "../db/events.service"
+import { getEventsForSession } from "../db/event-session.service"
+
+// GET endpoint for SSE event listening
+export async function loader({ params }: Route.LoaderArgs) {
+  const session = await getSession(params.sessionId)
+  if (!session) {
+    return new Response("Session not found", { status: 404 })
+  }
+
+  const headers = new Headers({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no"
+  })
+
+  // Create SSE stream that polls and sends new events
+  let intervalId: ReturnType<typeof setInterval> | null = null
+  
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder()
+      let lastEventTimestamp: string | null = null
+      
+      // Send initial connection message
+      const connectMsg = `data: ${JSON.stringify({ type: 'connection', status: 'connected' })}\n\n`
+      controller.enqueue(encoder.encode(connectMsg))
+      
+      // Poll for new events every 500ms
+      const pollEvents = async () => {
+        try {
+          const events = await getEventsForSession(params.sessionId)
+          
+          // Find new events since last check
+          const newEvents = lastEventTimestamp 
+            ? events.filter(e => e.timestamp > lastEventTimestamp)
+            : events
+          
+          // Send new events (they come newest first from DB, so reverse to send oldest first)
+          for (const event of newEvents.reverse()) {
+            // Send the complete event structure, don't spread the data
+            const message = {
+              uuid: event.uuid,
+              event_type: event.event_type,
+              timestamp: event.timestamp,
+              memva_session_id: event.memva_session_id,
+              data: event.data  // Keep data nested as expected by EventRenderer
+            }
+            
+            const data = `data: ${JSON.stringify(message)}\n\n`
+            controller.enqueue(encoder.encode(data))
+          }
+          
+          // Update last timestamp
+          if (events.length > 0) {
+            lastEventTimestamp = events[0].timestamp // events[0] is newest
+          }
+        } catch (error) {
+          console.error('[SSE] Error polling events:', error)
+        }
+      }
+      
+      // Initial poll
+      await pollEvents()
+      
+      // Set up polling interval
+      intervalId = setInterval(pollEvents, 500)
+      
+      // Clean up will be handled in cancel method
+    },
+    cancel() {
+      // Stream canceled - cleanup
+      if (intervalId) {
+        clearInterval(intervalId)
+        intervalId = null
+      }
+    }
+  })
+
+  return new Response(stream, { headers })
+}
 
 export async function action({ request, params }: Route.ActionArgs) {
   console.log(`[API] Action called for session ${params.sessionId}`)
@@ -32,22 +112,17 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   // Get the latest Claude session ID if we're resuming
   const existingClaudeSessionId = await getLatestClaudeSessionId(params.sessionId)
+  console.log('[API] Retrieved Claude session ID for resumption:', existingClaudeSessionId)
   
-  // Store user prompt as an event
-  const userEvent = createEventFromMessage({
-    message: {
-      type: 'user',
-      content: prompt.trim(),
-      session_id: existingClaudeSessionId || ''  // Use existing session ID if resuming
-    },
-    memvaSessionId: params.sessionId,
-    projectPath: session.project_path,
-    parentUuid: null,
-    timestamp: new Date().toISOString()
-  })
+  // Get the latest event to use as parent UUID
+  const events = await getEventsForSession(params.sessionId)
+  const lastEvent = events.length > 0 ? events[0] : null // events are ordered newest first
+  const lastParentUuid = lastEvent?.uuid || null
   
-  await storeEvent(userEvent)
-  console.log(`[API] Stored user prompt as event with UUID: ${userEvent.uuid}`)
+  // Don't store user event here - it's already stored by the page action
+  // Just log that we're processing the prompt
+  console.log(`[API] Processing prompt for session ${params.sessionId}`)
+  console.log(`[API] Last parent UUID: ${lastParentUuid}`)
 
   const headers = new Headers({
     "Content-Type": "text/event-stream",
@@ -67,15 +142,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
   })
   
-  // Use the existing Claude session ID we already retrieved
-  const resumeSessionId = existingClaudeSessionId
-  console.log('[API] Retrieved Claude session ID for resumption:', resumeSessionId)
-  
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder()
       // Track stream state through controller.desiredSize
-      const lastParentUuid = userEvent.uuid
       
       // Simple check if stream is closed
       const checkStreamClosed = () => {
@@ -99,14 +169,8 @@ export async function action({ request, params }: Route.ActionArgs) {
         }
       }
       
-      // Send the user message immediately
-      sendMessage({
-        ...(typeof userEvent.data === 'object' && userEvent.data !== null ? userEvent.data : {}),
-        uuid: userEvent.uuid,
-        memva_session_id: userEvent.memva_session_id
-      })
+      // Don't send the user message here - let SSE polling pick it up to avoid duplicates
       
-
       try {
         const result = await streamClaudeCodeResponse({
           prompt: prompt.trim(),
@@ -119,7 +183,7 @@ export async function action({ request, params }: Route.ActionArgs) {
           },
           abortController,
           memvaSessionId: params.sessionId,
-          resumeSessionId: resumeSessionId || undefined,
+          resumeSessionId: existingClaudeSessionId || undefined,
           initialParentUuid: lastParentUuid,
           onStoredEvent: (event) => {
             console.log(`[API] onStoredEvent called for type=${event.event_type}, aborted=${abortController.signal.aborted}`)
@@ -130,12 +194,13 @@ export async function action({ request, params }: Route.ActionArgs) {
               return
             }
             
-            // Send the stored event which includes the database UUID
-            const eventData = typeof event.data === 'object' && event.data !== null ? event.data : {}
+            // Send the complete event structure
             sendMessage({
-              ...eventData,
               uuid: event.uuid,
-              memva_session_id: event.memva_session_id
+              event_type: event.event_type,
+              timestamp: event.timestamp,
+              memva_session_id: event.memva_session_id,
+              data: event.data  // Keep data nested as expected by EventRenderer
             })
           }
         })

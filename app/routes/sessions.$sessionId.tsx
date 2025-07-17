@@ -1,20 +1,28 @@
-import type { Route } from "./+types/sessions.$sessionId";
-import { useParams, Form } from "react-router";
+import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
+import { useParams, Form, useLoaderData, useNavigation } from "react-router";
+import { useSSEEvents } from "../hooks/useSSEEvents";
 import { useSessionStatus } from "../hooks/useSessionStatus";
-import { useEventPolling } from "../hooks/useEventPolling";
-import { useState } from "react";
-import { RiSendPlaneFill } from "react-icons/ri";
+import { useState, useMemo, useEffect } from "react";
+import { RiFolder3Line } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
+import { PendingMessage } from "../components/PendingMessage";
 import { getSession } from "../db/sessions.service";
 import { getEventsForSession } from "../db/event-session.service";
+import type { AnyEvent } from "../types/events";
 
-export async function loader({ params }: Route.LoaderArgs) {
-  const session = await getSession(params.sessionId);
-  const events = await getEventsForSession(params.sessionId);
+export async function loader({ params }: LoaderFunctionArgs) {
+  const sessionId = params.sessionId;
+  
+  if (!sessionId) {
+    throw new Response("Session ID is required", { status: 400 });
+  }
+  
+  const session = await getSession(sessionId);
+  const events = await getEventsForSession(sessionId);
   return { session, events };
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
+export async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
   const prompt = formData.get('prompt') as string;
   
@@ -22,20 +30,51 @@ export async function action({ request, params }: Route.ActionArgs) {
     return { error: 'Prompt is required' };
   }
 
+  const sessionId = params.sessionId;
+  
+  if (!sessionId) {
+    throw new Response("Session ID is required", { status: 400 });
+  }
+
+  // Get session for project path
+  const { getSession } = await import('../db/sessions.service');
+  const session = await getSession(sessionId);
+  
+  if (!session) {
+    throw new Response("Session not found", { status: 404 });
+  }
+
+  // Store user message as an event
+  const { storeEvent, createEventFromMessage } = await import('../db/events.service');
+  
+  const userEvent = createEventFromMessage({
+    message: {
+      type: 'user',
+      content: prompt.trim(),
+      session_id: '' // Will be populated by Claude Code SDK
+    },
+    memvaSessionId: sessionId,
+    projectPath: session.project_path,
+    parentUuid: null,
+    timestamp: new Date().toISOString()
+  });
+  
+  await storeEvent(userEvent);
+
   // Update session status to processing
   const { updateSession } = await import('../db/sessions.service');
-  await updateSession(params.sessionId, { status: 'active' });
+  await updateSession(sessionId, { status: 'active' });
 
   // Update claude_status to processing
   const { updateSessionClaudeStatus } = await import('../db/sessions.service');
-  await updateSessionClaudeStatus(params.sessionId, 'processing');
+  await updateSessionClaudeStatus(sessionId, 'processing');
 
   // Create session-runner job
   const { createJob } = await import('../db/jobs.service');
   const { createSessionRunnerJob } = await import('../workers/job-types');
   
   const jobInput = createSessionRunnerJob({
-    sessionId: params.sessionId,
+    sessionId: sessionId,
     prompt: prompt.trim()
   });
   
@@ -49,12 +88,127 @@ export async function action({ request, params }: Route.ActionArgs) {
 export default function SessionDetail() {
   const params = useParams();
   const sessionId = params.sessionId as string;
+  const navigation = useNavigation();
+  const { session: initialSession, events: initialEvents } = useLoaderData<typeof loader>();
   
-  // Use hooks for polling session status and events
-  const { session } = useSessionStatus(sessionId);
-  const { events } = useEventPolling(sessionId);
+  // Poll for session status updates
+  const { session: polledSession } = useSessionStatus(sessionId);
+  const session = polledSession || initialSession;
   
-  const [prompt, setPrompt] = useState(""); 
+  // Use SSE for real-time new events
+  const { newEvents } = useSSEEvents(sessionId);
+  
+  // Combine initial events from loader with new events from SSE
+  // Remove duplicates by uuid and sort by timestamp
+  const { displayEvents, toolResults } = useMemo(() => {
+    const combined = [...initialEvents, ...newEvents];
+    const unique = combined.filter((event, index, arr) => 
+      arr.findIndex(e => e.uuid === event.uuid) === index
+    );
+    const sorted = unique.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    
+    // Filter out system, result events, and user events that contain only tool results from display
+    const displayEvents = sorted.filter(event => {
+      // Always exclude system and result events
+      if (event.event_type === 'system' || event.event_type === 'result') {
+        return false;
+      }
+      
+      // For user events, exclude if they contain only tool_result content (not actual user messages)
+      if (event.event_type === 'user' && event.data && typeof event.data === 'object') {
+        const data = event.data as Record<string, unknown>;
+        if ('message' in data && typeof data.message === 'object' && data.message) {
+          const message = data.message as Record<string, unknown>;
+          if ('content' in message && Array.isArray(message.content)) {
+            // Check if this user event contains only tool_result items (no text content)
+            const hasNonToolResultContent = message.content.some((item: unknown) => 
+              item && typeof item === 'object' && 'type' in item && item.type !== 'tool_result'
+            );
+            // Exclude if it only has tool_result content
+            if (!hasNonToolResultContent) {
+              return false;
+            }
+          }
+        }
+      }
+      
+      return true;
+    });
+    
+    // Build tool results map by linking tool calls to their results
+    const toolResults = new Map<string, { result: unknown; isError?: boolean }>();
+    
+    // Extract tool results from user events that contain tool_result content
+    sorted.forEach(event => {
+      if (event.event_type === 'user' && event.data && typeof event.data === 'object') {
+        const data = event.data as Record<string, unknown>;
+        
+        // Check if this user event has a message with content array containing tool results
+        if ('message' in data && typeof data.message === 'object' && data.message) {
+          const message = data.message as Record<string, unknown>;
+          if ('content' in message && Array.isArray(message.content)) {
+            // Look for tool_result content items
+            message.content.forEach((item: unknown) => {
+              if (item && typeof item === 'object' && 'type' in item && item.type === 'tool_result') {
+                const toolResult = item as unknown as { tool_use_id: string; content: unknown };
+                if (toolResult.tool_use_id) {
+                  toolResults.set(toolResult.tool_use_id, {
+                    result: toolResult,
+                    isError: false
+                  });
+                }
+              }
+            });
+          }
+        }
+      }
+    });
+    
+    return { displayEvents, toolResults };
+  }, [initialEvents, newEvents]);
+  
+  const [prompt, setPrompt] = useState("");
+  const [waitingSince, setWaitingSince] = useState<number | null>(null);
+  
+  // Track form submission state
+  const isSubmitting = navigation.state === "submitting";
+  
+  // When form submits, record the timestamp
+  useEffect(() => {
+    if (isSubmitting) {
+      setWaitingSince(Date.now());
+    }
+  }, [isSubmitting]);
+  
+  // Hide pending when we get a result event newer than our submission
+  useEffect(() => {
+    if (waitingSince) {
+      const hasNewResult = newEvents.some(e => 
+        e.event_type === 'result' && 
+        new Date(e.timestamp).getTime() > waitingSince
+      );
+      
+      if (hasNewResult) {
+        setWaitingSince(null);
+      }
+    }
+  }, [newEvents, waitingSince]);
+  
+  // On page load: if processing, show pending
+  useEffect(() => {
+    if (session?.claude_status === 'processing' && !waitingSince) {
+      setWaitingSince(Date.now());
+    }
+  }, []); // Only on mount
+  
+  const showPending = waitingSince !== null;
+  
+  // Clear form when submission completes
+  useEffect(() => {
+    if (navigation.state === "idle" && prompt !== "") {
+      setPrompt("");
+    }
+  }, [navigation.state]); 
 
   if (!session) {
     return (
@@ -99,20 +253,27 @@ export default function SessionDetail() {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        {events.length === 0 ? (
+        {displayEvents.length === 0 && !isProcessing && !isSubmitting ? (
           <div className="h-full flex items-center justify-center">
             <p className="text-zinc-500">No messages yet. Start by asking Claude Code something!</p>
           </div>
         ) : (
           <div className="min-h-full flex flex-col justify-start pt-6 pb-32">
-            {events.map((event) => (
+            {displayEvents.map((event) => (
               <EventRenderer
                 key={event.uuid}
-                event={event.data as Record<string, unknown>}
-                toolResults={new Map()}
+                event={event as AnyEvent}
+                toolResults={toolResults}
                 isStreaming={false}
               />
             ))}
+            {/* Show PendingMessage based on simple state */}
+            {showPending && waitingSince && (
+              <PendingMessage 
+                tokenCount={0}
+                startTime={waitingSince}
+              />
+            )}
           </div>
         )}
       </div>
@@ -123,27 +284,20 @@ export default function SessionDetail() {
           <div className="container mx-auto max-w-7xl">
             <div className="relative">
               <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 p-4">
-                <Form method="post" className="flex gap-3">
-                  <div className="flex-1 flex items-center px-5 py-3.5 bg-zinc-800/60 border border-zinc-700/50 rounded-xl focus-within:border-zinc-600 focus-within:bg-zinc-800/80 transition-all duration-200">
+                <Form method="post">
+                  <div className="flex items-center px-5 py-3.5 bg-zinc-800/60 border border-zinc-700/50 rounded-xl focus-within:border-zinc-600 focus-within:bg-zinc-800/80 transition-all duration-200">
                     <span className="text-zinc-500 font-mono mr-4 select-none">{'>'}</span>
                     <input
                       name="prompt"
                       type="text"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      disabled={isProcessing}
+                      disabled={isProcessing || isSubmitting}
                       className="flex-1 bg-transparent text-zinc-100 focus:outline-none disabled:opacity-50 font-mono text-[0.9375rem]"
                       role="textbox"
+                      placeholder={isProcessing || isSubmitting ? "Processing..." : "Ask Claude Code anything..."}
                     />
                   </div>
-                  <button
-                    type="submit"
-                    disabled={!prompt.trim() || isProcessing}
-                    className="px-6 py-3.5 bg-zinc-700/90 hover:bg-zinc-600/90 text-zinc-100 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:bg-zinc-600/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg font-mono text-[0.9375rem]"
-                  >
-                    <RiSendPlaneFill className="w-5 h-5" />
-                    Send
-                  </button>
                 </Form>
               </div>
             </div>

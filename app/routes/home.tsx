@@ -2,7 +2,9 @@ import type { Route } from "./+types/home";
 import { Link, useLoaderData, Form, redirect } from "react-router";
 import { listSessions, getSessionWithStats, createSession, type SessionWithStats } from "../db/sessions.service";
 import { formatDistanceToNow } from "date-fns";
-import { RiFolder3Line, RiTimeLine, RiPulseLine, RiArchiveLine } from "react-icons/ri";
+import { RiFolder3Line, RiTimeLine, RiPulseLine } from "react-icons/ri";
+import StatusIndicator from "../components/StatusIndicator";
+import MessageCarousel from "../components/MessageCarousel";
 import clsx from "clsx";
 import { useState, type FormEvent } from "react";
 
@@ -52,6 +54,10 @@ export async function action({ request }: Route.ActionArgs) {
     }
   });
   
+  // Update claude_status to processing so pending message shows immediately
+  const { updateSessionClaudeStatus } = await import('../db/sessions.service');
+  await updateSessionClaudeStatus(session.id, 'processing');
+  
   // Create session-runner job
   const { createJob } = await import('../db/jobs.service');
   const { createSessionRunnerJob } = await import('../workers/job-types');
@@ -73,10 +79,9 @@ function isSessionWithStats(session: SessionWithStats | { id: string }): session
 export default function Home() {
   const { sessions } = useLoaderData<typeof loader>();
   const [sessionTitle, setSessionTitle] = useState("");
-  const [sessionPrompt, setSessionPrompt] = useState("");
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    if (!sessionTitle.trim() || !sessionPrompt.trim()) {
+    if (!sessionTitle.trim()) {
       e.preventDefault();
     }
   };
@@ -104,6 +109,7 @@ export default function Home() {
               placeholder="Start a new Claude Code session: ask, brainstorm, build"
               className="w-full px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem]"
             />
+            <input type="hidden" name="prompt" value={sessionTitle} />
           </Form>
         </div>
 
@@ -137,24 +143,14 @@ export default function Home() {
                   "transform hover:scale-[1.02]",
                   "transition-all duration-150",
                   "cursor-pointer",
-                  "min-h-[200px]",
-                  "grid grid-rows-[1fr_auto_auto_auto]",
+                  "min-h-[240px]",
+                  "grid grid-rows-[1fr_auto_auto_auto_auto]",
                   "gap-4"
                 )}
               >
-                {/* Status Badge */}
+                {/* Status Indicator */}
                 <div className="absolute top-4 right-4">
-                  {session.status === "active" ? (
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-emerald-500">Active</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 text-xs text-zinc-500">
-                      <RiArchiveLine className="w-3 h-3" />
-                      <span>Archived</span>
-                    </div>
-                  )}
+                  <StatusIndicator session={session} />
                 </div>
 
                 {/* Title */}
@@ -186,6 +182,11 @@ export default function Home() {
                     const count = isSessionWithStats(session) ? session.event_count : 0;
                     return `${count} event${count !== 1 ? "s" : ""}`;
                   })()}
+                </div>
+
+                {/* Message Carousel */}
+                <div className="min-h-[60px]">
+                  <MessageCarousel sessionId={session.id} maxMessages={3} />
                 </div>
 
                 {/* Hover Gradient */}

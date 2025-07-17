@@ -77,6 +77,26 @@ function initializeSchema() {
     )
   `)
   
+  // Create jobs table
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS jobs (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      data TEXT NOT NULL,
+      status TEXT NOT NULL,
+      priority INTEGER DEFAULT 0,
+      attempts INTEGER DEFAULT 0,
+      max_attempts INTEGER DEFAULT 3,
+      error TEXT,
+      result TEXT,
+      scheduled_at TEXT,
+      started_at TEXT,
+      completed_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `)
+  
   // Run migrations to add new columns
   runMigrations()
   
@@ -91,6 +111,11 @@ function initializeSchema() {
     CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
     CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at);
     CREATE INDEX IF NOT EXISTS idx_sessions_claude_status ON sessions(claude_status);
+    CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
+    CREATE INDEX IF NOT EXISTS idx_jobs_type ON jobs(type);
+    CREATE INDEX IF NOT EXISTS idx_jobs_priority ON jobs(priority);
+    CREATE INDEX IF NOT EXISTS idx_jobs_scheduled_at ON jobs(scheduled_at);
+    CREATE INDEX IF NOT EXISTS idx_jobs_created_at ON jobs(created_at);
   `)
 }
 

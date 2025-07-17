@@ -22,17 +22,17 @@ const extractTodoItems = (input: unknown): TodoItem[] => {
   if (!input || typeof input !== 'object' || input === null) {
     return []
   }
-  
+
   const inputObj = input as Record<string, unknown>
   if (!Array.isArray(inputObj.todos)) {
     return []
   }
-  
+
   return inputObj.todos.filter((todo: unknown): todo is TodoItem => {
     if (!todo || typeof todo !== 'object' || todo === null) {
       return false
     }
-    
+
     const todoObj = todo as Record<string, unknown>
     return (
       typeof todoObj.id === 'string' &&
@@ -49,9 +49,27 @@ export const TodoWriteToolDisplay = memo(({ toolCall, hasResult, result }: TodoW
   if (toolCall.name !== 'TodoWrite' || !hasResult || !result) {
     return null
   }
-  
+
+  // Expect result format: {content: string, is_error: boolean}
+  if (typeof result !== 'object' || result === null) {
+    return null
+  }
+
+  const sdkResult = result as { content?: string, is_error?: boolean }
+
+  if (sdkResult.content === undefined) {
+    return null
+  }
+
+  const isError = sdkResult.is_error === true
+
+  // Don't show if there was an error
+  if (isError) {
+    return null
+  }
+
   const todos = extractTodoItems(toolCall.input)
-  
+
   if (todos.length === 0) {
     return (
       <div className={clsx(
@@ -64,14 +82,14 @@ export const TodoWriteToolDisplay = memo(({ toolCall, hasResult, result }: TodoW
       </div>
     )
   }
-  
+
   return (
     <div className="py-2">
       <div className="space-y-1">
         {todos.map((todo) => {
           const isCompleted = todo.status === 'completed'
           const isInProgress = todo.status === 'in_progress'
-          
+
           return (
             <div
               key={todo.id}
@@ -82,11 +100,11 @@ export const TodoWriteToolDisplay = memo(({ toolCall, hasResult, result }: TodoW
               )}
             >
               {/* Status indicator */}
-              <span 
+              <span
                 className={clsx(
                   'flex-shrink-0 w-5 h-5 flex items-center justify-center',
                   isCompleted && 'text-emerald-500',
-                  isInProgress && 'text-blue-500', 
+                  isInProgress && 'text-blue-500',
                   !isCompleted && !isInProgress && 'text-zinc-500'
                 )}
               >
@@ -94,9 +112,9 @@ export const TodoWriteToolDisplay = memo(({ toolCall, hasResult, result }: TodoW
                 {isInProgress && <span>🔄</span>}
                 {!isCompleted && !isInProgress && <RiCheckboxBlankLine className="w-[18px] h-[18px]" />}
               </span>
-              
+
               {/* Task text */}
-              <span 
+              <span
                 className={clsx(
                   'flex-1',
                   isCompleted && 'text-zinc-500 line-through',

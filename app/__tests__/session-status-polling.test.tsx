@@ -2,19 +2,29 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
-import { createMockSession } from '../test-utils/factories'
+import { createMockNewSession } from '../test-utils/factories'
 import { eq } from 'drizzle-orm'
 import { sessions } from '../db/schema'
+import { useLoaderData, useParams } from 'react-router'
 
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
 
-// Mock React Router with proper mocking
-const mockUseParams = vi.fn(() => ({ sessionId: 'test-session-id' }))
+// Mock EventSource for browser APIs in tests
+const mockEventSource = vi.fn()
+mockEventSource.prototype.close = vi.fn()
+mockEventSource.prototype.addEventListener = vi.fn()
+Object.defineProperty(global, 'EventSource', {
+  value: mockEventSource,
+  writable: true
+})
+
+// Mock React Router with proper mocking  
 vi.mock('react-router', () => ({
-  useParams: mockUseParams,
+  useParams: vi.fn(() => ({ sessionId: 'test-session-id' })),
   useActionData: () => null,
   useNavigation: () => ({ state: 'idle' }),
+  useLoaderData: vi.fn(),
   Form: ({ children, ...props }: any) => <form {...props}>{children}</form>
 }))
 
@@ -24,8 +34,7 @@ describe('Session Status Polling Integration', () => {
   beforeEach(() => {
     testDb = setupInMemoryDb()
     setTestDatabase(testDb)
-    // Reset the mock to default session ID
-    mockUseParams.mockReturnValue({ sessionId: 'test-session-id' })
+    vi.clearAllMocks()
   })
 
   afterEach(() => {
@@ -34,77 +43,83 @@ describe('Session Status Polling Integration', () => {
   })
 
   it('should disable submit button when status is processing', async () => {
-    const session = createMockSession({
+    const session = createMockNewSession({
       id: 'test-session-id', // Match the mocked useParams
       claude_status: 'processing'
     })
     const createdSession = testDb.createSession(session)
-    
+
+    // Mock useLoaderData to return the test session
+    vi.mocked(useLoaderData).mockReturnValue({
+      session: createdSession,
+      events: []
+    })
+
     // Verify session was created in test db
     expect(testDb.getSession('test-session-id')).toBeTruthy()
     console.log('Created session:', createdSession)
-    
+
     const { default: SessionDetail } = await import('../routes/sessions.$sessionId')
-    
+
     await act(async () => {
       render(<SessionDetail />)
     })
-    
+
     // Wait for async hooks to load session data
     await waitFor(() => {
       expect(screen.queryByText('Session not found')).not.toBeInTheDocument()
     })
-    
-    const submitButton = screen.getByRole('button', { name: /send/i })
-    expect(submitButton).toBeDisabled()
-    
-    const textarea = screen.getByRole('textbox')
-    expect(textarea).toBeDisabled()
+
+    const promptInput = screen.getByRole('textbox')
+    expect(promptInput).toBeDisabled()
+    expect(promptInput).toHaveAttribute('placeholder', 'Processing...')
   })
 
   it('should show error message when status is error', async () => {
-    const session = createMockSession({
+    const session = createMockNewSession({
       id: 'test-session-id',
       claude_status: 'error'
     })
-    testDb.createSession(session)
-    
+    const createdSession = testDb.createSession(session)
+
+    // Mock useLoaderData to return the test session
+    vi.mocked(useLoaderData).mockReturnValue({
+      session: createdSession,
+      events: []
+    })
+
     const { default: SessionDetail } = await import('../routes/sessions.$sessionId')
-    
+
     await act(async () => {
       render(<SessionDetail />)
     })
-    
+
     await waitFor(() => {
-      expect(screen.getByText(/an error occurred while processing/i)).toBeInTheDocument()
-      expect(screen.getByText(/please try again/i)).toBeInTheDocument()
+      expect(screen.getByText('An error occurred while processing your request. Please try again.')).toBeInTheDocument()
     })
   })
 
   it('should enable submit button for ready states', async () => {
     const readyStates = ['not_started', 'waiting_for_input', 'completed']
-    
+
     for (const [index, status] of readyStates.entries()) {
-      // Use unique session ID for each iteration
-      const sessionId = `test-session-id-${index}`
-      
-      // Mock useParams to return the current session ID
-      mockUseParams.mockReturnValue({ sessionId })
-      
-      const session = createMockSession({
+      // Use fixed session ID
+      const sessionId = 'test-session-id'
+
+      const session = createMockNewSession({
         id: sessionId,
         claude_status: status as any
       })
       testDb.createSession(session)
-      
+
       const { default: SessionDetail } = await import('../routes/sessions.$sessionId')
-      
+
       let unmount: () => void
       await act(async () => {
         const result = render(<SessionDetail />)
         unmount = result.unmount
       })
-      
+
       await waitFor(() => {
         const textarea = screen.getByRole('textbox')
         expect(textarea).toBeEnabled()
@@ -117,10 +132,10 @@ describe('Session Status Polling Integration', () => {
       })
 
       await waitFor(() => {
-        const submitButton = screen.getByRole('button', { name: /send/i })
-        expect(submitButton).toBeEnabled()
+        const promptInput = screen.getByRole('textbox')
+        expect(promptInput).not.toBeDisabled()
       })
-      
+
       act(() => {
         unmount()
       })
@@ -128,42 +143,44 @@ describe('Session Status Polling Integration', () => {
   })
 
   it('should clear error status when new job is submitted', async () => {
-    const session = createMockSession({
+    const session = createMockNewSession({
       id: 'test-session-id',
       claude_status: 'error'
     })
-    testDb.createSession(session)
-    
+    const createdSession = testDb.createSession(session)
+
+    // Mock useLoaderData to return the test session
+    vi.mocked(useLoaderData).mockReturnValue({
+      session: createdSession,
+      events: []
+    })
+
     const { default: SessionDetail } = await import('../routes/sessions.$sessionId')
-    
+
     await act(async () => {
       render(<SessionDetail />)
     })
-    
+
     // Should show error initially
     await waitFor(() => {
-      expect(screen.getByText(/an error occurred while processing/i)).toBeInTheDocument()
+      expect(screen.getByText('An error occurred while processing your request. Please try again.')).toBeInTheDocument()
     })
-    
-    // Submit new prompt
-    const textarea = screen.getByRole('textbox')
-    const submitButton = screen.getByRole('button', { name: /send/i })
-    
+
+    // Submit new prompt by typing and pressing Enter
+    const promptInput = screen.getByRole('textbox')
+
     await act(async () => {
-      fireEvent.change(textarea, { target: { value: 'New prompt' } })
-    })
-    
-    await act(async () => {
-      fireEvent.click(submitButton)
-      
+      fireEvent.change(promptInput, { target: { value: 'New prompt' } })
+      fireEvent.submit(promptInput.closest('form')!)
+
       // Simulate the action updating the session status to processing
       // This mimics what the form action would do
       testDb.db.update(sessions).set({ claude_status: 'processing' }).where(eq(sessions.id, 'test-session-id')).run()
     })
-    
+
     // Error message should be hidden after form submission and status change
     await waitFor(() => {
-      expect(screen.queryByText(/an error occurred while processing/i)).not.toBeInTheDocument()
+      expect(screen.queryByText('An error occurred while processing your request. Please try again.')).not.toBeInTheDocument()
     }, { timeout: 3000 })
   })
 })

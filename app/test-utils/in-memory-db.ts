@@ -7,7 +7,7 @@ import { sessions, events } from '../db/schema'
 export type TestDatabase = {
   db: ReturnType<typeof drizzle>
   sqlite: Database.Database
-  createSession: (input: { id?: string; title?: string; project_path: string; claude_status?: string; metadata?: Record<string, unknown> | null }) => typeof sessions.$inferInsert & { id: string }
+  createSession: (input: Partial<typeof sessions.$inferInsert> & { project_path: string }) => typeof sessions.$inferInsert & { id: string }
   getSession: (sessionId: string) => typeof sessions.$inferSelect | null
   insertEvent: (event: typeof events.$inferInsert) => void
   getEventsForSession: (sessionId: string) => Array<typeof events.$inferSelect>
@@ -17,7 +17,7 @@ export type TestDatabase = {
 export function setupInMemoryDb(): TestDatabase {
   const sqlite = new Database(':memory:')
   const db = drizzle(sqlite, { schema })
-  
+
   // Create tables
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS sessions (
@@ -31,7 +31,7 @@ export function setupInMemoryDb(): TestDatabase {
       claude_status TEXT DEFAULT 'not_started'
     )
   `)
-  
+
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS events (
       uuid TEXT PRIMARY KEY,
@@ -46,7 +46,7 @@ export function setupInMemoryDb(): TestDatabase {
       memva_session_id TEXT
     )
   `)
-  
+
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS jobs (
       id TEXT PRIMARY KEY,
@@ -65,7 +65,7 @@ export function setupInMemoryDb(): TestDatabase {
       updated_at TEXT NOT NULL
     )
   `)
-  
+
   // Create indexes
   sqlite.exec(`
     CREATE INDEX IF NOT EXISTS idx_session_id ON events(session_id);
@@ -83,9 +83,9 @@ export function setupInMemoryDb(): TestDatabase {
     CREATE INDEX IF NOT EXISTS idx_jobs_scheduled_at ON jobs(scheduled_at);
     CREATE INDEX IF NOT EXISTS idx_jobs_status_priority ON jobs(status, priority DESC);
   `)
-  
+
   // Helper functions
-  const createSession = (input: { id?: string; title?: string; project_path: string; claude_status?: string; metadata?: Record<string, unknown> | null }) => {
+  const createSession = (input: Partial<typeof sessions.$inferInsert> & { project_path: string }) => {
     const session = {
       id: input.id || crypto.randomUUID(),
       title: input.title || null,
@@ -126,4 +126,3 @@ export function setupInMemoryDb(): TestDatabase {
     cleanup
   }
 }
-

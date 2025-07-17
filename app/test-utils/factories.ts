@@ -79,12 +79,11 @@ export function createMockUserEvent(content: string, overrides?: Partial<Event>)
 export function createMockAssistantEvent(content: string, overrides?: Partial<Event>): Event {
   return createMockEvent({
     event_type: 'assistant',
-    data: { 
-      type: 'assistant', 
-      message: { 
-        role: 'assistant', 
-        content 
-      } 
+    data: {
+      type: 'assistant',
+      message: {
+        content: [{ type: 'text', text: content }]
+      }
     },
     ...overrides
   })
