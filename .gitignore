@@ -12,3 +12,7 @@
 *.db
 *.db-shm
 *.db-wal
+
+dev.log
+
+*.py

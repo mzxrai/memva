@@ -8,7 +8,6 @@ import {
   RiGlobalLine,
   RiSearchLine,
   RiToolsLine,
-  RiArrowRightSLine,
   RiArrowDownSLine,
   RiFileCopyLine,
   RiDeleteBinLine,
@@ -144,11 +143,8 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
 }
 
 export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, className, isStreaming = false, isError = false }: ToolCallDisplayProps) => {
-  // Auto-expand Edit/MultiEdit tools to show diff by default, but NOT during streaming
-  const isEditTool = toolCall.name === 'Edit' || toolCall.name === 'MultiEdit'
-  // Synchronously expand edit tools when they have results
-  const [isExpanded, setIsExpanded] = useState((isEditTool && !isStreaming) || (isEditTool && hasResult))
   const [showFullResult, setShowFullResult] = useState(false)
+  const isEditTool = toolCall.name === 'Edit' || toolCall.name === 'MultiEdit'
   
   // Check if this is an interrupted bash command
   const isInterrupted = toolCall.name === 'Bash' && 
@@ -167,9 +163,33 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
   
   // Extract line number information from tool result if available (memoized)
   const lineInfo = useMemo(() => {
-    if (!result || typeof result !== 'string') {
+    // Handle SDK result format
+    let resultContent: string | null = null
+    if (result && typeof result === 'object' && result !== null && 'content' in result) {
+      const sdkResult = result as { content?: string }
+      resultContent = typeof sdkResult.content === 'string' ? sdkResult.content : null
+    } else if (typeof result === 'string') {
+      resultContent = result
+    }
+    
+    if (!resultContent) {
+      console.log('ToolCallDisplay lineInfo early return:', {
+        toolName: toolCall.name,
+        isEditTool,
+        hasResult: result !== null && result !== undefined,
+        resultType: typeof result,
+        resultValue: result,
+        resultContent
+      })
       return null
     }
+    
+    console.log('ToolCallDisplay lineInfo calculation:', {
+      toolName: toolCall.name,
+      isEditTool,
+      resultLength: resultContent.length,
+      resultPreview: resultContent.substring(0, 200) + '...'
+    })
     
     // For Edit tools, intelligently find the line number by matching the actual edit content
     if (isEditTool && toolCall.input && typeof toolCall.input === 'object') {
@@ -199,7 +219,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
           const normalizedSearchLine = firstMeaningfulLine.trim()
           
           // Split content into lines and search for matching line
-          const contentLines = result.split('\n')
+          const contentLines = resultContent.split('\n')
           for (let i = 0; i < contentLines.length; i++) {
             const line = contentLines[i]
             const lineNumberMatch = line.match(/^(\d+)→(.*)$/)
@@ -209,6 +229,11 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
               
               // Compare normalized content
               if (lineContent === normalizedSearchLine) {
+                console.log('ToolCallDisplay lineInfo: Found matching line!', {
+                  lineNumber,
+                  lineContent,
+                  normalizedSearchLine
+                })
                 return {
                   startLine: lineNumber,
                   showLineNumbers: true
@@ -224,7 +249,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
               .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
               .replace(/\s+/g, '\\s+') // Allow flexible whitespace
             
-            const lineMatch = result.match(new RegExp(`(\\d+)→\\s*${escapedLine}`, 'm'))
+            const lineMatch = resultContent.match(new RegExp(`(\\d+)→\\s*${escapedLine}`, 'm'))
             if (lineMatch) {
               const startLine = parseInt(lineMatch[1], 10)
               return {
@@ -242,7 +267,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
     }
     
     // Fallback: just find the first line number in the content
-    const lineNumberMatch = result.match(/(\d+)→/)
+    const lineNumberMatch = resultContent.match(/(\d+)→/)
     if (lineNumberMatch) {
       const startLine = parseInt(lineNumberMatch[1], 10)
       return {
@@ -250,6 +275,11 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
         showLineNumbers: true
       }
     }
+    
+    console.log('ToolCallDisplay lineInfo final result:', {
+      toolName: toolCall.name,
+      lineInfo: null
+    })
     
     return null
   }, [result, isEditTool, toolCall])
@@ -264,14 +294,10 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       )}
     >
       {/* Tool header */}
-      <button
-        onClick={() => !formattedResult && setIsExpanded(!isExpanded)}
-        aria-label={isExpanded ? 'hide parameters' : 'show parameters'}
+      <div
         className={clsx(
           'w-full flex items-center gap-3',
-          'py-1',
-          transition.fast,
-          formattedResult ? 'cursor-default' : 'cursor-pointer'
+          'py-1'
         )}
       >
         {/* Tool icon */}
@@ -331,47 +357,10 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
         
         {/* Spacer to push expand icon to the right */}
         <div className="flex-1" />
-        
-        {/* Expand/collapse icon - only show if no result */}
-        {!formattedResult && (
-          <div>
-            {isExpanded ? (
-              <RiArrowDownSLine className={clsx(iconSize.md, colors.text.tertiary)} />
-            ) : (
-              <RiArrowRightSLine className={clsx(iconSize.md, colors.text.tertiary)} />
-            )}
-          </div>
-        )}
-      </button>
-      
-      {/* Parameters (collapsible) - show diff for Edit tools */}
-      <div 
-        className={clsx(
-          'overflow-hidden',
-          isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
-        )}
-      >
-        <div className="py-2">
-          <EditToolDisplay
-            toolCall={toolCall}
-            hasResult={hasResult}
-            result={result}
-            lineInfo={lineInfo}
-          />
-          
-          {!isEditTool && (
-            <CodeBlock
-              code={JSON.stringify(toolCall.input, null, 2)}
-              language="json"
-              showLineNumbers={false}
-              className="text-xs"
-            />
-          )}
-        </div>
       </div>
       
       {/* Result section - minimal inline display */}
-      {formattedResult && toolCall.name !== 'Write' && toolCall.name !== 'Bash' && toolCall.name !== 'Read' && toolCall.name !== 'TodoWrite' && toolCall.name !== 'WebSearch' && (
+      {formattedResult && toolCall.name !== 'Write' && toolCall.name !== 'Bash' && toolCall.name !== 'Read' && toolCall.name !== 'TodoWrite' && toolCall.name !== 'WebSearch' && toolCall.name !== 'Edit' && toolCall.name !== 'MultiEdit' && (
         <div className="py-2">
           <div className={clsx(
             'flex items-center gap-2',
@@ -465,6 +454,16 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
           toolCall={toolCall}
           hasResult={hasResult}
           result={result}
+        />
+      )}
+      
+      {/* Edit/MultiEdit tool result section */}
+      {(toolCall.name === 'Edit' || toolCall.name === 'MultiEdit') && (
+        <EditToolDisplay 
+          toolCall={toolCall}
+          hasResult={hasResult}
+          result={result}
+          lineInfo={lineInfo}
         />
       )}
     </div>

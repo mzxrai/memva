@@ -1,6 +1,9 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
+import { RiArrowDownSLine } from 'react-icons/ri'
+import { colors, typography, transition } from '../../../constants/design'
 import { DiffViewer } from '../DiffViewer'
 import type { ToolUseContent } from '../../../types/events'
+import clsx from 'clsx'
 
 interface EditToolDisplayProps {
   toolCall: ToolUseContent
@@ -49,6 +52,8 @@ function reconstructFileFromMultiEdit(edits: Array<{ old_string: string; new_str
 }
 
 export const EditToolDisplay = memo(({ toolCall, hasResult, result, lineInfo }: EditToolDisplayProps) => {
+  const [showFullDiff, setShowFullDiff] = useState(false)
+  
   // Only show for Edit/MultiEdit tools with results
   const isEditTool = toolCall.name === 'Edit' || toolCall.name === 'MultiEdit'
 
@@ -103,8 +108,48 @@ export const EditToolDisplay = memo(({ toolCall, hasResult, result, lineInfo }: 
 
   const input = toolCall.input as Record<string, unknown>
 
+  // Create the expand/collapse button renderer
+  const renderExpandButton = (isExpanded: boolean, lineCount: number) => (
+    <button
+      onClick={() => setShowFullDiff(!showFullDiff)}
+      className={clsx(
+        'flex items-center gap-1',
+        'px-2 py-1',
+        'border border-zinc-700',
+        'bg-zinc-800/50',
+        'hover:bg-zinc-700/50',
+        'rounded',
+        transition.fast,
+        typography.font.mono,
+        'text-[0.625rem]', // 10px in rem units
+        colors.text.tertiary
+      )}
+      aria-label={showFullDiff ? 'Collapse' : 'Expand'}
+    >
+      <RiArrowDownSLine className={clsx(
+        'w-3 h-3',
+        transition.fast,
+        showFullDiff && 'rotate-180'
+      )} />
+      {showFullDiff ? 'Show less' : `Show all ${lineCount} lines`}
+    </button>
+  )
+
   // Handle single Edit tool
   if ('old_string' in input && 'new_string' in input) {
+    console.log('EditToolDisplay debug:', {
+      toolCall: toolCall.name,
+      toolId: toolCall.id,
+      hasResult,
+      lineInfo,
+      startLine: lineInfo?.startLine,
+      showLineNumbers: lineInfo?.showLineNumbers,
+      defaultingTo1: !lineInfo?.startLine,
+      oldString: (input.old_string as string).substring(0, 50) + '...',
+      newString: (input.new_string as string).substring(0, 50) + '...',
+      resultPreview: sdkResult.content?.substring(0, 100) + '...'
+    })
+    
     return (
       <DiffViewer
         oldString={input.old_string as string}
@@ -112,6 +157,8 @@ export const EditToolDisplay = memo(({ toolCall, hasResult, result, lineInfo }: 
         fileName={input.file_path as string}
         startLineNumber={lineInfo?.startLine || 1}
         showLineNumbers={lineInfo?.showLineNumbers ?? true}
+        maxLines={showFullDiff ? undefined : 10}
+        renderExpandButton={renderExpandButton}
       />
     )
   }
@@ -132,6 +179,8 @@ export const EditToolDisplay = memo(({ toolCall, hasResult, result, lineInfo }: 
           fileName={input.file_path as string}
           startLineNumber={lineInfo?.startLine || 1}
           showLineNumbers={lineInfo?.showLineNumbers ?? true}
+          maxLines={showFullDiff ? undefined : 10}
+          renderExpandButton={renderExpandButton}
         />
       </div>
     )

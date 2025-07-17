@@ -136,7 +136,7 @@ export const BashToolDisplay = memo(({ toolCall, hasResult, result }: BashToolDi
                 )} />
               </button>
               <span className={clsx(
-                typography.size.sm,
+                typography.size.xs,
                 colors.text.tertiary
               )}>
                 Show less

@@ -44,45 +44,56 @@ describe('ToolCallDisplay component', () => {
     expectContent.text('/path/to/file.ts')
   })
 
-  it('should render parameters in collapsed state by default', () => {
-    const readTool = MOCK_TOOLS.read('/path/to/file.ts')
-    render(<ToolCallDisplay toolCall={readTool} />)
-
-    // Parameters should not be visible initially
-    expect(screen.queryByText('file_path')).not.toBeInTheDocument()
-  })
-
-  it('should expand to show parameters when clicked', () => {
-    const readTool = MOCK_TOOLS.read('/path/to/file.ts')
-    render(<ToolCallDisplay toolCall={readTool} />)
-
-    // Click to expand
-    const expandButton = screen.getByRole('button', { name: 'show parameters' })
-    fireEvent.click(expandButton)
-
-    // Parameters should now be visible in the JSON code block
-    const codeBlock = screen.getByLabelText('code block')
-    expect(codeBlock).toHaveTextContent('"file_path": "/path/to/file.ts"')
-  })
 
   it('should show primary parameter for Edit tool', () => {
-    const editTool = MOCK_TOOLS.edit('/path/to/file.ts', 'const x = 1', 'const x = 2')
+    // Create a longer edit to trigger expand/collapse behavior
+    const oldCode = `const x = 1
+const y = 2
+const z = 3
+function test() {
+  console.log(x)
+  console.log(y)
+  console.log(z)
+  return x + y + z
+}
+const result = test()
+console.log(result)
+// More lines to ensure we have > 10 lines`
+    
+    const newCode = `const x = 10
+const y = 20
+const z = 30
+function test() {
+  console.log(x)
+  console.log(y)
+  console.log(z)
+  return x + y + z
+}
+const result = test()
+console.log(result)
+// More lines to ensure we have > 10 lines`
+    
+    const editTool = MOCK_TOOLS.edit('/path/to/file.ts', oldCode, newCode)
 
     render(
       <ToolCallDisplay
         toolCall={editTool}
         hasResult={true}
-        result={{ content: "The file /path/to/file.ts has been updated. Here's the result of running `cat -n` on a snippet of the edited file:\n   1→const x = 2", is_error: false }}
+        result={{ content: "The file /path/to/file.ts has been updated. Here's the result of running `cat -n` on a snippet of the edited file:\n   1→const x = 10\n   2→const y = 20", is_error: false }}
       />
     )
 
     // Should show file path as primary parameter for Edit tool in the header
-    const headerElement = screen.getByRole('button', { name: 'hide parameters' })
-    expect(headerElement).toHaveTextContent('/path/to/file.ts')
-
-    // Should auto-expand to show diff for Edit tools
+    const headerPath = screen.getAllByText('/path/to/file.ts')[0]
+    expect(headerPath).toBeInTheDocument()
+    
+    // Edit tools show their diff in a collapsed state by default, need to expand
+    const expandButton = screen.getByRole('button', { name: 'Expand' })
+    fireEvent.click(expandButton)
+    
+    // Now the diff should be visible
     expectContent.text('const x = 1')
-    expectContent.text('const x = 2')
+    expectContent.text('const x = 10')
   })
 
   it('should show diff for MultiEdit tool with multiple edits', () => {
@@ -90,12 +101,30 @@ describe('ToolCallDisplay component', () => {
       file_path: '/path/to/file.ts',
       edits: [
         {
-          old_string: 'const x = 1',
-          new_string: 'const x = 2'
+          old_string: `const x = 1
+const a = 2
+const b = 3
+const c = 4
+const d = 5`,
+          new_string: `const x = 2
+const a = 2
+const b = 3
+const c = 4
+const d = 5`
         },
         {
-          old_string: 'const y = 3',
-          new_string: 'const y = 4'
+          old_string: `const y = 3
+const e = 6
+const f = 7
+const g = 8
+const h = 9
+const i = 10`,
+          new_string: `const y = 4
+const e = 6
+const f = 7
+const g = 8
+const h = 9
+const i = 10`
         }
       ]
     }
@@ -115,7 +144,11 @@ describe('ToolCallDisplay component', () => {
       />
     )
 
-    // Should auto-expand to show unified diff for MultiEdit tools
+    // MultiEdit tools show their diff in a collapsed state by default, need to expand
+    const expandButton = screen.getByRole('button', { name: 'Expand' })
+    fireEvent.click(expandButton)
+    
+    // Now the diff should be visible - check for the first changed values
     expectContent.text('const x = 1')
     expectContent.text('const x = 2')
     expectContent.text('const y = 3')
@@ -139,32 +172,6 @@ describe('ToolCallDisplay component', () => {
     expectContent.text('Read')
   })
 
-  it('should render complex nested input properly', () => {
-    const nestedInput = {
-      options: {
-        recursive: true,
-        pattern: '*.ts'
-      },
-      paths: ['/src', '/tests']
-    }
-
-    const complexTool: ToolUseContent = {
-      type: 'tool_use',
-      id: 'toolu_01ABC123',
-      name: 'Grep',
-      input: nestedInput
-    }
-
-    render(<ToolCallDisplay toolCall={complexTool} />)
-
-    // Expand to see parameters
-    const expandButton = screen.getByRole('button', { name: 'show parameters' })
-    fireEvent.click(expandButton)
-
-    // Should render JSON nicely
-    expect(screen.getByText(/"recursive":/)).toBeInTheDocument()
-    expect(screen.getByText(/true/)).toBeInTheDocument()
-  })
 
   it('should apply custom className if provided', () => {
     const readTool = MOCK_TOOLS.read('/path/to/file.ts')
