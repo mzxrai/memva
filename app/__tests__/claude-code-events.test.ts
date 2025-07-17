@@ -12,12 +12,12 @@ import type { Route } from '../routes/+types/api.claude-code.$sessionId'
 vi.mock('@anthropic-ai/claude-code', () => ({
   query: vi.fn().mockImplementation(({ prompt }: { prompt: string }) => {
     return (async function* () {
-      yield { type: 'system', content: 'Session started', session_id: 'mock-session-id' }
       yield { 
         type: 'user', 
         content: prompt,
         session_id: 'mock-session-id'
       }
+      yield { type: 'system', content: 'Session started', session_id: 'mock-session-id' }
       
       // Different assistant responses based on prompt
       if (prompt.includes('tool')) {
