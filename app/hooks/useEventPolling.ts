@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { getEventsForSession } from '../db/event-session.service'
 import type { Event } from '../db/schema'
 
 export function useEventPolling(sessionId: string) {
@@ -16,10 +15,16 @@ export function useEventPolling(sessionId: string) {
 
       try {
         setIsPolling(true)
-        const fetchedEvents = await getEventsForSession(sessionId)
+        const response = await fetch(`/api/session/${sessionId}`)
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+        
+        const data = await response.json()
         
         if (isMounted) {
-          setEvents(fetchedEvents)
+          setEvents(data.events)
           setError(null)
         }
       } catch (err) {

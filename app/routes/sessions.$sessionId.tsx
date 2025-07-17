@@ -1,9 +1,11 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
-import { useParams, Form, useLoaderData } from "react-router";
+import { useParams, Form, useLoaderData, useNavigation } from "react-router";
 import { useSSEEvents } from "../hooks/useSSEEvents";
-import { useState, useMemo } from "react";
+import { useSessionStatus } from "../hooks/useSessionStatus";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { RiSendPlaneFill, RiFolder3Line } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
+import { PendingMessage } from "../components/PendingMessage";
 import { getSession } from "../db/sessions.service";
 import { getEventsForSession } from "../db/event-session.service";
 import type { AnyEvent } from "../types/events";
@@ -34,6 +36,31 @@ export async function action({ request, params }: ActionFunctionArgs) {
     throw new Response("Session ID is required", { status: 400 });
   }
 
+  // Get session for project path
+  const { getSession } = await import('../db/sessions.service');
+  const session = await getSession(sessionId);
+  
+  if (!session) {
+    throw new Response("Session not found", { status: 404 });
+  }
+
+  // Store user message as an event
+  const { storeEvent, createEventFromMessage } = await import('../db/events.service');
+  
+  const userEvent = createEventFromMessage({
+    message: {
+      type: 'user',
+      content: prompt.trim(),
+      session_id: '' // Will be populated by Claude Code SDK
+    },
+    memvaSessionId: sessionId,
+    projectPath: session.project_path,
+    parentUuid: null,
+    timestamp: new Date().toISOString()
+  });
+  
+  await storeEvent(userEvent);
+
   // Update session status to processing
   const { updateSession } = await import('../db/sessions.service');
   await updateSession(sessionId, { status: 'active' });
@@ -61,10 +88,18 @@ export async function action({ request, params }: ActionFunctionArgs) {
 export default function SessionDetail() {
   const params = useParams();
   const sessionId = params.sessionId as string;
-  const { session, events: initialEvents } = useLoaderData<typeof loader>();
+  const navigation = useNavigation();
+  const { session: initialSession, events: initialEvents } = useLoaderData<typeof loader>();
+  
+  // Poll for session status updates
+  const { session: polledSession } = useSessionStatus(sessionId);
+  const session = polledSession || initialSession;
   
   // Use SSE for real-time new events
   const { newEvents } = useSSEEvents(sessionId);
+  
+  // Track when form submission started for PendingMessage
+  const submissionStartTime = useRef<number | null>(null);
   
   // Combine initial events from loader with new events from SSE
   // Remove duplicates by uuid and sort by timestamp
@@ -142,7 +177,24 @@ export default function SessionDetail() {
     return { displayEvents, toolResults };
   }, [initialEvents, newEvents]);
   
-  const [prompt, setPrompt] = useState(""); 
+  const [prompt, setPrompt] = useState("");
+  
+  // Track form submission state
+  const isSubmitting = navigation.state === "submitting" && navigation.formAction === `/sessions/${sessionId}`;
+  
+  // Set submission start time when form is submitted or when status becomes processing
+  useEffect(() => {
+    if ((isSubmitting || session?.claude_status === 'processing') && !submissionStartTime.current) {
+      submissionStartTime.current = Date.now();
+    }
+  }, [isSubmitting, session?.claude_status]);
+  
+  // Clear form when submission completes
+  useEffect(() => {
+    if (navigation.state === "idle" && prompt !== "") {
+      setPrompt("");
+    }
+  }, [navigation.state]); 
 
   if (!session) {
     return (
@@ -158,6 +210,13 @@ export default function SessionDetail() {
   // Determine UI state based on claude_status
   const isProcessing = session.claude_status === 'processing';
   const hasError = session.claude_status === 'error';
+  
+  // Reset submission start time when processing completes
+  useEffect(() => {
+    if (session.claude_status !== 'processing' && submissionStartTime.current) {
+      submissionStartTime.current = null;
+    }
+  }, [session.claude_status]);
 
   return (
     <div className="h-screen bg-zinc-950 flex flex-col overflow-hidden">
@@ -187,7 +246,7 @@ export default function SessionDetail() {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
-        {displayEvents.length === 0 ? (
+        {displayEvents.length === 0 && !isProcessing && !isSubmitting ? (
           <div className="h-full flex items-center justify-center">
             <p className="text-zinc-500">No messages yet. Start by asking Claude Code something!</p>
           </div>
@@ -201,6 +260,13 @@ export default function SessionDetail() {
                 isStreaming={false}
               />
             ))}
+            {/* Show PendingMessage when processing */}
+            {(isProcessing || isSubmitting) && submissionStartTime.current && (
+              <PendingMessage 
+                tokenCount={0}
+                startTime={submissionStartTime.current}
+              />
+            )}
           </div>
         )}
       </div>
@@ -219,14 +285,14 @@ export default function SessionDetail() {
                       type="text"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      disabled={isProcessing}
+                      disabled={isProcessing || isSubmitting}
                       className="flex-1 bg-transparent text-zinc-100 focus:outline-none disabled:opacity-50 font-mono text-[0.9375rem]"
                       role="textbox"
                     />
                   </div>
                   <button
                     type="submit"
-                    disabled={!prompt.trim() || isProcessing}
+                    disabled={!prompt.trim() || isProcessing || isSubmitting}
                     className="px-6 py-3.5 bg-zinc-700/90 hover:bg-zinc-600/90 text-zinc-100 font-medium rounded-xl transition-all duration-200 focus:outline-none focus:bg-zinc-600/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg font-mono text-[0.9375rem]"
                   >
                     <RiSendPlaneFill className="w-5 h-5" />

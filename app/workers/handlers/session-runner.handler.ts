@@ -1,6 +1,6 @@
 import type { JobHandler } from '../job-worker'
 import { streamClaudeCodeResponse } from '../../services/claude-code.server'
-import { getSession } from '../../db/sessions.service'
+import { getSession, updateSessionClaudeStatus } from '../../db/sessions.service'
 import type { SessionRunnerJobData } from '../job-types'
 
 export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) => {
@@ -52,11 +52,21 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
       })
       
       if (hasError) {
+        try {
+          await updateSessionClaudeStatus(sessionId, 'error')
+        } catch (statusError) {
+          console.error('Failed to update session status to error:', statusError)
+        }
         callback(new Error(`Claude Code SDK error: ${errorMessage}`))
         return
       }
       
       // Job completed successfully
+      try {
+        await updateSessionClaudeStatus(sessionId, 'completed')
+      } catch (statusError) {
+        console.error('Failed to update session status to completed:', statusError)
+      }
       callback(null, {
         success: true,
         sessionId,
@@ -65,6 +75,11 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
       })
       
     } catch (sdkError) {
+      try {
+        await updateSessionClaudeStatus(sessionId, 'error')
+      } catch (statusError) {
+        console.error('Failed to update session status to error:', statusError)
+      }
       callback(new Error(`Claude Code SDK error: ${(sdkError as Error).message}`))
     }
     

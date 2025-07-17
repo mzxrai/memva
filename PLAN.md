@@ -1,347 +1,474 @@
-# Background Job Queue Implementation Plan
+# Claude Status Management & Stop Functionality - Technical Implementation Plan
 
-## Overview
-Implement a SQLite-based background job queue using Better Queue for concurrent Claude Code session management.
+## **CRITICAL BUG**: Text Input Disabled After First Message
 
-## TDD Principles
-- ✅ **RED**: Write failing test first
-- ✅ **GREEN**: Write minimal code to pass
-- ✅ **REFACTOR**: Clean up if needed
-- ✅ **COMMIT**: After each green + lint/typecheck
+### Problem Statement
+The session detail page text input becomes permanently disabled after sending the first message, preventing users from continuing their conversation with Claude Code.
 
-## Phase 1: Foundation & Dependencies
+### Root Cause Analysis
+1. **Status Set But Never Updated**: `sessions.$sessionId.tsx` sets `claude_status: 'processing'` when job starts (line 43)
+2. **Missing Completion Logic**: `session-runner.handler.ts` never updates `claude_status` when Claude Code interaction completes
+3. **Input Disabled Logic**: Text input is disabled when `isProcessing = session.claude_status === 'processing'` (line 159)
+4. **No User Control**: Users cannot stop long-running Claude Code interactions
 
-### Dependencies
-- [x] Install Better Queue dependencies with tests
-- [x] Verify dependencies work with existing codebase
-- [x] Commit dependency changes
+### Solution Overview
+Implement comprehensive status management with proper transitions and user stop functionality to enable continuous messaging and user control.
 
-## Phase 2: Database Schema (TDD)
+---
 
-### Jobs Table Schema
-- [x] Test: Jobs table should exist and be queryable
-- [x] Test: Jobs table should have required fields (id, type, data, status, etc.)
-- [x] Test: Jobs table should have proper indexes for performance
-- [x] Test: Jobs table should support job priorities and scheduling
-- [x] Implementation: Add jobs table to schema
-- [x] Implementation: Add jobs table creation to database.ts
-- [x] Implementation: Add proper indexes
-- [x] Commit: Database schema changes
+## Phase 1: Research & Status Flow Analysis
 
-## Phase 3: Job Service (TDD)
+### Phase 1.1: Current Architecture Documentation
+- [ ] **Research**: Document complete status flow from UI → job → handler → database
+- [ ] **Research**: Map all locations where `claude_status` is read/written in codebase
+- [ ] **Research**: Analyze current job management patterns and existing cancellation hooks
+- [ ] **Research**: Document dual architecture (job-based vs SSE-based) and their interaction
+- [ ] **Analysis**: Create visual status transition diagram showing current broken flow
+- [ ] **Documentation**: Write technical analysis document with findings
+- [ ] **Commit**: Research documentation and analysis
 
-### Core CRUD Operations
-- [x] Test: Should create a job with required fields
-- [x] Test: Should retrieve a job by ID
-- [x] Test: Should update job status and metadata
-- [x] Test: Should list jobs with filtering options
-- [x] Implementation: Create jobs.service.ts with CRUD operations
-- [x] Commit: Basic job service
+### Phase 1.2: Test Environment Setup
+- [ ] **Test Setup**: Verify test database includes `claude_status` column functionality
+- [ ] **Test Setup**: Confirm job system test patterns work with status updates
+- [ ] **Test Setup**: Set up integration test environment for session workflows
+- [ ] **Test Utilities**: Create helper functions for testing status transitions
+- [ ] **Commit**: Test environment preparation
 
-### Job State Management
-- [x] Test: Should claim next available job atomically
-- [x] Test: Should handle job completion with results
-- [x] Test: Should handle job failures with retry logic
-- [x] Test: Should support job cancellation
-- [x] Implementation: Add advanced job state operations
-- [x] Commit: Job state management
+---
 
-### Job Statistics & Cleanup
-- [x] Test: Should provide job queue statistics
-- [x] Test: Should cleanup old completed/failed jobs
-- [x] Implementation: Add stats and cleanup functions
-- [x] Commit: Job statistics and cleanup
+## Phase 2: Core Status Management Fix
 
-## Phase 4: Job Worker (TDD)
+### Phase 2.1: Session-Runner Handler Status Updates
+- [ ] **Test**: Should update `claude_status` to `'completed'` when session-runner handler succeeds
+- [ ] **Test**: Should update `claude_status` to `'error'` when session-runner handler fails with unrecoverable error
+- [ ] **Test**: Should update `claude_status` to `'user_stopped'` when job receives abort signal
+- [ ] **Test**: Should maintain existing event storage patterns during status updates
+- [ ] **Test**: Should handle status update failures gracefully without breaking job completion
+- [ ] **Implementation**: Import `updateSessionClaudeStatus` in session-runner.handler.ts
+- [ ] **Implementation**: Add status update to `'completed'` in success callback (line 60)
+- [ ] **Implementation**: Add status update to `'error'` in error callback (lines 55, 68)
+- [ ] **Implementation**: Add status update to `'user_stopped'` when abort signal detected
+- [ ] **Implementation**: Add proper error handling for status update failures
+- [ ] **Verification**: Manual test that text input re-enables after Claude Code completes
+- [ ] **Commit**: Core status management in session-runner handler
 
-### Worker Foundation
-- [x] Test: Should initialize worker with Better Queue
-- [x] Test: Should register job handlers
-- [x] Test: Should start and stop worker gracefully
-- [x] Implementation: Create basic JobWorker class
-- [x] Commit: Worker foundation
+### Phase 2.2: Status Update Error Handling
+- [ ] **Test**: Should log but not fail job when status update fails
+- [ ] **Test**: Should retry status updates on temporary database failures
+- [ ] **Test**: Should handle concurrent status updates gracefully
+- [ ] **Implementation**: Add try-catch around status updates with proper logging
+- [ ] **Implementation**: Add retry logic for failed status updates
+- [ ] **Implementation**: Prevent status update failures from breaking job completion
+- [ ] **Commit**: Robust status update error handling
 
-### Job Processing
-- [x] Test: Should poll for and claim jobs
-- [x] Test: Should execute job handlers with progress tracking
-- [x] Test: Should handle job handler errors and retries
-- [x] Test: Should support configurable concurrency
-- [x] Implementation: Add job processing logic
-- [x] Commit: Job processing
+---
 
-### Worker Management
-- [x] Test: Should provide worker statistics (via Better Queue getStats)
-- [x] Test: Should handle worker shutdown gracefully
-- [x] Test: Should support job handler registration at runtime
-- [x] Implementation: Add worker management features
-- [x] Commit: Worker management
+## Phase 3: Job Tracking & Management Enhancement
 
-## Phase 5: Job Types & Handlers (TDD) ✅
+### Phase 3.1: Session-Job Linking
+- [ ] **Test**: Should find active session-runner jobs by sessionId
+- [ ] **Test**: Should handle multiple jobs per session gracefully (most recent wins)
+- [ ] **Test**: Should clean up job references when jobs complete
+- [ ] **Implementation**: Add `findActiveJobBySessionId()` function to jobs.service.ts
+- [ ] **Implementation**: Add job type filtering to find only session-runner jobs
+- [ ] **Implementation**: Handle edge cases (multiple active jobs, orphaned jobs)
+- [ ] **Commit**: Enhanced job tracking and lookup
 
-### Job Type Registry
-- [x] Test: Should register and retrieve job handlers
-- [x] Test: Should validate job type constants
-- [x] Test: Should provide type-safe job creation helpers
-- [x] Implementation: Create job-types.ts with registry
-- [x] Commit: Job type system
+### Phase 3.2: Job Metadata Enhancement
+- [ ] **Test**: Should store sessionId in job data for easy lookup
+- [ ] **Test**: Should include session metadata in job for cancellation context
+- [ ] **Implementation**: Ensure sessionId is properly stored in session-runner job data
+- [ ] **Implementation**: Add any additional metadata needed for job-session linking
+- [ ] **Commit**: Job metadata improvements
 
-### Session Runner Handler
-- [x] Test: Should execute Claude Code SDK calls asynchronously
-- [x] Test: Should handle session message processing in background
-- [x] Test: Should support multiple concurrent session jobs
-- [x] Test: Should handle Claude Code SDK errors and retries
-- [x] Implementation: Create session-runner.handler.ts
-- [x] Commit: Session runner handler
+---
 
-### Maintenance Handler  
-- [x] Test: Should cleanup old jobs
-- [x] Test: Should vacuum database
-- [x] Test: Should create database backups
-- [x] Implementation: Create maintenance.handler.ts
-- [x] Commit: Maintenance handler
+## Phase 4: Stop Button UI Implementation
 
-## Phase 6: API Integration (TDD) ✅
+### Phase 4.1: Stop Button Component
+- [ ] **Test**: Should show "Stop" button when `claude_status === 'processing'`
+- [ ] **Test**: Should hide "Stop" button when `claude_status !== 'processing'`
+- [ ] **Test**: Should display stop button with proper accessibility attributes
+- [ ] **Test**: Should show loading state when stop request is in progress
+- [ ] **Test**: Should disable stop button to prevent double-clicks
+- [ ] **Implementation**: Add stop button to session detail page form area
+- [ ] **Implementation**: Connect stop button visibility to `isProcessing` state
+- [ ] **Implementation**: Add loading state management for stop operations
+- [ ] **Styling**: Implement Linear-inspired stop button design (red accent, clean typography)
+- [ ] **Commit**: Stop button UI component
 
-### Jobs API Routes
-- [x] Test: POST /api/jobs should create jobs
-- [x] Test: GET /api/jobs should list jobs with filters
-- [x] Test: GET /api/jobs?action=stats should return statistics
-- [x] Test: DELETE /api/jobs should cancel jobs
-- [x] Implementation: Create api.jobs.tsx route
-- [x] Commit: Jobs API endpoints
+### Phase 4.2: Stop Button Integration
+- [ ] **Test**: Should be positioned appropriately relative to send button
+- [ ] **Test**: Should work on mobile devices with proper touch targets
+- [ ] **Implementation**: Position stop button in session detail page layout
+- [ ] **Implementation**: Ensure responsive design works across screen sizes
+- [ ] **Implementation**: Add proper spacing and visual hierarchy
+- [ ] **Commit**: Stop button layout integration
 
-### Individual Job API
-- [x] Test: GET /api/jobs/:id should retrieve specific job
-- [x] Test: PUT /api/jobs/:id should update job
-- [x] Test: DELETE /api/jobs/:id should cancel specific job
-- [x] Implementation: Create api.jobs.$jobId.tsx route
-- [x] Commit: Individual job API
+---
 
-### Route Configuration
-- [x] Test: Job API routes should be accessible
-- [x] Implementation: Add routes to routes.ts
-- [x] Commit: Route configuration
+## Phase 5: Stop Functionality Implementation
 
-## Phase 7: Real-time Async Session Management (TDD)
+### Phase 5.1: Job Cancellation Enhancement
+- [ ] **Test**: Should cancel active session-runner job when stop button clicked
+- [ ] **Test**: Should update `claude_status` to `'user_stopped'` after successful cancellation
+- [ ] **Test**: Should handle cases where job has already completed
+- [ ] **Test**: Should return appropriate feedback to UI about cancellation status
+- [ ] **Implementation**: Create `cancelJobWithStatus()` function that combines job cancellation with status update
+- [ ] **Implementation**: Enhance existing `cancelJob()` to trigger status updates
+- [ ] **Implementation**: Add proper error handling for cancellation failures
+- [ ] **Commit**: Enhanced job cancellation with status updates
 
-### Phase 7a: Complete Job System Foundation ✅
-- [x] Test: Should initialize job worker with default configuration
-- [x] Test: Should register session-runner handler automatically
-- [x] Test: Should start job processing when called
-- [x] Test: Should stop gracefully and clean up resources
-- [x] Test: Should handle initialization errors properly
-- [x] Implementation: Create workers/index.ts with JobSystem class
-- [x] Implementation: Auto-register handlers and lifecycle management
-- [x] Implementation: Add job system startup to app entry point
-- [x] Commit: Job system initialization
+### Phase 5.2: AbortController Integration
+- [ ] **Test**: Should trigger AbortController when job is cancelled
+- [ ] **Test**: Should store `user_cancelled` event when Claude Code is aborted
+- [ ] **Test**: Should handle graceful shutdown of Claude Code SDK
+- [ ] **Implementation**: Connect job cancellation to AbortController in session-runner handler
+- [ ] **Implementation**: Ensure abort signal propagates properly through claude-code.server.ts
+- [ ] **Implementation**: Verify cancellation event storage works correctly
+- [ ] **Commit**: AbortController integration for graceful stops
 
-### Phase 7b: Database Schema Enhancement ✅
-- [x] Test: Should add claude_status column to sessions table
-- [x] Test: Should support status values (not_started, processing, waiting_for_input, error, completed)
-- [x] Test: Should default to not_started for new sessions
-- [x] Test: Should update status through job lifecycle
-- [x] Implementation: Create database migration for claude_status column
-- [x] Implementation: Update sessions schema and types
-- [x] Implementation: Add helper functions for status management
-- [x] Commit: Session status tracking schema
+### Phase 5.3: Stop Button Event Handling
+- [ ] **Test**: Should call job cancellation API when stop button clicked
+- [ ] **Test**: Should show immediate feedback while cancellation processes
+- [ ] **Test**: Should handle stop button clicks gracefully (prevent double-cancellation)
+- [ ] **Test**: Should update UI state after successful cancellation
+- [ ] **Implementation**: Add `handleStop` function to session detail page
+- [ ] **Implementation**: Connect stop button to job cancellation API call
+- [ ] **Implementation**: Add proper loading states and error handling
+- [ ] **Implementation**: Update UI state after cancellation completes
+- [ ] **Commit**: Complete stop button functionality
 
-### Phase 7c: Background Job Integration ✅
-- [x] Test: Should create session and dispatch job from homepage form
-- [x] Test: Should set initial status to not_started
-- [x] Test: Should redirect to session detail page immediately
-- [x] Test: Should dispatch session-runner job with prompt
-- [x] Test: Should handle job creation errors gracefully
-- [x] Implementation: Modify home.tsx action to use job system
-- [x] Implementation: Replace redirect-only with job dispatch + redirect
-- [x] Commit: Homepage job dispatch
+---
 
-- [x] Test: Should dispatch job when user submits new prompt in session detail
-- [x] Test: Should update session status to processing
-- [x] Test: Should handle job submission errors
-- [x] Test: Should maintain existing form UX
-- [x] Implementation: Modify session detail page to dispatch jobs
-- [x] Implementation: Remove direct streaming from session page
-- [x] Commit: Session detail job dispatch
+## Phase 6: Status Reset & Transition Logic
 
-### Phase 7d: Database-Driven Session Updates ✅
-- [x] Test: Should poll database for new events every 2 seconds
-- [x] Test: Should update events list when new events arrive
-- [x] Test: Should handle polling errors gracefully
-- [x] Test: Should stop polling when component unmounts
-- [x] Test: Should show events in real-time as they're stored
-- [x] Implementation: Create useEventPolling() hook for session detail
-- [x] Implementation: Replace SSE streaming with database polling
-- [x] Implementation: Add automatic refresh of events list
-- [x] Commit: Database-driven session updates
+### Phase 6.1: New Message Status Reset
+- [ ] **Test**: Should reset `claude_status` to `'processing'` when user submits new message
+- [ ] **Test**: Should work from any previous status (`completed`/`error`/`user_stopped`)
+- [ ] **Test**: Should clear any error indicators when transitioning to processing
+- [ ] **Test**: Should handle rapid message submissions without race conditions
+- [ ] **Implementation**: Add status reset logic to `sessions.$sessionId.tsx` action function
+- [ ] **Implementation**: Reset to `'processing'` before creating new job
+- [ ] **Implementation**: Clear error states and UI indicators during transition
+- [ ] **Implementation**: Add concurrency protection for rapid submissions
+- [ ] **Commit**: Status reset logic for new messages
 
-- [x] Test: Should disable submit button when status is processing
-- [x] Test: Should show error message when status is error
-- [x] Test: Should enable submit button for ready states
-- [x] Test: Should clear error status when new job is submitted
-- [x] Implementation: Add status polling to session detail page
-- [x] Implementation: Update submit button logic based on status
-- [x] Implementation: Add error state display
-- [x] Commit: Session status UI integration
+### Phase 6.2: Status Transition Validation
+- [ ] **Test**: Should enforce valid status transitions only
+- [ ] **Test**: Should prevent invalid status changes
+- [ ] **Test**: Should log status transition events for debugging
+- [ ] **Implementation**: Add status transition validation to `updateSessionClaudeStatus`
+- [ ] **Implementation**: Add logging for all status changes
+- [ ] **Implementation**: Prevent invalid transitions (e.g., `completed` → `processing` without user action)
+- [ ] **Commit**: Status transition validation and logging
 
-### Phase 7e: Real-time Homepage Dashboard
-- [x] Test: Should display grey dot for not_started sessions
-- [x] Test: Should display green pulsing dot for processing sessions
-- [x] Test: Should display green dot + "Needs Input" badge for ready states
-- [x] Test: Should display red dot for error sessions
-- [x] Test: Should update status indicators in real-time
-- [x] Implementation: Create StatusIndicator component with dot + badge
-- [x] Implementation: Add status mapping logic (internal → UI display)
-- [x] Implementation: Use Linear-inspired design with color usage
-- [x] Commit: Homepage status indicators
+---
 
-- [ ] Test: Should show preview of most recent assistant message
-- [ ] Test: Should extract meaningful content (skip system messages)
-- [ ] Test: Should display 2-3 lines of assistant message
-- [ ] Test: Should update carousel when new messages arrive
-- [ ] Test: Should handle sessions with no assistant messages gracefully
-- [ ] Implementation: Create MessageCarousel component with vertical scrolling
-- [ ] Implementation: Add message preview extraction logic
-- [ ] Implementation: Implement smooth vertical animation
-- [ ] Commit: Assistant message carousel
+## Phase 7: Enhanced Error Handling & Edge Cases
 
-- [ ] Test: Should establish SSE connection to session updates endpoint
-- [ ] Test: Should update session status when jobs change state
-- [ ] Test: Should update message previews when new assistant messages arrive
-- [ ] Test: Should handle SSE connection errors and reconnection
-- [ ] Test: Should efficiently query only changed sessions
-- [ ] Implementation: Create /api/session-updates SSE endpoint
-- [ ] Implementation: Add session status change broadcasting
-- [ ] Implementation: Create useSessionUpdates() hook for homepage
-- [ ] Implementation: Add automatic reconnection on SSE failures
-- [ ] Commit: Real-time homepage updates
+### Phase 7.1: Concurrent Operation Handling
+- [ ] **Test**: Should handle stop requests during job completion
+- [ ] **Test**: Should prevent race conditions between stop and natural completion
+- [ ] **Test**: Should handle rapid start/stop/start sequences
+- [ ] **Test**: Should gracefully handle AbortController failures
+- [ ] **Implementation**: Add proper synchronization for concurrent status updates
+- [ ] **Implementation**: Handle timing edge cases (stop during job completion)
+- [ ] **Implementation**: Add defensive programming for race conditions
+- [ ] **Commit**: Concurrent operation handling
 
-### Phase 7f: Enhanced Job Handler
-- [ ] Test: Should set status to processing when Claude Code starts
-- [ ] Test: Should set status to waiting_for_input when Claude completes
-- [ ] Test: Should set status to error for unrecoverable errors
-- [ ] Test: Should reset status to processing when new job starts
-- [ ] Test: Should maintain existing event storage patterns
-- [ ] Implementation: Enhance session-runner.handler.ts with status updates
-- [ ] Implementation: Add status transition logic throughout lifecycle
-- [ ] Implementation: Add proper error handling and status reporting
-- [ ] Commit: Status-aware session runner
+### Phase 7.2: System Failure Recovery
+- [ ] **Test**: Should handle job system failures during stop requests
+- [ ] **Test**: Should recover gracefully when job worker restarts
+- [ ] **Test**: Should handle network disconnections during Claude Code interactions
+- [ ] **Test**: Should cleanup orphaned jobs and sessions
+- [ ] **Implementation**: Add robust error handling for all stop/cancel scenarios
+- [ ] **Implementation**: Add retry logic for failed status updates
+- [ ] **Implementation**: Add cleanup routines for orphaned states
+- [ ] **Implementation**: Add health check mechanisms for job system
+- [ ] **Commit**: System failure recovery mechanisms
 
-### Phase 7g: Performance & Polish
-- [ ] Test: Should query only changed sessions for homepage updates
-- [ ] Test: Should efficiently fetch latest assistant messages
-- [ ] Test: Should handle large numbers of sessions without performance issues
-- [ ] Test: Should minimize database load during polling
-- [ ] Implementation: Add database indexes for efficient queries
-- [ ] Implementation: Implement change detection for SSE updates
-- [ ] Implementation: Optimize polling intervals and query caching
-- [ ] Commit: Performance optimization
+---
 
-- [ ] Test: Should handle job system failures gracefully
-- [ ] Test: Should recover from database connection issues
-- [ ] Test: Should handle SSE connection failures
-- [ ] Test: Should show clear error messages to users
-- [ ] Test: Should maintain system stability during errors
-- [ ] Implementation: Add comprehensive error boundaries
-- [ ] Implementation: Implement retry logic for failed operations
-- [ ] Implementation: Add user-friendly error messages
-- [ ] Commit: Error handling and recovery
+## Phase 8: Status Indicator Updates
 
-## Phase 8: Testing & Validation
+### Phase 8.1: StatusIndicator Component Enhancement
+- [ ] **Test**: Should display appropriate indicator for `'completed'` status
+- [ ] **Test**: Should display appropriate indicator for `'user_stopped'` status
+- [ ] **Test**: Should show proper badge text for new statuses
+- [ ] **Test**: Should use correct colors for new status values
+- [ ] **Implementation**: Update StatusIndicator component for new `claude_status` values
+- [ ] **Implementation**: Add proper colors and badges for `completed`/`user_stopped`
+- [ ] **Implementation**: Ensure consistent design language across all status indicators
+- [ ] **Commit**: StatusIndicator component updates
 
-### Integration Testing
-- [ ] Test: End-to-end job processing workflow
-- [ ] Test: Concurrent job processing
-- [ ] Test: Job system under load (10-15 sessions)
-- [ ] Test: Database consistency during failures
-- [ ] Implementation: Comprehensive integration tests
-- [ ] Commit: Integration testing
+### Phase 8.2: Real-time Status Updates
+- [ ] **Test**: Should update status indicators in real-time on homepage
+- [ ] **Test**: Should reflect status changes immediately after completion/stopping
+- [ ] **Test**: Should handle status polling efficiently
+- [ ] **Implementation**: Update homepage polling to reflect new statuses
+- [ ] **Implementation**: Ensure status changes propagate to homepage quickly
+- [ ] **Implementation**: Optimize polling frequency for responsiveness
+- [ ] **Commit**: Real-time status indicator updates
 
-### Performance Validation
-- [ ] Test: Job processing performance meets requirements
-- [ ] Test: Database operations don't block main thread
-- [ ] Test: Memory usage remains stable under load
-- [ ] Implementation: Performance optimizations if needed
-- [ ] Commit: Performance validation
+---
 
-## Phase 9: Documentation & Deployment
+## Phase 9: Comprehensive Testing & Validation
 
-### Documentation
-- [ ] Update CLAUDE.md with job system patterns
-- [ ] Add job system usage examples
-- [ ] Document job handler creation process
-- [ ] Commit: Documentation updates
+### Phase 9.1: End-to-End Workflow Testing
+- [ ] **Test**: Complete messaging workflow: send → process → complete → send another
+- [ ] **Test**: Complete stop workflow: send → stop → verify cancelled → send new message
+- [ ] **Test**: Error recovery workflow: send → error → retry → success
+- [ ] **Test**: Mixed workflows: send → complete → send → stop → send
+- [ ] **Test**: Concurrent sessions: multiple sessions running/stopping simultaneously
+- [ ] **Verification**: Verify continuous messaging works without input getting stuck
+- [ ] **Verification**: Verify stop functionality provides immediate user control
+- [ ] **Verification**: Verify all status transitions work correctly across scenarios
+- [ ] **Commit**: End-to-end workflow testing
 
-### Final Integration
-- [ ] Test: Full system integration with existing app
-- [ ] Test: Job system works with npx distribution
-- [ ] Verify: All tests pass, linting clean, typecheck passes
-- [ ] Commit: Final integration
+### Phase 9.2: Browser Testing with Playwright
+- [ ] **Test**: Browser test for complete messaging workflow using Playwright MCP
+- [ ] **Test**: Browser test for stop button functionality and UI responsiveness
+- [ ] **Test**: Browser test for error scenarios and recovery
+- [ ] **Test**: Browser test for rapid user interactions (stress testing)
+- [ ] **Implementation**: Create Playwright test scenarios for critical user paths
+- [ ] **Implementation**: Add visual verification for UI state changes
+- [ ] **Implementation**: Test across different browser conditions (slow network, etc.)
+- [ ] **Commit**: Browser testing with Playwright
+
+### Phase 9.3: Performance & Load Testing
+- [ ] **Test**: Performance test with multiple concurrent sessions
+- [ ] **Test**: Load test for rapid message submissions and stops
+- [ ] **Test**: Memory usage verification during extended sessions
+- [ ] **Test**: Database performance under status update load
+- [ ] **Implementation**: Add performance monitoring and metrics
+- [ ] **Implementation**: Optimize any performance bottlenecks discovered
+- [ ] **Commit**: Performance optimization and validation
+
+---
+
+## Technical Specifications
+
+### Claude Status State Machine
+```
+not_started ──submit──→ processing ──complete──→ completed ──submit──→ processing
+     │                      │            ├──error──→ error ──submit──→ processing
+     │                      │            └─stop─→ user_stopped ──submit──→ processing  
+     └──────submit──────────┘
+```
+
+### Status Values
+```typescript
+type ClaudeStatus = 
+  | 'not_started'    // No messages sent yet
+  | 'processing'     // Currently working with Claude Code
+  | 'completed'      // Finished successfully, ready for next message
+  | 'error'          // Failed due to error, can retry
+  | 'user_stopped'   // User clicked stop, can send new message
+```
+
+### API Enhancements
+
+#### Enhanced Job Cancellation Endpoint
+```typescript
+DELETE /api/jobs/:jobId 
+// Response: { 
+//   cancelled: true, 
+//   sessionId: string, 
+//   newStatus: 'user_stopped',
+//   timestamp: string
+// }
+```
+
+#### Session Status Response (Enhanced)
+```typescript
+GET /sessions/:sessionId
+// Response includes: { 
+//   claude_status: ClaudeStatus,
+//   last_status_update: string,
+//   active_job_id?: string
+// }
+```
+
+### Key Files Modified
+1. **`app/workers/handlers/session-runner.handler.ts`** - Add comprehensive status updates
+2. **`app/routes/sessions.$sessionId.tsx`** - Add stop button, status reset logic, UI enhancements
+3. **`app/db/jobs.service.ts`** - Enhance cancellation to trigger status updates
+4. **`app/components/StatusIndicator.tsx`** - Support all new status values with proper UI
+5. **`app/db/sessions.service.ts`** - Add any additional status management utilities
+6. **`app/__tests__/**` - Comprehensive test coverage for all scenarios
+
+### Implementation Code Examples
+
+#### Session-Runner Handler Status Updates
+```typescript
+// In session-runner.handler.ts
+import { updateSessionClaudeStatus } from '../../db/sessions.service'
+
+export const sessionRunnerHandler: JobHandler = async (job, callback) => {
+  try {
+    const { sessionId } = jobData.data
+    
+    // ... existing Claude Code execution ...
+    
+    if (hasError) {
+      await updateSessionClaudeStatus(sessionId, 'error')
+      callback(new Error(`Claude Code SDK error: ${errorMessage}`))
+      return
+    }
+    
+    // Check if job was aborted
+    if (abortController.signal.aborted) {
+      await updateSessionClaudeStatus(sessionId, 'user_stopped')
+      callback(null, { success: true, sessionId, status: 'user_stopped' })
+      return
+    }
+    
+    // Job completed successfully
+    await updateSessionClaudeStatus(sessionId, 'completed')
+    callback(null, { success: true, sessionId, messagesProcessed, userId })
+    
+  } catch (error) {
+    await updateSessionClaudeStatus(sessionId, 'error')
+    callback(new Error(`Session runner handler error: ${error.message}`))
+  }
+}
+```
+
+#### Stop Button Implementation
+```typescript
+// In sessions.$sessionId.tsx
+const [isStopLoading, setIsStopLoading] = useState(false)
+
+const handleStop = async () => {
+  setIsStopLoading(true)
+  try {
+    // Find active job for this session
+    const response = await fetch(`/api/jobs?sessionId=${sessionId}&status=running`)
+    const jobs = await response.json()
+    const activeJob = jobs.find(job => job.type === 'session-runner')
+    
+    if (activeJob) {
+      await fetch(`/api/jobs/${activeJob.id}`, { method: 'DELETE' })
+    }
+  } catch (error) {
+    console.error('Failed to stop:', error)
+  } finally {
+    setIsStopLoading(false)
+  }
+}
+
+// In JSX:
+{isProcessing && (
+  <button 
+    onClick={handleStop}
+    disabled={isStopLoading}
+    className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+  >
+    {isStopLoading ? 'Stopping...' : 'Stop'}
+  </button>
+)}
+```
+
+#### Enhanced Job Cancellation
+```typescript
+// In jobs.service.ts
+export async function cancelJobWithStatus(jobId: string): Promise<{
+  job: Job | null
+  sessionId?: string
+  statusUpdated: boolean
+}> {
+  // Get job details to extract sessionId
+  const job = await getJob(jobId)
+  if (!job) return { job: null, statusUpdated: false }
+  
+  // Cancel the job
+  const cancelledJob = await cancelJob(jobId)
+  
+  // Update session status if this is a session-runner job
+  let statusUpdated = false
+  if (job.type === 'session-runner' && job.data && 'sessionId' in job.data) {
+    const sessionId = job.data.sessionId as string
+    try {
+      await updateSessionClaudeStatus(sessionId, 'user_stopped')
+      statusUpdated = true
+    } catch (error) {
+      console.error('Failed to update session status:', error)
+    }
+  }
+  
+  return {
+    job: cancelledJob,
+    sessionId: job.data?.sessionId as string,
+    statusUpdated
+  }
+}
+```
+
+---
 
 ## Success Criteria
-- ✅ 100% test coverage for all job system components
-- ✅ All tests passing (unit + integration)
-- ✅ TypeScript strict mode compliance
-- ✅ No linting errors
-- ✅ Handles 10-15 concurrent sessions @ 5 msg/sec
-- ✅ Zero external dependencies beyond Better Queue
-- ✅ Graceful error handling and recovery
-- ✅ Clean commit history with frequent commits
 
-## Technical Architecture
+### Functional Requirements
+- ✅ **Continuous Messaging**: Text input never gets permanently disabled
+- ✅ **User Control**: Users can stop Claude Code interactions at any time
+- ✅ **Clear Feedback**: Visual indicators show current status (processing/completed/error/stopped)
+- ✅ **Robust Recovery**: System handles errors and edge cases gracefully
+- ✅ **Preserved Functionality**: All existing features continue to work
 
-### Real-time Update Flow
-1. **Job Processing**: Background jobs update session status in database
-2. **Change Detection**: Database triggers detect status/message changes  
-3. **SSE Broadcasting**: Changes broadcast to connected homepage clients
-4. **UI Updates**: Homepage receives updates and re-renders affected session cards
+### Technical Requirements
+- ✅ **100% Test Coverage**: All status management logic covered by tests
+- ✅ **Integration Testing**: End-to-end workflows tested with Playwright
+- ✅ **Performance**: No degradation in messaging or UI responsiveness
+- ✅ **Error Handling**: Graceful degradation for all failure scenarios
+- ✅ **Code Quality**: TypeScript strict mode, lint-free, well-documented
 
-### Session Status State Machine
-```
-not_started → processing → (waiting_for_input | error | completed)
-```
+### User Experience Requirements
+- ✅ **Immediate Feedback**: Stop button provides instant response
+- ✅ **Consistent UI**: Status indicators work consistently across app
+- ✅ **Accessibility**: All interactive elements properly accessible
+- ✅ **Mobile Friendly**: Stop functionality works on mobile devices
 
-### Key Components
-- **JobSystem**: Manages worker lifecycle and handler registration
-- **StatusIndicator**: Session status with dots and badges (grey/green/red)
-- **MessageCarousel**: Vertical scrolling preview of assistant messages
-- **SessionUpdates**: SSE endpoint for real-time homepage updates
-- **useEventPolling**: Hook for database-driven session detail updates
-- **useSessionUpdates**: Hook for real-time homepage updates
+---
 
-### Database Schema Additions
-```sql
--- Add session status tracking
-ALTER TABLE sessions ADD COLUMN claude_status TEXT DEFAULT 'not_started';
+## Implementation Timeline
 
--- Add indexes for efficient real-time queries
-CREATE INDEX idx_sessions_claude_status ON sessions(claude_status);
-CREATE INDEX idx_events_session_type_timestamp ON events(session_id, event_type, timestamp);
-```
+### Week 1: Foundation (Phases 1-2)
+- Research and analysis
+- Core status management fix
+- Basic functionality working
 
-## Current Status
-**Phase**: Phase 7e - Real-time Homepage Dashboard - Status Indicators Complete ✅
-**Last Commit**: StatusIndicator component with claude_status display
-**Tests**: 374 tests passing (StatusIndicator tests added)
-**Next Task**: Phase 7e - Assistant Message Carousel
+### Week 2: Core Features (Phases 3-5)
+- Job tracking and management
+- Stop button UI and functionality
+- Complete stop workflow
 
-## Recent Achievements (Since Last Update)
-- ✅ **Phase 7a Complete**: JobSystem foundation with auto-registration and lifecycle management
-- ✅ **Phase 7b Complete**: claude_status column added to sessions table with proper indexing
-- ✅ **Phase 7c Complete**: Background job integration for both homepage and session detail
-- ✅ **Phase 7d Complete**: Database-driven session updates with useEventPolling and useSessionStatus hooks
-- ✅ **Homepage Job Dispatch**: Session creation now dispatches background jobs with prompts
-- ✅ **Session Detail Job Dispatch**: Prompt submissions now use background job processing
-- ✅ **Real-time Session Updates**: Database polling every 2 seconds for events and session status
-- ✅ **Database Access Standardization**: All direct database access replaced with service layer functions
-- ✅ **Service Layer Consolidation**: Duplicate events service consolidated into proper service layer
-- ✅ **Pattern Compliance**: All database access violations documented and fixed
-- ✅ **Test Suite Health**: All 363 tests passing with clean test output
-- ✅ **Code Quality**: Lint and typecheck passing, strict TypeScript compliance maintained
+### Week 3: Polish & Testing (Phases 6-8)
+- Status transitions and error handling
+- UI improvements and status indicators
+- Integration testing
 
-## Demo Goal
-Transform app into real-time async session management system:
-- Homepage serves as live monitoring dashboard with status indicators
-- Background jobs handle all Claude Code processing
-- Real-time updates via SSE for session status and message previews
-- Database-driven session detail pages with event polling
-- Support for 10-15 concurrent sessions running in parallel
+### Week 4: Validation & Deployment (Phase 9)
+- Comprehensive testing
+- Performance validation
+- Documentation and deployment
+
+---
+
+## Risk Mitigation
+
+### High-Risk Areas
+1. **Race Conditions**: Careful synchronization between status updates and job lifecycle
+2. **AbortController Integration**: Ensure abort signals propagate correctly through Claude Code SDK
+3. **UI State Management**: Prevent inconsistent states between local and server state
+4. **Database Consistency**: Ensure status updates don't create orphaned states
+
+### Mitigation Strategies
+1. **Comprehensive Testing**: Extensive unit, integration, and browser testing
+2. **Defensive Programming**: Handle all edge cases and error scenarios
+3. **Gradual Rollout**: Implement and test each phase incrementally
+4. **Rollback Plan**: Maintain ability to revert changes if issues arise
+
+---
+
+This plan provides a step-by-step roadmap for fixing the critical text input disable bug while adding robust stop functionality that gives users full control over their Claude Code interactions. Each phase builds on the previous one and includes comprehensive testing to ensure reliability.

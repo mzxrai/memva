@@ -2,6 +2,7 @@ import type { Route } from "./+types/api.claude-code.$sessionId"
 import { getSession, getLatestClaudeSessionId, updateClaudeSessionId } from "../db/sessions.service"
 import { streamClaudeCodeResponse } from "../services/claude-code.server"
 import { createEventFromMessage, storeEvent } from "../db/events.service"
+import { getEventsForSession } from "../db/event-session.service"
 
 // GET endpoint for SSE event listening
 export async function loader({ params }: Route.LoaderArgs) {
@@ -17,18 +18,66 @@ export async function loader({ params }: Route.LoaderArgs) {
     "X-Accel-Buffering": "no"
   })
 
-  // For now, create a simple SSE stream that sends a heartbeat
-  // In a full implementation, this would listen for new events in the database
+  // Create SSE stream that polls and sends new events
+  let intervalId: ReturnType<typeof setInterval> | null = null
+  
   const stream = new ReadableStream({
-    start(controller) {
+    async start(controller) {
       const encoder = new TextEncoder()
+      let lastEventTimestamp: string | null = null
       
       // Send initial connection message
       const connectMsg = `data: ${JSON.stringify({ type: 'connection', status: 'connected' })}\n\n`
       controller.enqueue(encoder.encode(connectMsg))
       
-      // For now, we'll just keep the connection alive
-      // TODO: Implement actual event streaming from database
+      // Poll for new events every 500ms
+      const pollEvents = async () => {
+        try {
+          const events = await getEventsForSession(params.sessionId)
+          
+          // Find new events since last check
+          const newEvents = lastEventTimestamp 
+            ? events.filter(e => e.timestamp > lastEventTimestamp)
+            : events
+          
+          // Send new events (they come newest first from DB, so reverse to send oldest first)
+          for (const event of newEvents.reverse()) {
+            // Send the complete event structure, don't spread the data
+            const message = {
+              uuid: event.uuid,
+              event_type: event.event_type,
+              timestamp: event.timestamp,
+              memva_session_id: event.memva_session_id,
+              data: event.data  // Keep data nested as expected by EventRenderer
+            }
+            
+            const data = `data: ${JSON.stringify(message)}\n\n`
+            controller.enqueue(encoder.encode(data))
+          }
+          
+          // Update last timestamp
+          if (events.length > 0) {
+            lastEventTimestamp = events[0].timestamp // events[0] is newest
+          }
+        } catch (error) {
+          console.error('[SSE] Error polling events:', error)
+        }
+      }
+      
+      // Initial poll
+      await pollEvents()
+      
+      // Set up polling interval
+      intervalId = setInterval(pollEvents, 500)
+      
+      // Clean up will be handled in cancel method
+    },
+    cancel() {
+      // Stream canceled - cleanup
+      if (intervalId) {
+        clearInterval(intervalId)
+        intervalId = null
+      }
     }
   })
 
@@ -131,11 +180,13 @@ export async function action({ request, params }: Route.ActionArgs) {
         }
       }
       
-      // Send the user message immediately
+      // Send the user message immediately with complete event structure
       sendMessage({
-        ...(typeof userEvent.data === 'object' && userEvent.data !== null ? userEvent.data : {}),
         uuid: userEvent.uuid,
-        memva_session_id: userEvent.memva_session_id
+        event_type: userEvent.event_type,
+        timestamp: userEvent.timestamp,
+        memva_session_id: userEvent.memva_session_id,
+        data: userEvent.data  // Keep data nested
       })
       
 
@@ -162,12 +213,13 @@ export async function action({ request, params }: Route.ActionArgs) {
               return
             }
             
-            // Send the stored event which includes the database UUID
-            const eventData = typeof event.data === 'object' && event.data !== null ? event.data : {}
+            // Send the complete event structure
             sendMessage({
-              ...eventData,
               uuid: event.uuid,
-              memva_session_id: event.memva_session_id
+              event_type: event.event_type,
+              timestamp: event.timestamp,
+              memva_session_id: event.memva_session_id,
+              data: event.data  // Keep data nested as expected by EventRenderer
             })
           }
         })

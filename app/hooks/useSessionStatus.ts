@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { getSession } from '../db/sessions.service'
 import type { Session } from '../db/schema'
 
 export function useSessionStatus(sessionId: string) {
@@ -16,10 +15,16 @@ export function useSessionStatus(sessionId: string) {
 
       try {
         setIsLoading(true)
-        const fetchedSession = await getSession(sessionId)
+        const response = await fetch(`/api/session/${sessionId}`)
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+        
+        const data = await response.json()
         
         if (isMounted) {
-          setSession(fetchedSession)
+          setSession(data.session)
           setError(null)
         }
       } catch (err) {

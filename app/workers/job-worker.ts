@@ -1,5 +1,8 @@
-import Queue from 'better-queue'
+import { createRequire } from 'module'
 import { claimNextJob, completeJob, failJob, type Job } from '../db/jobs.service'
+
+const require = createRequire(import.meta.url)
+const Queue = require('better-queue')
 
 export type JobWorkerConfig = {
   concurrent?: number
