@@ -82,7 +82,7 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
     // Get the latest event to use as parent UUID
     const events = await getEventsForSession(sessionId)
     const lastEvent = events.length > 0 ? events[0] : null
-    const initialParentUuid = lastEvent?.uuid || null
+    const initialParentUuid = lastEvent?.uuid || undefined
     
     // Execute Claude Code SDK interaction
     try {

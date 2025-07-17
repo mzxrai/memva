@@ -91,7 +91,8 @@ describe('Maintenance Handler', () => {
       await waitForCondition(() => callbackCalled, { timeoutMs: 1000 })
       
       expect(callbackError).toBeInstanceOf(Error)
-      expect(callbackError?.message).toContain('olderThanDays is required')
+      expect(callbackError).toBeTruthy()
+      expect((callbackError as unknown as Error).message).toContain('olderThanDays is required')
     })
 
     it('should handle cleanup errors gracefully', async () => {
@@ -120,7 +121,8 @@ describe('Maintenance Handler', () => {
       await waitForCondition(() => callbackCalled, { timeoutMs: 1000 })
       
       expect(callbackError).toBeInstanceOf(Error)
-      expect(callbackError?.message).toContain('olderThanDays must be positive')
+      expect(callbackError).toBeTruthy()
+      expect((callbackError as unknown as Error).message).toContain('olderThanDays must be positive')
     })
   })
 
@@ -257,7 +259,8 @@ describe('Maintenance Handler', () => {
       await waitForCondition(() => callbackCalled, { timeoutMs: 1000 })
       
       expect(callbackError).toBeInstanceOf(Error)
-      expect(callbackError?.message).toContain('backupPath is required')
+      expect(callbackError).toBeTruthy()
+      expect((callbackError as unknown as Error).message).toContain('backupPath is required')
     })
 
     it('should handle backup failures', async () => {
@@ -286,7 +289,8 @@ describe('Maintenance Handler', () => {
       await waitForCondition(() => callbackCalled, { timeoutMs: 5000 })
       
       expect(callbackError).toBeInstanceOf(Error)
-      expect(callbackError?.message).toContain('Backup failed')
+      expect(callbackError).toBeTruthy()
+      expect((callbackError as unknown as Error).message).toContain('Backup failed')
     })
   })
 
@@ -317,7 +321,8 @@ describe('Maintenance Handler', () => {
       await waitForCondition(() => callbackCalled, { timeoutMs: 1000 })
       
       expect(callbackError).toBeInstanceOf(Error)
-      expect(callbackError?.message).toContain('Missing required field: operation')
+      expect(callbackError).toBeTruthy()
+      expect((callbackError as unknown as Error).message).toContain('Missing required field: operation')
     })
 
     it('should reject unknown maintenance operations', async () => {
@@ -345,7 +350,8 @@ describe('Maintenance Handler', () => {
       await waitForCondition(() => callbackCalled, { timeoutMs: 1000 })
       
       expect(callbackError).toBeInstanceOf(Error)
-      expect(callbackError?.message).toContain('Unknown maintenance operation')
+      expect(callbackError).toBeTruthy()
+      expect((callbackError as unknown as Error).message).toContain('Unknown maintenance operation')
     })
 
     it('should track maintenance job progress', async () => {

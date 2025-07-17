@@ -116,8 +116,9 @@ export class JobWorker {
       }
 
       // Calculate how many jobs we can claim based on current queue capacity
-      const stats = this.queue.getStats()
-      const runningJobs = stats.running || 0
+      // Note: better-queue doesn't provide a running count in stats, so we'll use queue length
+      // @ts-expect-error - accessing internal queue property
+      const runningJobs = this.queue.running || 0
       const availableSlots = this.config.concurrent - runningJobs
       
       // Claim multiple jobs if we have capacity

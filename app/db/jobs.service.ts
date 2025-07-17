@@ -100,9 +100,7 @@ export async function updateJob(id: string, input: UpdateJobInput): Promise<Job 
 }
 
 export async function listJobs(options: ListJobsOptions = {}): Promise<Job[]> {
-  let query = db.select().from(jobs)
-  
-  // Apply filters
+  // Build filters
   const filters = []
   if (options.status) {
     filters.push(eq(jobs.status, options.status))
@@ -111,19 +109,17 @@ export async function listJobs(options: ListJobsOptions = {}): Promise<Job[]> {
     filters.push(eq(jobs.type, options.type))
   }
   
-  if (filters.length > 0) {
-    query = query.where(and(...filters))
-  }
+  // Build base query with filters and ordering
+  const baseQuery = db.select().from(jobs)
+    .where(filters.length > 0 ? and(...filters) : undefined)
+    .orderBy(desc(jobs.priority), jobs.created_at)
   
-  // Order by priority (descending) then creation time (ascending)
-  query = query.orderBy(desc(jobs.priority), jobs.created_at)
-  
-  // Apply limit
+  // Apply limit if specified
   if (options.limit) {
-    query = query.limit(options.limit)
+    return baseQuery.limit(options.limit).execute()
   }
   
-  return query.execute()
+  return baseQuery.execute()
 }
 
 export async function claimNextJob(): Promise<Job | null> {
@@ -154,7 +150,7 @@ export async function claimNextJob(): Promise<Job | null> {
   const claimed = await updateJob(availableJob.id, {
     status: 'running',
     started_at: now,
-    attempts: availableJob.attempts + 1
+    attempts: (availableJob.attempts ?? 0) + 1
   })
   
   return claimed
@@ -172,13 +168,13 @@ export async function failJob(id: string, error: string, shouldRetry = true): Pr
   const job = await getJob(id)
   if (!job) return null
   
-  const canRetry = shouldRetry && job.attempts < job.max_attempts
+  const canRetry = shouldRetry && (job.attempts ?? 0) < (job.max_attempts ?? 3)
   const finalStatus = canRetry ? 'pending' : 'failed'
   
   return updateJob(id, {
     status: finalStatus,
     error,
-    completed_at: canRetry ? null : new Date().toISOString()
+    completed_at: canRetry ? undefined : new Date().toISOString()
   })
 }
 

@@ -4,6 +4,7 @@ import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
 import { createMockNewSession } from '../test-utils/factories'
 import { useLoaderData } from 'react-router'
+import type { Session } from '../db/schema'
 
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
@@ -60,13 +61,13 @@ describe('Session Status Polling Integration', () => {
 
     // Mock useLoaderData to return the test session
     vi.mocked(useLoaderData).mockReturnValue({
-      session: createdSession,
+      session: createdSession as Session,
       events: []
     })
 
     // Mock useSessionStatus to return the session with processing status
     vi.mocked(useSessionStatus).mockReturnValue({
-      session: createdSession,
+      session: createdSession as Session,
       error: null,
       isLoading: false
     })
@@ -96,13 +97,13 @@ describe('Session Status Polling Integration', () => {
 
     // Mock useLoaderData to return the test session
     vi.mocked(useLoaderData).mockReturnValue({
-      session: createdSession,
+      session: createdSession as Session,
       events: []
     })
 
     // Mock useSessionStatus to return the session with error status
     vi.mocked(useSessionStatus).mockReturnValue({
-      session: createdSession,
+      session: createdSession as Session,
       error: null,
       isLoading: false
     })
@@ -138,13 +139,13 @@ describe('Session Status Polling Integration', () => {
 
       // Mock useLoaderData to return the test session
       vi.mocked(useLoaderData).mockReturnValue({
-        session: createdSession,
+        session: createdSession as Session,
         events: []
       })
 
       // Mock useSessionStatus to return the session with the current status
       vi.mocked(useSessionStatus).mockReturnValue({
-        session: createdSession,
+        session: createdSession as Session,
         error: null,
         isLoading: false
       })
@@ -188,13 +189,13 @@ describe('Session Status Polling Integration', () => {
 
     // Mock useLoaderData to return the test session
     vi.mocked(useLoaderData).mockReturnValue({
-      session: createdSession,
+      session: createdSession as Session,
       events: []
     })
 
     // Mock useSessionStatus to return the session with error status initially
     vi.mocked(useSessionStatus).mockReturnValue({
-      session: createdSession,
+      session: createdSession as Session,
       error: null,
       isLoading: false
     })
@@ -217,7 +218,7 @@ describe('Session Status Polling Integration', () => {
       fireEvent.change(promptInput, { target: { value: 'New prompt' } })
       
       // Update the mock to return processing status after form submission
-      const updatedSession = { ...createdSession, claude_status: 'processing' }
+      const updatedSession = { ...createdSession, claude_status: 'processing' } as Session
       vi.mocked(useSessionStatus).mockReturnValue({
         session: updatedSession,
         error: null,
