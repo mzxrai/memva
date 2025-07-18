@@ -403,6 +403,9 @@ export default function SessionDetail() {
                       onChange={(e) => setPrompt(e.target.value)}
                       disabled={isProcessing || isSubmitting}
                       autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
                       className="flex-1 bg-transparent text-zinc-100 focus:outline-none disabled:opacity-50 font-mono text-[0.9375rem]"
                       role="textbox"
                       placeholder={isProcessing || isSubmitting ? "Processing..." : "Ask Claude Code anything..."}
