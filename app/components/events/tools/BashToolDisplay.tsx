@@ -1,5 +1,6 @@
 import { useState, memo } from 'react'
 import { RiArrowDownSLine } from 'react-icons/ri'
+import stripAnsi from 'strip-ansi'
 import { colors, typography, transition } from '../../../constants/design'
 import type { ToolUseContent } from '../../../types/events'
 import clsx from 'clsx'
@@ -22,11 +23,33 @@ const formatBashResult = (result: unknown): { status: 'success' | 'error', brief
     return null
   }
   
-  const content = sdkResult.content.trim()
+  // Strip ANSI escape codes from the content
+  const content = stripAnsi(sdkResult.content.trim())
   const isError = sdkResult.is_error === true
   
   if (isError) {
-    return { status: 'error', brief: '✗ Error', full: content }
+    // Show actual error content in the brief, with same formatting logic as success
+    if (!content) {
+      return { status: 'error', brief: '✗ Error' }
+    }
+    
+    const errorLines = content.split('\n').filter(line => line.trim())
+    
+    if (errorLines.length === 0) {
+      return { status: 'error', brief: '✗ Error' }
+    } else if (errorLines.length === 1 && errorLines[0].length > 100) {
+      // Handle long single line errors
+      const line = errorLines[0]
+      const brief = line.substring(0, 100) + '…\n(show full output)'
+      return { status: 'error', brief, full: content }
+    } else if (errorLines.length <= 3) {
+      // Show all lines if 3 or fewer
+      return { status: 'error', brief: errorLines.join('\n') }
+    } else {
+      // Show first 3 lines with more indicator
+      const preview = errorLines.slice(0, 3).join('\n')
+      return { status: 'error', brief: `${preview}\n(+${errorLines.length - 3} more lines)`, full: content }
+    }
   }
   
   if (!content) {
@@ -113,7 +136,7 @@ export const BashToolDisplay = memo(({ toolCall, hasResult, result }: BashToolDi
                 )} />
               </button>
               <span className={clsx(
-                typography.size.sm,
+                typography.size.xs,
                 colors.text.tertiary
               )}>
                 Show less
@@ -132,7 +155,7 @@ export const BashToolDisplay = memo(({ toolCall, hasResult, result }: BashToolDi
                 <>
                   {'\n'}
                   <span className="inline-flex items-center gap-2">
-                    <span>{expandIndicator}</span>
+                    <span className={typography.size.xs}>{expandIndicator}</span>
                     <button
                       onClick={() => setShowFullResult(true)}
                       className={clsx(

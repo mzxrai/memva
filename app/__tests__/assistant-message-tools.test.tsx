@@ -39,7 +39,7 @@ describe('Assistant Message Tool Rendering', () => {
         content: [
           {
             type: 'thinking',
-            text: 'Let me think about this problem step by step...'
+            thinking: 'Let me think about this problem step by step...'
           }
         ]
       },
@@ -49,8 +49,8 @@ describe('Assistant Message Tool Rendering', () => {
 
     render(<EventRenderer event={assistantEventWithThinking} />)
 
-    // Look for "Thinking process" text instead of emoji
-    expect(screen.getByText('Thinking process')).toBeInTheDocument()
+    // Look for "Thinking" text in uppercase
+    expect(screen.getByText('Thinking')).toBeInTheDocument()
     expect(screen.getByText('Let me think about this problem step by step...')).toBeInTheDocument()
   })
 

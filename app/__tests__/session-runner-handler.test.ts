@@ -55,7 +55,7 @@ describe('Session Runner Handler', () => {
       sessionRunnerHandler(mockJob, callback)
       
       // Wait for the async operation to complete
-      await waitForCondition(() => callbackCalled, 5000)
+      await waitForCondition(() => callbackCalled, { timeoutMs: 5000 })
       
       expect(callbackError).toBeNull()
       expect(callbackResult).toBeDefined()
@@ -97,10 +97,11 @@ describe('Session Runner Handler', () => {
       
       sessionRunnerHandler(mockJob, callback)
       
-      await waitForCondition(() => callbackCalled, 5000)
+      await waitForCondition(() => callbackCalled, { timeoutMs: 5000 })
       
       expect(callbackError).toBeInstanceOf(Error)
-      expect(callbackError?.message).toContain('Invalid prompt')
+      expect(callbackError).toBeTruthy()
+      expect((callbackError as unknown as Error).message).toContain('Invalid prompt')
     })
 
     it('should store session events in database during processing', async () => {
@@ -131,7 +132,7 @@ describe('Session Runner Handler', () => {
       
       sessionRunnerHandler(mockJob, callback)
       
-      await waitForCondition(() => callbackCalled, 5000)
+      await waitForCondition(() => callbackCalled, { timeoutMs: 5000 })
       
       // Check that events were stored
       const events = await getEventsForSession(session.id)
@@ -180,7 +181,7 @@ describe('Session Runner Handler', () => {
       sessionRunnerHandler(mockJob2, callback2)
       
       // Both should complete
-      await waitForCondition(() => callback1Called && callback2Called, 8000)
+      await waitForCondition(() => callback1Called && callback2Called, { timeoutMs: 8000 })
       
       expect(callback1Called).toBe(true)
       expect(callback2Called).toBe(true)
@@ -211,10 +212,11 @@ describe('Session Runner Handler', () => {
       
       sessionRunnerHandler(invalidJob, callback)
       
-      await waitForCondition(() => callbackCalled, 1000)
+      await waitForCondition(() => callbackCalled, { timeoutMs: 1000 })
       
       expect(callbackError).toBeInstanceOf(Error)
-      expect(callbackError?.message).toContain('Missing required fields')
+      expect(callbackError).toBeTruthy()
+      expect((callbackError as unknown as Error).message).toContain('Missing required fields')
     })
 
     it('should validate session exists before processing', async () => {
@@ -241,10 +243,11 @@ describe('Session Runner Handler', () => {
       
       sessionRunnerHandler(mockJob, callback)
       
-      await waitForCondition(() => callbackCalled, 1000)
+      await waitForCondition(() => callbackCalled, { timeoutMs: 1000 })
       
       expect(callbackError).toBeInstanceOf(Error)
-      expect(callbackError?.message).toContain('Session not found')
+      expect(callbackError).toBeTruthy()
+      expect((callbackError as unknown as Error).message).toContain('Session not found')
     })
   })
 
@@ -276,7 +279,7 @@ describe('Session Runner Handler', () => {
       
       sessionRunnerHandler(mockJob, callback)
       
-      await waitForCondition(() => callbackCalled, 5000)
+      await waitForCondition(() => callbackCalled, { timeoutMs: 5000 })
       
       // Should have received progress updates (this will need implementation)
       // expect(progressUpdates.length).toBeGreaterThan(0)

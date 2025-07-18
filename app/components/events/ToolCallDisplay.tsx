@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, useMemo } from 'react'
+import { useState, memo, useMemo } from 'react'
 import type { ComponentType } from 'react'
 import {
   RiFileTextLine,
@@ -8,7 +8,6 @@ import {
   RiGlobalLine,
   RiSearchLine,
   RiToolsLine,
-  RiArrowRightSLine,
   RiArrowDownSLine,
   RiFileCopyLine,
   RiDeleteBinLine,
@@ -21,6 +20,8 @@ import { EditToolDisplay } from './tools/EditToolDisplay'
 import { BashToolDisplay } from './tools/BashToolDisplay'
 import { ReadToolDisplay } from './tools/ReadToolDisplay'
 import { TodoWriteToolDisplay } from './tools/TodoWriteToolDisplay'
+import { WebSearchToolDisplay } from './tools/WebSearchToolDisplay'
+import { TaskToolDisplay } from './tools/TaskToolDisplay'
 import type { ToolUseContent } from '../../types/events'
 import clsx from 'clsx'
 
@@ -99,6 +100,8 @@ const getPrimaryParam = (toolName: string, input: unknown): string => {
     case 'WebFetch':
     case 'WebSearch':
       return (params.url as string) || (params.query as string) || ''
+    case 'Task':
+      return (params.description as string) || ''
     default: {
       // Return first string value found
       const firstValue = Object.values(params).find(v => typeof v === 'string')
@@ -111,26 +114,67 @@ const getPrimaryParam = (toolName: string, input: unknown): string => {
 const formatResult = (toolName: string, result: unknown): { status: 'success' | 'error', brief: string, full?: string } => {
   if (!result) return { status: 'success', brief: 'No result' }
   
-  
-  
-  // Handle Write/Edit tool results
-  if ((toolName === 'Write' || toolName === 'Edit' || toolName === 'MultiEdit') && 
-      typeof result === 'object' && result !== null) {
-    const writeResult = result as { success?: boolean }
-    if (writeResult.success) {
+  // Handle tool_result structure from Claude Code SDK
+  if (typeof result === 'object' && result !== null) {
+    const toolResult = result as { type?: string, tool_use_id?: string, content?: unknown, is_error?: boolean }
+    
+    // Check if this is a tool_result structure
+    if (toolResult.type === 'tool_result') {
+      // For tool_result structure, content contains the actual result and is_error is at top level
+      const isError = toolResult.is_error === true
+      const content = toolResult.content
+      
+      if (isError) {
+        // Display the actual error content
+        const errorContent = typeof content === 'string' ? content : JSON.stringify(content)
+        const lines = errorContent.trim().split('\n')
+        if (lines.length > 3) {
+          return { status: 'error', brief: `${lines.slice(0, 3).join('\n')}\n(+${lines.length - 3} more lines)`, full: errorContent }
+        }
+        return { status: 'error', brief: errorContent.substring(0, 200) + (errorContent.length > 200 ? '...' : ''), full: errorContent.length > 200 ? errorContent : undefined }
+      } else {
+        // Handle successful tool_result content
+        if (typeof content === 'string') {
+          const lines = content.trim().split('\n')
+          if (lines.length > 3) {
+            return { status: 'success', brief: `${lines.length} lines`, full: content }
+          }
+          return { status: 'success', brief: content.substring(0, 150) + (content.length > 150 ? '...' : ''), full: content }
+        }
+        return { status: 'success', brief: JSON.stringify(content).substring(0, 150) + '...', full: JSON.stringify(content, null, 2) }
+      }
+    }
+    
+    // Handle standardized SDK result format { content: string, is_error: boolean }
+    const sdkResult = result as { content?: string, is_error?: boolean, success?: boolean }
+    if ('is_error' in sdkResult || 'content' in sdkResult) {
+      const isError = sdkResult.is_error === true
+      const content = sdkResult.content || ''
+      
+      if (isError) {
+        // Display the actual error content
+        const lines = content.trim().split('\n')
+        if (lines.length > 3) {
+          return { status: 'error', brief: `${lines.slice(0, 3).join('\n')}\n(+${lines.length - 3} more lines)`, full: content }
+        }
+        return { status: 'error', brief: content.substring(0, 200) + (content.length > 200 ? '...' : ''), full: content.length > 200 ? content : undefined }
+      }
+    }
+    
+    // Handle Write/Edit tool results
+    if ((toolName === 'Write' || toolName === 'Edit' || toolName === 'MultiEdit') && 
+        'success' in sdkResult && sdkResult.success) {
       return { status: 'success', brief: 'Updated' }
     }
-  }
-  
-  // Handle error results
-  if (typeof result === 'object' && result !== null) {
-    const errorResult = result as { error?: string, is_error?: boolean }
-    if (errorResult.error || errorResult.is_error) {
-      return { status: 'error', brief: errorResult.error || 'Error occurred' }
+    
+    // Handle legacy error format
+    const errorResult = result as { error?: string }
+    if (errorResult.error) {
+      return { status: 'error', brief: errorResult.error, full: errorResult.error.length > 150 ? errorResult.error : undefined }
     }
   }
   
-  // Default formatting
+  // Default formatting for string results
   if (typeof result === 'string') {
     const lines = result.trim().split('\n')
     if (lines.length > 3) {
@@ -142,11 +186,22 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
   return { status: 'success', brief: JSON.stringify(result).substring(0, 150) + '...', full: JSON.stringify(result, null, 2) }
 }
 
+// Tools that have custom display components
+const TOOLS_WITH_CUSTOM_DISPLAY = new Set([
+  'Write',
+  'Bash',
+  'Read',
+  'TodoWrite',
+  'WebSearch',
+  'Edit',
+  'MultiEdit',
+  'Task'
+])
+
 export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, className, isStreaming = false, isError = false }: ToolCallDisplayProps) => {
-  // Auto-expand Edit/MultiEdit tools to show diff by default, but NOT during streaming
-  const isEditTool = toolCall.name === 'Edit' || toolCall.name === 'MultiEdit'
-  const [isExpanded, setIsExpanded] = useState(isEditTool && !isStreaming)
   const [showFullResult, setShowFullResult] = useState(false)
+  const isEditTool = toolCall.name === 'Edit' || toolCall.name === 'MultiEdit'
+  const hasCustomDisplay = TOOLS_WITH_CUSTOM_DISPLAY.has(toolCall.name)
   
   // Check if this is an interrupted bash command
   const isInterrupted = toolCall.name === 'Bash' && 
@@ -157,12 +212,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
     (result as { interrupted?: boolean }).interrupted === true
   
   
-  // Auto-expand Edit tools when streaming completes
-  useEffect(() => {
-    if (isEditTool && !isStreaming && !isExpanded) {
-      setIsExpanded(true)
-    }
-  }, [isEditTool, isStreaming, isExpanded])
+  // Removed useEffect that caused delayed expansion - now handled synchronously in initial state
   
   const Icon = toolIcons[toolCall.name] || RiToolsLine
   const primaryParam = getPrimaryParam(toolCall.name, toolCall.input)
@@ -170,9 +220,33 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
   
   // Extract line number information from tool result if available (memoized)
   const lineInfo = useMemo(() => {
-    if (!result || typeof result !== 'string') {
+    // Handle SDK result format
+    let resultContent: string | null = null
+    if (result && typeof result === 'object' && result !== null && 'content' in result) {
+      const sdkResult = result as { content?: string }
+      resultContent = typeof sdkResult.content === 'string' ? sdkResult.content : null
+    } else if (typeof result === 'string') {
+      resultContent = result
+    }
+    
+    if (!resultContent) {
+      console.log('ToolCallDisplay lineInfo early return:', {
+        toolName: toolCall.name,
+        isEditTool,
+        hasResult: result !== null && result !== undefined,
+        resultType: typeof result,
+        resultValue: result,
+        resultContent
+      })
       return null
     }
+    
+    console.log('ToolCallDisplay lineInfo calculation:', {
+      toolName: toolCall.name,
+      isEditTool,
+      resultLength: resultContent.length,
+      resultPreview: resultContent.substring(0, 200) + '...'
+    })
     
     // For Edit tools, intelligently find the line number by matching the actual edit content
     if (isEditTool && toolCall.input && typeof toolCall.input === 'object') {
@@ -202,7 +276,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
           const normalizedSearchLine = firstMeaningfulLine.trim()
           
           // Split content into lines and search for matching line
-          const contentLines = result.split('\n')
+          const contentLines = resultContent.split('\n')
           for (let i = 0; i < contentLines.length; i++) {
             const line = contentLines[i]
             const lineNumberMatch = line.match(/^(\d+)→(.*)$/)
@@ -212,6 +286,11 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
               
               // Compare normalized content
               if (lineContent === normalizedSearchLine) {
+                console.log('ToolCallDisplay lineInfo: Found matching line!', {
+                  lineNumber,
+                  lineContent,
+                  normalizedSearchLine
+                })
                 return {
                   startLine: lineNumber,
                   showLineNumbers: true
@@ -227,7 +306,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
               .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
               .replace(/\s+/g, '\\s+') // Allow flexible whitespace
             
-            const lineMatch = result.match(new RegExp(`(\\d+)→\\s*${escapedLine}`, 'm'))
+            const lineMatch = resultContent.match(new RegExp(`(\\d+)→\\s*${escapedLine}`, 'm'))
             if (lineMatch) {
               const startLine = parseInt(lineMatch[1], 10)
               return {
@@ -245,7 +324,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
     }
     
     // Fallback: just find the first line number in the content
-    const lineNumberMatch = result.match(/(\d+)→/)
+    const lineNumberMatch = resultContent.match(/(\d+)→/)
     if (lineNumberMatch) {
       const startLine = parseInt(lineNumberMatch[1], 10)
       return {
@@ -253,6 +332,11 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
         showLineNumbers: true
       }
     }
+    
+    console.log('ToolCallDisplay lineInfo final result:', {
+      toolName: toolCall.name,
+      lineInfo: null
+    })
     
     return null
   }, [result, isEditTool, toolCall])
@@ -267,14 +351,10 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       )}
     >
       {/* Tool header */}
-      <button
-        onClick={() => !formattedResult && setIsExpanded(!isExpanded)}
-        aria-label={isExpanded ? 'hide parameters' : 'show parameters'}
+      <div
         className={clsx(
           'w-full flex items-center gap-3',
-          'py-1',
-          transition.fast,
-          formattedResult ? 'cursor-default' : 'cursor-pointer'
+          'py-1'
         )}
       >
         {/* Tool icon */}
@@ -334,47 +414,10 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
         
         {/* Spacer to push expand icon to the right */}
         <div className="flex-1" />
-        
-        {/* Expand/collapse icon - only show if no result */}
-        {!formattedResult && (
-          <div>
-            {isExpanded ? (
-              <RiArrowDownSLine className={clsx(iconSize.md, colors.text.tertiary)} />
-            ) : (
-              <RiArrowRightSLine className={clsx(iconSize.md, colors.text.tertiary)} />
-            )}
-          </div>
-        )}
-      </button>
-      
-      {/* Parameters (collapsible) - show diff for Edit tools */}
-      <div 
-        className={clsx(
-          'overflow-hidden',
-          isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
-        )}
-      >
-        <div className="py-2">
-          <EditToolDisplay
-            toolCall={toolCall}
-            hasResult={hasResult}
-            result={result}
-            lineInfo={lineInfo}
-          />
-          
-          {!isEditTool && (
-            <CodeBlock
-              code={JSON.stringify(toolCall.input, null, 2)}
-              language="json"
-              showLineNumbers={false}
-              className="text-xs"
-            />
-          )}
-        </div>
       </div>
       
       {/* Result section - minimal inline display */}
-      {formattedResult && toolCall.name !== 'Write' && toolCall.name !== 'Bash' && toolCall.name !== 'Read' && toolCall.name !== 'TodoWrite' && (
+      {formattedResult && !hasCustomDisplay && (
         <div className="py-2">
           <div className={clsx(
             'flex items-center gap-2',
@@ -425,34 +468,70 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       )}
       
       {/* Write tool file preview section */}
-      <WriteToolDisplay 
-        toolCall={toolCall}
-        hasResult={hasResult}
-        result={result}
-        isStreaming={isStreaming}
-        isError={isError}
-      />
+      {toolCall.name === 'Write' && (
+        <WriteToolDisplay 
+          toolCall={toolCall}
+          hasResult={hasResult}
+          result={result}
+          isStreaming={isStreaming}
+          isError={isError}
+        />
+      )}
       
       {/* Bash tool result section */}
-      <BashToolDisplay 
-        toolCall={toolCall}
-        hasResult={hasResult}
-        result={result}
-      />
+      {toolCall.name === 'Bash' && (
+        <BashToolDisplay 
+          toolCall={toolCall}
+          hasResult={hasResult}
+          result={result}
+        />
+      )}
       
       {/* Read tool result section */}
-      <ReadToolDisplay 
-        toolCall={toolCall}
-        hasResult={hasResult}
-        result={result}
-      />
+      {toolCall.name === 'Read' && (
+        <ReadToolDisplay 
+          toolCall={toolCall}
+          hasResult={hasResult}
+          result={result}
+        />
+      )}
       
       {/* TodoWrite tool result section */}
-      <TodoWriteToolDisplay 
-        toolCall={toolCall}
-        hasResult={hasResult}
-        result={result}
-      />
+      {toolCall.name === 'TodoWrite' && (
+        <TodoWriteToolDisplay 
+          toolCall={toolCall}
+          hasResult={hasResult}
+          result={result}
+        />
+      )}
+      
+      {/* WebSearch tool result section */}
+      {toolCall.name === 'WebSearch' && (
+        <WebSearchToolDisplay 
+          toolCall={toolCall}
+          hasResult={hasResult}
+          result={result}
+        />
+      )}
+      
+      {/* Edit/MultiEdit tool result section */}
+      {(toolCall.name === 'Edit' || toolCall.name === 'MultiEdit') && (
+        <EditToolDisplay 
+          toolCall={toolCall}
+          hasResult={hasResult}
+          result={result}
+          lineInfo={lineInfo}
+        />
+      )}
+      
+      {/* Task tool result section */}
+      {toolCall.name === 'Task' && (
+        <TaskToolDisplay 
+          toolCall={toolCall}
+          hasResult={hasResult}
+          result={result}
+        />
+      )}
     </div>
   )
 })

@@ -1,7 +1,7 @@
 import type { Route } from "./+types/api.jobs"
 import { createJob, listJobs, updateJob, type CreateJobInput } from '../db/jobs.service'
 import { getSession } from '../db/sessions.service'
-import { JOB_TYPES, ALL_JOB_TYPES } from '../workers/job-types'
+import { JOB_TYPES, ALL_JOB_TYPES, type JobType } from '../workers/job-types'
 
 function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -85,7 +85,7 @@ async function handleCreateJob(request: Request) {
     }
 
     // Validate job type
-    if (!ALL_JOB_TYPES.includes(jobRequest.type as string)) {
+    if (!ALL_JOB_TYPES.includes(jobRequest.type as JobType)) {
       return jsonResponse({
         success: false,
         error: `Unknown job type: ${jobRequest.type}`

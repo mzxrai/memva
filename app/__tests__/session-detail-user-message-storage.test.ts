@@ -1,4 +1,5 @@
 import { vi, describe, beforeEach, afterEach, it, expect } from 'vitest'
+import type { ActionFunctionArgs } from 'react-router'
 import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
 import { waitForEvents } from '../test-utils/async-testing'
@@ -38,7 +39,7 @@ describe('Session Detail User Message Storage', () => {
     const params = { sessionId: session.id }
 
     // Execute the action
-    await action({ request, params })
+    await action({ request, params, context: {} } as ActionFunctionArgs)
 
     // Wait for events to be stored
     await waitForEvents(() => testDb.getEventsForSession(session.id), ['user'])
@@ -90,7 +91,7 @@ describe('Session Detail User Message Storage', () => {
 
     // Re-import action to get mocked version
     const { action: mockedAction } = await import('../routes/sessions.$sessionId')
-    await mockedAction({ request, params })
+    await mockedAction({ request, params, context: {} } as ActionFunctionArgs)
 
     expect(jobCreated).toBe(true)
     expect(eventsAtJobCreation).toBe(1) // User event should exist before job creation

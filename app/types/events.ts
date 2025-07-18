@@ -34,7 +34,8 @@ export interface ToolUseContent {
 
 export interface ThinkingContent {
   type: 'thinking'
-  text: string
+  thinking: string
+  signature?: string
 }
 
 export type AssistantMessageContent = AssistantTextContent | ToolUseContent | ThinkingContent

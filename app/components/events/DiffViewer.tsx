@@ -1,6 +1,7 @@
 import { colors, typography } from '../../constants/design'
 import clsx from 'clsx'
 import * as Diff from 'diff'
+import type { ReactNode } from 'react'
 
 interface DiffViewerProps {
   oldString: string
@@ -9,6 +10,8 @@ interface DiffViewerProps {
   className?: string
   startLineNumber?: number
   showLineNumbers?: boolean
+  maxLines?: number
+  renderExpandButton?: (isExpanded: boolean, lineCount: number) => ReactNode
 }
 
 interface DiffLine {
@@ -69,8 +72,10 @@ function createUnifiedDiff(oldString: string, newString: string, startLineNumber
   return diffLines
 }
 
-export function DiffViewer({ oldString, newString, fileName, className, startLineNumber, showLineNumbers = true }: DiffViewerProps) {
+export function DiffViewer({ oldString, newString, fileName, className, startLineNumber, showLineNumbers = true, maxLines, renderExpandButton }: DiffViewerProps) {
   const diffLines = createUnifiedDiff(oldString, newString, startLineNumber)
+  const displayLines = maxLines && maxLines < diffLines.length ? diffLines.slice(0, maxLines) : diffLines
+  const isTruncated = maxLines && diffLines.length > maxLines
   
   return (
     <div
@@ -97,7 +102,7 @@ export function DiffViewer({ oldString, newString, fileName, className, startLin
       <div className="overflow-x-auto">
         <table className="w-full font-mono text-sm">
           <tbody>
-            {diffLines.map((line, index) => (
+            {displayLines.map((line, index) => (
               <tr
                 key={index}
                 className={clsx(
@@ -159,6 +164,17 @@ export function DiffViewer({ oldString, newString, fileName, className, startLin
           </tbody>
         </table>
       </div>
+      
+      {/* Expand/collapse button at bottom */}
+      {renderExpandButton && (isTruncated || (!maxLines && diffLines.length > 10)) && (
+        <div className={clsx(
+          'border-t',
+          colors.border.subtle,
+          'px-4 py-2'
+        )}>
+          {renderExpandButton(!isTruncated, diffLines.length)}
+        </div>
+      )}
     </div>
   )
 }

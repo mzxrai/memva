@@ -21,7 +21,7 @@ export function BaseEventWrapper({
   
   return (
     <div className={className}>
-      <div className="px-4">
+      <div>
         <div className="container mx-auto max-w-7xl">
           <div className="mb-2 relative">
           {rawEvent !== undefined && (

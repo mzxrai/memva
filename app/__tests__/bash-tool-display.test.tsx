@@ -187,8 +187,8 @@ describe('BashToolDisplay Component', () => {
         />
       )
 
-      // Should show error indicator and message
-      expectContent.text('✗ Error')
+      // Should show actual error message
+      expectContent.text('command not found: invalid-command')
     })
 
     it('should display permission error', () => {
@@ -206,8 +206,8 @@ describe('BashToolDisplay Component', () => {
         />
       )
 
-      // Should show error indicator
-      expectContent.text('✗ Error')
+      // Should show actual error message
+      expectContent.text('Claude requested permissions to use Bash, but you haven\'t granted it yet.')
     })
   })
 

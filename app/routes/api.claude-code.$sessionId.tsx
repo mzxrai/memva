@@ -35,9 +35,13 @@ export async function loader({ params }: Route.LoaderArgs) {
           const events = await getEventsForSession(params.sessionId)
           
           // Find new events since last check
-          const newEvents = lastEventTimestamp 
-            ? events.filter(e => e.timestamp > lastEventTimestamp)
-            : events
+          let newEvents: typeof events
+          if (lastEventTimestamp !== null) {
+            const timestamp = lastEventTimestamp
+            newEvents = events.filter(e => e.timestamp > timestamp)
+          } else {
+            newEvents = events
+          }
           
           // Send new events (they come newest first from DB, so reverse to send oldest first)
           for (const event of newEvents.reverse()) {
@@ -117,7 +121,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   // Get the latest event to use as parent UUID
   const events = await getEventsForSession(params.sessionId)
   const lastEvent = events.length > 0 ? events[0] : null // events are ordered newest first
-  const lastParentUuid = lastEvent?.uuid || null
+  const lastParentUuid = lastEvent?.uuid || undefined
   
   // Don't store user event here - it's already stored by the page action
   // Just log that we're processing the prompt

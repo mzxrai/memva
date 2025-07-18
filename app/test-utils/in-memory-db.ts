@@ -85,19 +85,19 @@ export function setupInMemoryDb(): TestDatabase {
   `)
 
   // Helper functions
-  const createSession = (input: Partial<typeof sessions.$inferInsert> & { project_path: string }) => {
+  const createSession = (input: Partial<typeof sessions.$inferInsert> & { project_path: string }): typeof sessions.$inferSelect => {
     const session = {
       id: input.id || crypto.randomUUID(),
-      title: input.title || null,
+      title: input.title !== undefined ? input.title : null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       status: 'active',
       project_path: input.project_path,
-      metadata: input.metadata || null,
+      metadata: input.metadata !== undefined ? input.metadata : null,
       claude_status: input.claude_status || 'not_started'
     }
     db.insert(sessions).values(session).run()
-    return session
+    return session as typeof sessions.$inferSelect
   }
 
   const insertEvent = (event: typeof events.$inferInsert) => {
