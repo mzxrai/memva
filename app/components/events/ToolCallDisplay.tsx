@@ -114,26 +114,67 @@ const getPrimaryParam = (toolName: string, input: unknown): string => {
 const formatResult = (toolName: string, result: unknown): { status: 'success' | 'error', brief: string, full?: string } => {
   if (!result) return { status: 'success', brief: 'No result' }
   
-  
-  
-  // Handle Write/Edit tool results
-  if ((toolName === 'Write' || toolName === 'Edit' || toolName === 'MultiEdit') && 
-      typeof result === 'object' && result !== null) {
-    const writeResult = result as { success?: boolean }
-    if (writeResult.success) {
+  // Handle tool_result structure from Claude Code SDK
+  if (typeof result === 'object' && result !== null) {
+    const toolResult = result as { type?: string, tool_use_id?: string, content?: unknown, is_error?: boolean }
+    
+    // Check if this is a tool_result structure
+    if (toolResult.type === 'tool_result') {
+      // For tool_result structure, content contains the actual result and is_error is at top level
+      const isError = toolResult.is_error === true
+      const content = toolResult.content
+      
+      if (isError) {
+        // Display the actual error content
+        const errorContent = typeof content === 'string' ? content : JSON.stringify(content)
+        const lines = errorContent.trim().split('\n')
+        if (lines.length > 3) {
+          return { status: 'error', brief: `${lines.slice(0, 3).join('\n')}\n(+${lines.length - 3} more lines)`, full: errorContent }
+        }
+        return { status: 'error', brief: errorContent.substring(0, 200) + (errorContent.length > 200 ? '...' : ''), full: errorContent.length > 200 ? errorContent : undefined }
+      } else {
+        // Handle successful tool_result content
+        if (typeof content === 'string') {
+          const lines = content.trim().split('\n')
+          if (lines.length > 3) {
+            return { status: 'success', brief: `${lines.length} lines`, full: content }
+          }
+          return { status: 'success', brief: content.substring(0, 150) + (content.length > 150 ? '...' : ''), full: content }
+        }
+        return { status: 'success', brief: JSON.stringify(content).substring(0, 150) + '...', full: JSON.stringify(content, null, 2) }
+      }
+    }
+    
+    // Handle standardized SDK result format { content: string, is_error: boolean }
+    const sdkResult = result as { content?: string, is_error?: boolean, success?: boolean }
+    if ('is_error' in sdkResult || 'content' in sdkResult) {
+      const isError = sdkResult.is_error === true
+      const content = sdkResult.content || ''
+      
+      if (isError) {
+        // Display the actual error content
+        const lines = content.trim().split('\n')
+        if (lines.length > 3) {
+          return { status: 'error', brief: `${lines.slice(0, 3).join('\n')}\n(+${lines.length - 3} more lines)`, full: content }
+        }
+        return { status: 'error', brief: content.substring(0, 200) + (content.length > 200 ? '...' : ''), full: content.length > 200 ? content : undefined }
+      }
+    }
+    
+    // Handle Write/Edit tool results
+    if ((toolName === 'Write' || toolName === 'Edit' || toolName === 'MultiEdit') && 
+        'success' in sdkResult && sdkResult.success) {
       return { status: 'success', brief: 'Updated' }
     }
-  }
-  
-  // Handle error results
-  if (typeof result === 'object' && result !== null) {
-    const errorResult = result as { error?: string, is_error?: boolean }
-    if (errorResult.error || errorResult.is_error) {
-      return { status: 'error', brief: errorResult.error || 'Error occurred' }
+    
+    // Handle legacy error format
+    const errorResult = result as { error?: string }
+    if (errorResult.error) {
+      return { status: 'error', brief: errorResult.error, full: errorResult.error.length > 150 ? errorResult.error : undefined }
     }
   }
   
-  // Default formatting
+  // Default formatting for string results
   if (typeof result === 'string') {
     const lines = result.trim().split('\n')
     if (lines.length > 3) {

@@ -143,11 +143,43 @@ export const WebSearchToolDisplay = memo(({ toolCall, hasResult, result }: WebSe
     }
   }
 
-  // Extract the main content (everything after the links)
-  const contentStartIndex = lines.findIndex(line => line.includes('Based on the search results'))
-  const mainContent = contentStartIndex !== -1 
-    ? lines.slice(contentStartIndex).join('\n')
-    : content
+  // Extract the main content, filtering out links and raw URLs
+  let mainContent = content
+  
+  // Filter out the Links: JSON line and search query line from the lines array
+  const filteredLines = lines.filter(line => 
+    !line.startsWith('Links:') && 
+    !line.startsWith('Web search results for query:') &&
+    !line.startsWith('I\'ll search for')
+  )
+  
+  // Find content starting with "Based on" or similar
+  const contentStartIndex = filteredLines.findIndex(line => 
+    line.includes('Based on') || 
+    line.includes('Here are') ||
+    line.includes('Major Announcements') ||
+    line.trim().length > 50 // Fallback: substantial content line
+  )
+  
+  if (contentStartIndex !== -1) {
+    mainContent = filteredLines.slice(contentStartIndex).join('\n')
+  } else {
+    // Fallback: use all filtered lines (without the Links line)
+    mainContent = filteredLines.join('\n')
+  }
+  
+  // Remove any remaining raw URLs that might duplicate the links
+  if (links.length > 0) {
+    links.forEach(link => {
+      // Remove lines that are just the URL
+      mainContent = mainContent.replace(new RegExp(`^${link.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'gm'), '')
+      // Remove URLs that appear inline in text
+      mainContent = mainContent.replace(new RegExp(`\\(${link.url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)`, 'g'), '')
+    })
+  }
+  
+  // Clean up extra whitespace
+  mainContent = mainContent.replace(/\n\s*\n\s*\n/g, '\n\n').trim()
 
   // Prepare content for display
   const contentLines = mainContent.split('\n').filter(line => line.trim())
