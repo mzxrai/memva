@@ -41,8 +41,8 @@ export function useSessionStatus(sessionId: string) {
     // Initial fetch
     pollSession()
 
-    // Poll every 2 seconds
-    intervalId = setInterval(pollSession, 2000)
+    // Poll every 500ms for faster UI updates
+    intervalId = setInterval(pollSession, 500)
 
     return () => {
       isMounted = false

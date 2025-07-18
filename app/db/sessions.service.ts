@@ -192,4 +192,8 @@ export async function updateSessionClaudeStatus(sessionId: string, status: strin
     })
     .where(eq(sessions.id, sessionId))
     .execute()
+  
+  // Emit status change event for SSE
+  const { sessionStatusEmitter } = await import('../services/session-status-emitter.server')
+  sessionStatusEmitter.emitStatusChange(sessionId, status)
 }

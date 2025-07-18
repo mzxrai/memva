@@ -1,5 +1,5 @@
 import { db, jobs, type Job, type NewJob } from './index'
-import { eq, desc, and, or, isNull, lt } from 'drizzle-orm'
+import { eq, desc, and, or, isNull, lt, sql } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 
 export type { Job, NewJob }
@@ -183,6 +183,23 @@ export async function cancelJob(id: string): Promise<Job | null> {
     status: 'cancelled',
     completed_at: new Date().toISOString()
   })
+}
+
+export async function getActiveJobForSession(sessionId: string): Promise<Job | null> {
+  const [activeJob] = await db
+    .select()
+    .from(jobs)
+    .where(
+      and(
+        eq(jobs.type, 'session-runner'),
+        or(eq(jobs.status, 'pending'), eq(jobs.status, 'running')),
+        sql`json_extract(${jobs.data}, '$.sessionId') = ${sessionId}`
+      )
+    )
+    .limit(1)
+    .execute()
+  
+  return activeJob || null
 }
 
 export async function getJobStats(): Promise<{

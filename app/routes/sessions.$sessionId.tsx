@@ -1,8 +1,7 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useParams, Form, useLoaderData, useNavigation } from "react-router";
 import { useSSEEvents } from "../hooks/useSSEEvents";
-import { useSessionStatus } from "../hooks/useSessionStatus";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { RiFolder3Line } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
 import { PendingMessage } from "../components/PendingMessage";
@@ -93,20 +92,121 @@ export default function SessionDetail() {
   const isInitialMount = useRef(true);
   const [isVisible, setIsVisible] = useState(false);
   
-  // Poll for session status updates
-  const { session: polledSession } = useSessionStatus(sessionId);
-  const session = polledSession || initialSession;
+  // Use SSE for real-time new events and session status
+  const { newEvents, sessionStatus } = useSSEEvents(sessionId);
   
-  // Use SSE for real-time new events
-  const { newEvents } = useSSEEvents(sessionId);
+  // Use SSE status if available, otherwise fall back to initial session
+  const session = useMemo(() => {
+    if (sessionStatus && initialSession) {
+      return { ...initialSession, claude_status: sessionStatus };
+    }
+    return initialSession;
+  }, [initialSession, sessionStatus]);
   
-  // Combine initial events from loader with new events from SSE
-  // Remove duplicates by uuid and sort by timestamp
+  // State management
+  const [prompt, setPrompt] = useState("");
+  const [processingStartTime, setProcessingStartTime] = useState<number | null>(null);
+  const [isStopInProgress, setIsStopInProgress] = useState(false);
+  const [optimisticUserMessage, setOptimisticUserMessage] = useState<{
+    content: string;
+    timestamp: number;
+  } | null>(null);
+  const [optimisticCancelMessage, setOptimisticCancelMessage] = useState<{
+    timestamp: number;
+  } | null>(null);
+  
+  // Track form submission state
+  const isSubmitting = navigation.state === "submitting";
+  
+  // Define visibility states
+  const showPending = processingStartTime !== null;
+  
+  // Helper to extract user message text from event data
+  const getUserMessageText = (data: unknown): string | undefined => {
+    if (!data || typeof data !== 'object') return undefined;
+    const obj = data as Record<string, unknown>;
+    
+    // For user events, content is directly on data
+    if (obj.type === 'user' && typeof obj.content === 'string') {
+      return obj.content;
+    }
+    
+    return undefined;
+  };
+
+  // Combine events and handle optimistic message
   const { displayEvents, toolResults } = useMemo(() => {
-    const combined = [...initialEvents, ...newEvents];
-    const unique = combined.filter((event, index, arr) => 
-      arr.findIndex(e => e.uuid === event.uuid) === index
-    );
+    let allEvents = [...initialEvents, ...newEvents];
+    
+    // Add optimistic message if present
+    if (optimisticUserMessage) {
+      const optimisticEvent = {
+        uuid: `optimistic-${optimisticUserMessage.timestamp}`,
+        event_type: 'user' as const,
+        timestamp: new Date(optimisticUserMessage.timestamp).toISOString(),
+        data: {
+          type: 'user',
+          content: optimisticUserMessage.content,
+          session_id: ''
+        },
+        // Required fields for EventRenderer
+        memva_session_id: sessionId,
+        session_id: '',
+        is_sidechain: false,
+        parent_uuid: null,
+        cwd: session?.project_path || '',
+        project_name: session?.project_path?.split('/').pop() || 'Unknown'
+      };
+      allEvents = [...allEvents, optimisticEvent];
+    }
+    
+    // Add optimistic cancel message if present
+    if (optimisticCancelMessage) {
+      const optimisticCancelEvent = {
+        uuid: `optimistic-cancel-${optimisticCancelMessage.timestamp}`,
+        event_type: 'user_cancelled' as const,
+        timestamp: new Date(optimisticCancelMessage.timestamp).toISOString(),
+        data: {
+          type: 'user_cancelled',
+          content: 'Processing cancelled by user',
+          session_id: ''
+        },
+        // Required fields for EventRenderer
+        memva_session_id: sessionId,
+        session_id: '',
+        is_sidechain: false,
+        parent_uuid: null,
+        cwd: session?.project_path || '',
+        project_name: session?.project_path?.split('/').pop() || 'Unknown'
+      };
+      allEvents = [...allEvents, optimisticCancelEvent];
+    }
+    
+    // Remove duplicates, including optimistic if real message arrived
+    const unique = allEvents.filter((event, index, arr) => {
+      // For optimistic user message, check if replaced by real event
+      if (event.uuid?.startsWith('optimistic-') && !event.uuid?.startsWith('optimistic-cancel-') && optimisticUserMessage) {
+        return !arr.some(e => 
+          e.event_type === 'user' &&
+          !e.uuid?.startsWith('optimistic-') &&
+          getUserMessageText(e.data) === optimisticUserMessage.content &&
+          Math.abs(new Date(e.timestamp).getTime() - optimisticUserMessage.timestamp) < 10000 // 10s window
+        );
+      }
+      
+      // For optimistic cancel message, check if replaced by real cancel event
+      if (event.uuid?.startsWith('optimistic-cancel-') && optimisticCancelMessage) {
+        return !arr.some(e => 
+          e.event_type === 'user_cancelled' &&
+          !e.uuid?.startsWith('optimistic-') &&
+          Math.abs(new Date(e.timestamp).getTime() - optimisticCancelMessage.timestamp) < 15000 // 15s window (cancellation can take longer)
+        );
+      }
+      
+      // Regular deduplication
+      return arr.findIndex(e => e.uuid === event.uuid) === index;
+    });
+    
     const sorted = unique.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
     
     // Filter out system, result events, and user events that contain only tool results from display
@@ -181,16 +281,36 @@ export default function SessionDetail() {
     });
     
     return { displayEvents, toolResults };
-  }, [initialEvents, newEvents]);
+  }, [initialEvents, newEvents, optimisticUserMessage, optimisticCancelMessage, sessionId, session?.project_path]);
   
-  const [prompt, setPrompt] = useState("");
-  const [waitingSince, setWaitingSince] = useState<number | null>(null);
-  
-  // Track form submission state
-  const isSubmitting = navigation.state === "submitting";
-  
-  // Define showPending early so it can be used in effects
-  const showPending = waitingSince !== null;
+  // Handle stop functionality (Escape key only)
+  const handleStop = useCallback(async () => {
+    // Set stop in progress
+    setIsStopInProgress(true);
+    
+    // Add optimistic cancel message immediately
+    setOptimisticCancelMessage({
+      timestamp: Date.now()
+    });
+    
+    // Simple retry logic
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const response = await fetch(`/api/sessions/${sessionId}/stop`, {
+          method: 'DELETE'
+        });
+        if (response.ok) break;
+      } catch {
+        // Continue to next attempt
+      }
+      if (attempt < 2) {
+        await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
+      }
+    }
+    
+    // Note: processingStartTime will be cleared by the status polling
+    // when claude_status changes from 'processing' to 'completed'
+  }, [sessionId]);
   
   // Initial positioning - ensure last message is visible WITHOUT visible scrolling
   useEffect(() => {
@@ -247,33 +367,61 @@ export default function SessionDetail() {
   }, [displayEvents.length, showPending]);
   
   
-  // When form submits, record the timestamp
+  // Initialize processing time when session is processing
   useEffect(() => {
-    if (isSubmitting) {
-      setWaitingSince(Date.now());
-    }
-  }, [isSubmitting]);
-  
-  // Hide pending when we get a result event newer than our submission
-  useEffect(() => {
-    if (waitingSince) {
-      const hasNewResult = newEvents.some(e => 
-        e.event_type === 'result' && 
-        new Date(e.timestamp).getTime() > waitingSince
-      );
+    if (session?.claude_status === 'processing' && !processingStartTime) {
+      // Find the most recent user message
+      const allEvents = [...initialEvents, ...newEvents];
+      const lastUserEvent = allEvents
+        .filter(e => e.event_type === 'user')
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
       
-      if (hasNewResult) {
-        setWaitingSince(null);
+      if (lastUserEvent) {
+        setProcessingStartTime(new Date(lastUserEvent.timestamp).getTime());
       }
     }
-  }, [newEvents, waitingSince]);
+  }, [session?.claude_status, processingStartTime, initialEvents, newEvents]);
   
-  // On page load: if processing, show pending
+  // Clear on result event OR when cancelled - but ensure messages are rendered first
   useEffect(() => {
-    if (session?.claude_status === 'processing' && !waitingSince) {
-      setWaitingSince(Date.now());
+    if (processingStartTime) {
+      // Check for result event
+      const resultEvent = newEvents.find(e => 
+        e.event_type === 'result' && 
+        new Date(e.timestamp).getTime() > processingStartTime
+      );
+      
+      // Check for cancellation event
+      const hasNewCancellation = newEvents.some(e => 
+        e.event_type === 'user_cancelled' && 
+        new Date(e.timestamp).getTime() > processingStartTime
+      );
+      
+      if (resultEvent) {
+        // For result events, ensure we have a corresponding assistant message in displayEvents
+        // The result event comes after the assistant message, so we check if there's an assistant
+        // message that came after our processing start time
+        const hasAssistantMessage = displayEvents.some(e => 
+          e.event_type === 'assistant' && 
+          new Date(e.timestamp).getTime() > processingStartTime &&
+          new Date(e.timestamp).getTime() <= new Date(resultEvent.timestamp).getTime()
+        );
+        
+        if (hasAssistantMessage) {
+          // Assistant message is rendered, safe to clear
+          setProcessingStartTime(null);
+          setOptimisticUserMessage(null);
+          setIsStopInProgress(false);
+        }
+        // If no assistant message yet, wait for it to arrive and render
+      } else if (hasNewCancellation) {
+        // For cancellations, clear immediately since there won't be an assistant message
+        setProcessingStartTime(null);
+        setOptimisticUserMessage(null);
+        setIsStopInProgress(false);
+      }
     }
-  }, []); // Only on mount
+  }, [newEvents, displayEvents, processingStartTime]);
   
   // Track if we should auto-scroll (user is near bottom)
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
@@ -315,7 +463,7 @@ export default function SessionDetail() {
     if (navigation.state === "idle" && prompt !== "") {
       setPrompt("");
     }
-  }, [navigation.state]); 
+  }, [navigation.state]);
 
   if (!session) {
     return (
@@ -331,6 +479,18 @@ export default function SessionDetail() {
   // Determine UI state based on claude_status
   const isProcessing = session.claude_status === 'processing';
   const hasError = session.claude_status === 'error';
+  
+  // Handle Escape key to stop processing
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && processingStartTime && !isStopInProgress) {
+        handleStop();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [processingStartTime, isStopInProgress, handleStop]);
 
   return (
     <div className="h-screen bg-zinc-950 flex flex-col overflow-hidden">
@@ -379,7 +539,7 @@ export default function SessionDetail() {
               <div className="message-container">
                 <PendingMessage 
                   tokenCount={0}
-                  startTime={waitingSince}
+                  startTime={processingStartTime}
                 />
               </div>
             )}
@@ -392,8 +552,19 @@ export default function SessionDetail() {
         <div>
           <div className="container mx-auto max-w-7xl">
             <div className="relative">
-              <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 p-4">
-                <Form method="post">
+              <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 p-4 flex items-center gap-3">
+                <Form 
+                  method="post" 
+                  className="flex-1"
+                  onSubmit={() => {
+                    const message = prompt.trim();
+                    if (message) {
+                      const now = Date.now();
+                      setProcessingStartTime(now);
+                      setOptimisticUserMessage({ content: message, timestamp: now });
+                    }
+                  }}
+                >
                   <div className="flex items-center px-5 py-3.5 bg-zinc-800/60 border border-zinc-700/50 rounded-xl focus-within:border-zinc-600 focus-within:bg-zinc-800/80 transition-all duration-200">
                     <span className="text-zinc-500 font-mono mr-4 select-none">{'>'}</span>
                     <input
@@ -402,9 +573,13 @@ export default function SessionDetail() {
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       disabled={isProcessing || isSubmitting}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck="false"
                       className="flex-1 bg-transparent text-zinc-100 focus:outline-none disabled:opacity-50 font-mono text-[0.9375rem]"
                       role="textbox"
-                      placeholder={isProcessing || isSubmitting ? "Processing..." : "Ask Claude Code anything..."}
+                      placeholder={isProcessing || isSubmitting ? "Processing... (Press Escape to stop)" : "Ask Claude Code anything..."}
                     />
                   </div>
                 </Form>
