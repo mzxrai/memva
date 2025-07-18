@@ -7,12 +7,14 @@ type UseSSEEventsReturn = {
   newEvents: Event[]
   error: string | null
   connectionState: SSEConnectionState
+  sessionStatus: string | null
 }
 
 export function useSSEEvents(sessionId: string): UseSSEEventsReturn {
   const [newEvents, setNewEvents] = useState<Event[]>([])
   const [error, setError] = useState<string | null>(null)
   const [connectionState, setConnectionState] = useState<SSEConnectionState>('disconnected')
+  const [sessionStatus, setSessionStatus] = useState<string | null>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
 
   useEffect(() => {
@@ -34,8 +36,24 @@ export function useSSEEvents(sessionId: string): UseSSEEventsReturn {
       try {
         const data = JSON.parse(event.data)
         
-        // Filter out connection/protocol messages - only process actual events
-        if (data.type === 'connection' || !data.uuid || !data.event_type) {
+        // Handle connection messages with initial session status
+        if (data.type === 'connection') {
+          console.log('SSE protocol message:', data)
+          if (data.sessionStatus) {
+            setSessionStatus(data.sessionStatus)
+          }
+          return
+        }
+        
+        // Handle session status updates
+        if (data.type === 'session_status') {
+          console.log('SSE session status update:', data)
+          setSessionStatus(data.status)
+          return
+        }
+        
+        // Filter out protocol messages - only process actual events
+        if (!data.uuid || !data.event_type) {
           console.log('SSE protocol message:', data)
           return
         }
@@ -71,6 +89,7 @@ export function useSSEEvents(sessionId: string): UseSSEEventsReturn {
   return {
     newEvents,
     error,
-    connectionState
+    connectionState,
+    sessionStatus
   }
 }

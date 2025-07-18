@@ -1,5 +1,5 @@
 import type { Route } from "./+types/api.claude-code.$sessionId"
-import { getSession, getLatestClaudeSessionId, updateClaudeSessionId } from "../db/sessions.service"
+import { getSession, getLatestClaudeSessionId } from "../db/sessions.service"
 import { streamClaudeCodeResponse } from "../services/claude-code.server"
 import { getEventsForSession } from "../db/event-session.service"
 
@@ -17,17 +17,41 @@ export async function loader({ params }: Route.LoaderArgs) {
     "X-Accel-Buffering": "no"
   })
 
+  // Import the session status emitter
+  const { sessionStatusEmitter } = await import('../services/session-status-emitter.server')
+
   // Create SSE stream that polls and sends new events
   let intervalId: ReturnType<typeof setInterval> | null = null
+  let statusChangeHandler: ((event: { status: string; timestamp: string }) => void) | null = null
   
   const stream = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder()
       let lastEventTimestamp: string | null = null
       
-      // Send initial connection message
-      const connectMsg = `data: ${JSON.stringify({ type: 'connection', status: 'connected' })}\n\n`
+      // Send initial connection message with current session status
+      const connectMsg = `data: ${JSON.stringify({ 
+        type: 'connection', 
+        status: 'connected',
+        sessionStatus: session.claude_status
+      })}\n\n`
       controller.enqueue(encoder.encode(connectMsg))
+      
+      // Set up session status change listener
+      statusChangeHandler = (event: { status: string; timestamp: string }) => {
+        try {
+          const statusMsg = `data: ${JSON.stringify({
+            type: 'session_status',
+            status: event.status,
+            timestamp: event.timestamp
+          })}\n\n`
+          controller.enqueue(encoder.encode(statusMsg))
+        } catch (error) {
+          console.error('[SSE] Error sending status change:', error)
+        }
+      }
+      
+      sessionStatusEmitter.onSessionStatusChange(params.sessionId, statusChangeHandler)
       
       // Poll for new events every 500ms
       const pollEvents = async () => {
@@ -80,6 +104,12 @@ export async function loader({ params }: Route.LoaderArgs) {
       if (intervalId) {
         clearInterval(intervalId)
         intervalId = null
+      }
+      
+      // Remove status change listener
+      if (statusChangeHandler) {
+        sessionStatusEmitter.offSessionStatusChange(params.sessionId, statusChangeHandler)
+        statusChangeHandler = null
       }
     }
   })
@@ -209,10 +239,10 @@ export async function action({ request, params }: Route.ActionArgs) {
           }
         })
         
-        // Store the new Claude session ID if we got one
+        // The Claude session ID is now updated immediately when received in streamClaudeCodeResponse
+        // This ensures it's saved even if the process is aborted
         if (result.lastSessionId) {
-          console.log('[API] Storing new Claude session ID:', result.lastSessionId)
-          await updateClaudeSessionId(params.sessionId, result.lastSessionId)
+          console.log('[API] Claude Code completed with session ID:', result.lastSessionId)
         } else {
           console.log('[API] No session ID returned from Claude Code')
         }
