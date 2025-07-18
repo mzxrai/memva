@@ -6,14 +6,27 @@ import { renderToPipeableStream } from "react-dom/server";
 import { ServerRouter } from "react-router";
 import { JobSystem } from "./workers/index";
 
+// WARNING: This is a workaround for a memory leak in @anthropic-ai/claude-code SDK
+// The SDK adds exit listeners to the process without cleaning them up, causing
+// "MaxListenersExceededWarning" after ~11 Claude Code invocations.
+// 
+// TODO: Remove this workaround when the SDK is fixed to properly manage its event listeners
+// Issue: Each call to query() in the SDK adds a new exit listener without removing old ones
+// 
+// Increasing from default 10 to 30 to handle typical usage patterns
+if (typeof process !== 'undefined' && process.setMaxListeners) {
+  console.warn('[WORKAROUND] Increasing process max listeners to 30 due to Claude Code SDK memory leak');
+  process.setMaxListeners(30);
+}
+
 // Initialize job system
 let jobSystem: JobSystem | null = null;
 
 async function initializeJobSystem() {
   if (!jobSystem) {
     jobSystem = new JobSystem({
-      concurrent: 2,
-      maxRetries: 3,
+      concurrent: 20,
+      maxRetries: 0,  // No retries - session jobs are stateful
       retryDelay: 1000
     });
     
@@ -88,19 +101,27 @@ export default async function handleRequest(
   });
 }
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('\n🛑 Shutting down job system...');
-  if (jobSystem) {
-    await jobSystem.stop();
-    console.log('✅ Job system stopped');
-  }
-  process.exit(0);
-});
+// Graceful shutdown - register handlers only once
+// Check if handlers are already registered by looking at listener count
+const sigintListeners = process.listenerCount('SIGINT');
+const sigtermListeners = process.listenerCount('SIGTERM');
 
-process.on('SIGTERM', async () => {
-  if (jobSystem) {
-    await jobSystem.stop();
-  }
-  process.exit(0);
-});
+if (sigintListeners === 0) {
+  process.on('SIGINT', async () => {
+    console.log('\n🛑 Shutting down job system...');
+    if (jobSystem) {
+      await jobSystem.stop();
+      console.log('✅ Job system stopped');
+    }
+    process.exit(0);
+  });
+}
+
+if (sigtermListeners === 0) {
+  process.on('SIGTERM', async () => {
+    if (jobSystem) {
+      await jobSystem.stop();
+    }
+    process.exit(0);
+  });
+}

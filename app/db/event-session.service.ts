@@ -77,3 +77,54 @@ export async function getRecentAssistantMessages(
     includeSidechain: false
   }).then(events => events.slice(0, limit))
 }
+
+export async function getLatestAssistantMessageBatch(
+  memvaSessionIds: string[]
+): Promise<Map<string, Event | null>> {
+  if (memvaSessionIds.length === 0) {
+    return new Map()
+  }
+
+  // Use a window function to get only the latest assistant message per session
+  // This is a single query regardless of number of sessions
+  const latestMessages = await db
+    .select({
+      memva_session_id: events.memva_session_id,
+      uuid: events.uuid,
+      session_id: events.session_id,
+      event_type: events.event_type,
+      timestamp: events.timestamp,
+      is_sidechain: events.is_sidechain,
+      parent_uuid: events.parent_uuid,
+      cwd: events.cwd,
+      project_name: events.project_name,
+      data: events.data
+    })
+    .from(events)
+    .where(
+      and(
+        inArray(events.memva_session_id, memvaSessionIds),
+        eq(events.event_type, 'assistant'),
+        eq(events.is_sidechain, false)
+      )
+    )
+    .orderBy(desc(events.timestamp))
+    .execute()
+
+  // Group by session and take only the first (latest) message per session
+  const resultMap = new Map<string, Event | null>()
+  
+  // Initialize with null for all requested sessions
+  memvaSessionIds.forEach(id => resultMap.set(id, null))
+  
+  // Process results - since ordered by timestamp desc, first occurrence is latest
+  const seenSessions = new Set<string>()
+  for (const message of latestMessages) {
+    if (message.memva_session_id && !seenSessions.has(message.memva_session_id)) {
+      seenSessions.add(message.memva_session_id)
+      resultMap.set(message.memva_session_id, message as Event)
+    }
+  }
+  
+  return resultMap
+}

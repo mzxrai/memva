@@ -6,7 +6,8 @@ import { RiFolder3Line, RiTimeLine, RiPulseLine } from "react-icons/ri";
 import StatusIndicator from "../components/StatusIndicator";
 import MessageCarousel from "../components/MessageCarousel";
 import clsx from "clsx";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, useMemo, useCallback } from "react";
+import { useHomepageSSE } from "../hooks/useHomepageSSE";
 
 export function meta(): Array<{ title?: string; name?: string; content?: string }> {
   return [
@@ -78,7 +79,32 @@ function isSessionWithStats(session: SessionWithStats | { id: string }): session
 
 export default function Home() {
   const { sessions } = useLoaderData<typeof loader>();
+  const { sessionUpdates } = useHomepageSSE();
   const [sessionTitle, setSessionTitle] = useState("");
+  const [clickedSessions, setClickedSessions] = useState<Set<string>>(new Set());
+
+  // Handle session card clicks
+  const handleSessionClick = useCallback((sessionId: string) => {
+    setClickedSessions(prev => new Set(prev).add(sessionId));
+  }, []);
+
+  // Merge static loader data with real-time updates
+  const enhancedSessions = useMemo(() => {
+    return sessions.map(session => {
+      const updates = sessionUpdates.get(session.id);
+      if (!updates) return session;
+      
+      return {
+        ...session,
+        // Real-time status takes precedence
+        claude_status: updates.status ?? session.claude_status,
+        // Add latest message data only if we have one from updates
+        ...('latestMessage' in updates ? { latestMessage: updates.latestMessage } : {}),
+        // Update event count if available
+        event_count: updates.eventCount ?? (isSessionWithStats(session) ? session.event_count : 0)
+      };
+    });
+  }, [sessions, sessionUpdates]);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     if (!sessionTitle.trim()) {
@@ -118,7 +144,7 @@ export default function Home() {
         </div>
 
         {/* Sessions Grid */}
-        {sessions.length === 0 ? (
+        {enhancedSessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4">
             <div className="text-center max-w-md">
               <div className="mb-6 text-zinc-700">
@@ -132,10 +158,11 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sessions.map((session) => (
+            {enhancedSessions.map((session) => (
               <Link
                 key={session.id}
                 to={`/sessions/${session.id}`}
+                onClick={() => handleSessionClick(session.id)}
                 className={clsx(
                   "group relative block p-6",
                   "bg-zinc-900/50 backdrop-blur-sm",
@@ -190,7 +217,11 @@ export default function Home() {
 
                 {/* Message Carousel */}
                 <div className="min-h-[60px]">
-                  <MessageCarousel sessionId={session.id} maxMessages={3} />
+                  <MessageCarousel 
+                    sessionId={session.id} 
+                    latestMessage={'latestMessage' in session ? session.latestMessage : undefined}
+                    isClicked={clickedSessions.has(session.id)}
+                  />
                 </div>
 
                 {/* Hover Gradient */}

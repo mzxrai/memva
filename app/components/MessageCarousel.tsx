@@ -1,110 +1,161 @@
 import { useState, useEffect, useRef } from 'react'
-import type { Event } from '../db/schema'
 import type { AssistantEvent } from '../types/events'
+import clsx from 'clsx'
+import { useNewMessageTracking } from '../hooks/useNewMessageTracking'
 
 interface MessageCarouselProps {
   sessionId: string
-  maxMessages?: number
+  latestMessage?: {
+    uuid: string
+    timestamp: string
+    data: unknown
+  } | null
+  isClicked?: boolean
 }
 
-export default function MessageCarousel({ sessionId }: MessageCarouselProps) {
-  const [currentMessage, setCurrentMessage] = useState<Event | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const previousMessageRef = useRef<string>('')
+export default function MessageCarousel({ sessionId, latestMessage, isClicked }: MessageCarouselProps) {
+  const [messageKey, setMessageKey] = useState<string>('')
+  const previousMessageId = useRef<string | null>(null)
+  const isInitialMount = useRef(true)
+  
+  // Use the new message tracking hook
+  const { hasNewMessage, markAsNew, clearNewMessage } = useNewMessageTracking(
+    sessionId, 
+    latestMessage?.uuid
+  )
 
+  // Initialize previousMessageId on first render
   useEffect(() => {
-    const loadMessages = () => {
-      try {
-        // Static demo message
-        const demoMessage = {
-          uuid: 'demo-message',
-          session_id: 'demo-session',
-          event_type: 'assistant',
-          timestamp: new Date().toISOString(),
-          is_sidechain: false,
-          parent_uuid: null,
-          cwd: '/test',
-          project_name: 'test-project',
-          memva_session_id: sessionId,
-          data: {
-            type: 'assistant',
-            message: {
-              content: [{ type: 'text', text: 'I\'ll help you refactor that React component to use modern hooks instead of class components. Let me start by analyzing the current structure and identifying the key state and lifecycle methods that need to be converted.' }]
-            }
-          }
-        }
-        
-        // Set static message without animation
-        setCurrentMessage(demoMessage as Event)
-        previousMessageRef.current = extractTextContent(demoMessage as Event)
-      } catch (error) {
-        console.error('Failed to load messages:', error)
-        setCurrentMessage(null)
-      } finally {
-        setIsLoading(false)
-      }
+    if (isInitialMount.current && latestMessage) {
+      previousMessageId.current = latestMessage.uuid
+      isInitialMount.current = false
     }
+  }, [])
 
-    loadMessages()
-  }, [sessionId])
-
-  const extractTextContent = (event: Event): string => {
+  // Detect when a new message arrives
+  useEffect(() => {
+    if (!latestMessage) return
+    
+    // Skip if this is the initial message
+    if (previousMessageId.current === null) {
+      previousMessageId.current = latestMessage.uuid
+      return
+    }
+    
+    // Only mark as new for actual new messages
+    if (latestMessage.uuid !== previousMessageId.current) {
+      previousMessageId.current = latestMessage.uuid
+      setMessageKey(latestMessage.uuid) // Trigger re-render with new key for animation
+      markAsNew(latestMessage.uuid) // Store in localStorage
+    }
+  }, [latestMessage?.uuid, markAsNew])
+  
+  // Clear new message indicator when clicked
+  useEffect(() => {
+    if (isClicked && hasNewMessage) {
+      clearNewMessage()
+    }
+  }, [isClicked, hasNewMessage, clearNewMessage])
+  const extractTextContent = (data: unknown): string => {
     try {
-      const assistantEvent = event.data as AssistantEvent
-      const textContent = assistantEvent.message.content
-        .filter(item => item.type === 'text')
-        .map(item => item.text)
-        .join(' ')
-      
-      return textContent
+      const assistantData = data as AssistantEvent
+      if (assistantData.type === 'assistant' && assistantData.message?.content) {
+        const textContent = assistantData.message.content
+          .filter(item => item.type === 'text')
+          .map(item => item.text)
+          .join(' ')
+        return textContent
+      }
+      return ''
     } catch {
-      return 'Message content unavailable'
+      return ''
     }
   }
 
-  const formatTextForDisplay = (text: string): string => {
+  const formatTextForPreview = (text: string): string => {
+    // Remove markdown formatting for clean preview
     return text
+      // Remove code blocks
+      .replace(/```[\s\S]*?```/g, '[code block]')
+      .replace(/`([^`]+)`/g, '$1')
+      // Remove images
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, '[image]')
+      // Remove links but keep text
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      // Remove bold/italic
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/__([^_]+)__/g, '$1')
+      .replace(/_([^_]+)_/g, '$1')
+      // Remove headers
+      .replace(/^#{1,6}\s+/gm, '')
+      // Remove lists
+      .replace(/^[\s]*[-*+]\s+/gm, '')
+      .replace(/^[\s]*\d+\.\s+/gm, '')
+      // Clean up extra whitespace
+      .replace(/\n{2,}/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
   }
 
-  if (isLoading) {
+  // Show loading state if no message data yet
+  if (!latestMessage) {
     return (
       <div 
         data-testid="message-carousel" 
-        className="h-16 overflow-hidden flex flex-col justify-end space-y-1"
-      >
-        <div className="h-4 bg-zinc-800/40 rounded-sm animate-pulse" />
-        <div className="h-4 bg-zinc-800/40 rounded-sm animate-pulse w-4/5" />
-        <div className="h-4 bg-zinc-800/40 rounded-sm animate-pulse w-3/5" />
-      </div>
-    )
-  }
-
-  if (!currentMessage) {
-    return (
-      <div 
-        data-testid="message-carousel" 
-        className="h-16 overflow-hidden flex items-center"
+        className="h-16 overflow-hidden flex items-start"
       >
         <div className="text-zinc-500 text-sm font-mono">
-          No messages yet
+          No assistant message yet
         </div>
       </div>
     )
   }
 
-  const displayText = formatTextForDisplay(extractTextContent(currentMessage))
+  const rawText = extractTextContent(latestMessage.data)
+
+  // If no text content extracted, show placeholder
+  if (!rawText) {
+    return (
+      <div 
+        data-testid="message-carousel" 
+        className="h-16 overflow-hidden flex items-start"
+      >
+        <div className="text-zinc-500 text-sm font-mono">
+          No assistant message yet
+        </div>
+      </div>
+    )
+  }
+
+  const displayText = formatTextForPreview(rawText)
 
   return (
     <div 
       data-testid="message-carousel" 
       className="relative h-16 overflow-hidden"
     >
+      {/* Green indicator bar for new messages */}
       <div 
-        className="absolute inset-0 flex flex-col justify-end"
+        className={clsx(
+          "absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 transition-opacity duration-1000",
+          hasNewMessage ? "opacity-100" : "opacity-0"
+        )}
+      />
+      
+      <div 
+        className={clsx(
+          "absolute inset-0 flex flex-col justify-end transition-all duration-300",
+          hasNewMessage ? "pl-4" : "pl-0"
+        )}
       >
         <div 
+          key={messageKey}
           data-testid="message-item"
-          className="text-zinc-300 text-sm font-mono leading-5"
+          className={clsx(
+            "text-zinc-300 text-sm font-mono leading-5",
+            hasNewMessage && "animate-fade-in"
+          )}
           style={{
             display: '-webkit-box',
             WebkitLineClamp: 3,
