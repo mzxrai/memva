@@ -21,6 +21,7 @@ import { BashToolDisplay } from './tools/BashToolDisplay'
 import { ReadToolDisplay } from './tools/ReadToolDisplay'
 import { TodoWriteToolDisplay } from './tools/TodoWriteToolDisplay'
 import { WebSearchToolDisplay } from './tools/WebSearchToolDisplay'
+import { TaskToolDisplay } from './tools/TaskToolDisplay'
 import type { ToolUseContent } from '../../types/events'
 import clsx from 'clsx'
 
@@ -99,6 +100,8 @@ const getPrimaryParam = (toolName: string, input: unknown): string => {
     case 'WebFetch':
     case 'WebSearch':
       return (params.url as string) || (params.query as string) || ''
+    case 'Task':
+      return (params.description as string) || ''
     default: {
       // Return first string value found
       const firstValue = Object.values(params).find(v => typeof v === 'string')
@@ -142,9 +145,22 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
   return { status: 'success', brief: JSON.stringify(result).substring(0, 150) + '...', full: JSON.stringify(result, null, 2) }
 }
 
+// Tools that have custom display components
+const TOOLS_WITH_CUSTOM_DISPLAY = new Set([
+  'Write',
+  'Bash',
+  'Read',
+  'TodoWrite',
+  'WebSearch',
+  'Edit',
+  'MultiEdit',
+  'Task'
+])
+
 export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, className, isStreaming = false, isError = false }: ToolCallDisplayProps) => {
   const [showFullResult, setShowFullResult] = useState(false)
   const isEditTool = toolCall.name === 'Edit' || toolCall.name === 'MultiEdit'
+  const hasCustomDisplay = TOOLS_WITH_CUSTOM_DISPLAY.has(toolCall.name)
   
   // Check if this is an interrupted bash command
   const isInterrupted = toolCall.name === 'Bash' && 
@@ -360,7 +376,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       </div>
       
       {/* Result section - minimal inline display */}
-      {formattedResult && toolCall.name !== 'Write' && toolCall.name !== 'Bash' && toolCall.name !== 'Read' && toolCall.name !== 'TodoWrite' && toolCall.name !== 'WebSearch' && toolCall.name !== 'Edit' && toolCall.name !== 'MultiEdit' && (
+      {formattedResult && !hasCustomDisplay && (
         <div className="py-2">
           <div className={clsx(
             'flex items-center gap-2',
@@ -464,6 +480,15 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
           hasResult={hasResult}
           result={result}
           lineInfo={lineInfo}
+        />
+      )}
+      
+      {/* Task tool result section */}
+      {toolCall.name === 'Task' && (
+        <TaskToolDisplay 
+          toolCall={toolCall}
+          hasResult={hasResult}
+          result={result}
         />
       )}
     </div>
