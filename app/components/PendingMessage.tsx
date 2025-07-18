@@ -132,40 +132,34 @@ export function PendingMessage({ tokenCount = 0, startTime }: PendingMessageProp
         <MessageHeader icon={RiSparklingLine} title="Claude" />
         
         {/* Loading indicator content */}
-        <div className="inline-grid grid-cols-[auto_7rem_auto_6rem_auto_4rem] items-center gap-3 text-sm text-zinc-400 font-mono">
+        <div className="inline-grid grid-cols-[auto_minmax(0,1fr)_auto_auto_auto_auto] items-center gap-2 text-sm text-zinc-400 font-mono" style={{ gridTemplateColumns: 'auto clamp(5rem, 15vw, 8rem) auto auto auto auto' }}>
           {/* Spinner */}
           <div className="w-4 h-4 border-2 border-zinc-600 border-t-zinc-400 rounded-full animate-spin" />
           
-          {/* Action verb - fixed width container */}
-          <div className="min-w-0">
-            <span className="block whitespace-nowrap overflow-hidden text-ellipsis animate-pulse">
-              {currentVerb}...
-            </span>
+          {/* Action verb with ellipsis - responsive fixed width */}
+          <div className="overflow-hidden flex items-center">
+            <span className="animate-pulse truncate">{currentVerb}...</span>
           </div>
           
           {/* Separator */}
-          <span className="text-zinc-500 justify-self-center">
+          <span className="text-zinc-500">
             {tokenCount > 0 ? '•' : ''}
           </span>
           
-          {/* Token count - fixed width container */}
-          <div className="min-w-0 text-center">
-            <span className="block whitespace-nowrap">
-              {tokenCount > 0 ? `${formatTokenCount(displayedTokenCount)} tokens` : ''}
-            </span>
-          </div>
+          {/* Token count */}
+          <span className="whitespace-nowrap">
+            {tokenCount > 0 ? `${formatTokenCount(displayedTokenCount)} tokens` : ''}
+          </span>
           
           {/* Separator */}
-          <span className="text-zinc-500 justify-self-center">
+          <span className="text-zinc-500">
             {startTime ? '•' : ''}
           </span>
           
-          {/* Elapsed time - fixed width container */}
-          <div className="min-w-0 text-left">
-            <span className="block whitespace-nowrap">
-              {startTime ? elapsedTime : ''}
-            </span>
-          </div>
+          {/* Elapsed time */}
+          <span className="whitespace-nowrap">
+            {startTime ? elapsedTime : ''}
+          </span>
         </div>
       </MessageContainer>
     </BaseEventWrapper>

@@ -91,6 +91,7 @@ export default function SessionDetail() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isInitialMount = useRef(true);
   const [isVisible, setIsVisible] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
   
   // Use SSE for real-time new events and session status
   const { newEvents, sessionStatus } = useSSEEvents(sessionId);
@@ -293,6 +294,17 @@ export default function SessionDetail() {
       timestamp: Date.now()
     });
     
+    // Clear pending state immediately for better UX
+    setProcessingStartTime(null);
+    setOptimisticUserMessage(null);
+    
+    // Focus input immediately since we're enabling it
+    if (inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
+    }
+    
     // Simple retry logic
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
@@ -307,9 +319,6 @@ export default function SessionDetail() {
         await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
       }
     }
-    
-    // Note: processingStartTime will be cleared by the status polling
-    // when claude_status changes from 'processing' to 'completed'
   }, [sessionId]);
   
   // Initial positioning - ensure last message is visible WITHOUT visible scrolling
@@ -369,7 +378,7 @@ export default function SessionDetail() {
   
   // Initialize processing time when session is processing
   useEffect(() => {
-    if (session?.claude_status === 'processing' && !processingStartTime) {
+    if (session?.claude_status === 'processing' && !processingStartTime && !isStopInProgress) {
       // Find the most recent user message
       const allEvents = [...initialEvents, ...newEvents];
       const lastUserEvent = allEvents
@@ -380,7 +389,10 @@ export default function SessionDetail() {
         setProcessingStartTime(new Date(lastUserEvent.timestamp).getTime());
       }
     }
-  }, [session?.claude_status, processingStartTime, initialEvents, newEvents]);
+  }, [session?.claude_status, processingStartTime, initialEvents, newEvents, isStopInProgress]);
+  
+  // Track if we should auto-scroll (user is near bottom)
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   
   // Clear on result event OR when cancelled - but ensure messages are rendered first
   useEffect(() => {
@@ -412,19 +424,28 @@ export default function SessionDetail() {
           setProcessingStartTime(null);
           setOptimisticUserMessage(null);
           setIsStopInProgress(false);
+          
+          // Refocus input if user isn't actively reading/selecting
+          if (inputRef.current && shouldAutoScroll) {
+            // Check if user has selected text
+            const selection = window.getSelection();
+            const hasSelection = selection && selection.toString().length > 0;
+            
+            if (!hasSelection) {
+              // Small delay to ensure UI has updated
+              setTimeout(() => {
+                inputRef.current?.focus();
+              }, 100);
+            }
+          }
         }
         // If no assistant message yet, wait for it to arrive and render
       } else if (hasNewCancellation) {
-        // For cancellations, clear immediately since there won't be an assistant message
-        setProcessingStartTime(null);
-        setOptimisticUserMessage(null);
+        // For cancellations, only clear isStopInProgress since pending states were already cleared optimistically
         setIsStopInProgress(false);
       }
     }
-  }, [newEvents, displayEvents, processingStartTime]);
-  
-  // Track if we should auto-scroll (user is near bottom)
-  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  }, [newEvents, displayEvents, processingStartTime, shouldAutoScroll]);
   
   // Check if user is near bottom whenever they scroll
   useEffect(() => {
@@ -568,18 +589,19 @@ export default function SessionDetail() {
                   <div className="flex items-center px-5 py-3.5 bg-zinc-800/60 border border-zinc-700/50 rounded-xl focus-within:border-zinc-600 focus-within:bg-zinc-800/80 transition-all duration-200">
                     <span className="text-zinc-500 font-mono mr-4 select-none">{'>'}</span>
                     <input
+                      ref={inputRef}
                       name="prompt"
                       type="text"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      disabled={isProcessing || isSubmitting}
+                      disabled={(isProcessing && !isStopInProgress) || isSubmitting}
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck="false"
                       className="flex-1 bg-transparent text-zinc-100 focus:outline-none disabled:opacity-50 font-mono text-[0.9375rem]"
                       role="textbox"
-                      placeholder={isProcessing || isSubmitting ? "Processing... (Press Escape to stop)" : "Ask Claude Code anything..."}
+                      placeholder={isProcessing || isSubmitting ? "Processing... (ESC to stop)" : "Ask Claude Code anything..."}
                     />
                   </div>
                 </Form>
