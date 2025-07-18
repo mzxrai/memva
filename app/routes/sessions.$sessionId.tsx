@@ -152,11 +152,25 @@ export default function SessionDetail() {
             // Look for tool_result content items
             message.content.forEach((item: unknown) => {
               if (item && typeof item === 'object' && 'type' in item && item.type === 'tool_result') {
-                const toolResult = item as unknown as { tool_use_id: string; content: unknown };
+                const toolResult = item as unknown as { tool_use_id: string; content: unknown; is_error?: boolean };
                 if (toolResult.tool_use_id) {
+                  // Detect if this is an error result
+                  let isError = false;
+                  
+                  // Check if the tool result itself has an is_error field
+                  if ('is_error' in toolResult && typeof toolResult.is_error === 'boolean') {
+                    isError = toolResult.is_error;
+                  }
+                  // Also check if the content has is_error (for standardized format)
+                  else if (toolResult.content && typeof toolResult.content === 'object' && 
+                           'is_error' in toolResult.content) {
+                    const content = toolResult.content as { is_error?: boolean };
+                    isError = content.is_error === true;
+                  }
+                  
                   toolResults.set(toolResult.tool_use_id, {
                     result: toolResult,
-                    isError: false
+                    isError
                   });
                 }
               }
