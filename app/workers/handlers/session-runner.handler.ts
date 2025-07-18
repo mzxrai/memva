@@ -172,23 +172,6 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
       if (isCancelled) {
         console.log(`[Job ${jobData.id}] Job cancelled by user`)
         
-        // Store a user cancellation event
-        const { createEventFromMessage, storeEvent } = await import('../../db/events.service')
-        const cancelEvent = createEventFromMessage({
-          message: {
-            type: 'user',
-            content: 'User cancelled operation',
-            session_id: '' // Claude Code session ID - empty for user-initiated events
-          },
-          memvaSessionId: sessionId,
-          projectPath: session.project_path,
-          parentUuid: initialParentUuid || null,
-          timestamp: new Date().toISOString()
-        })
-        
-        await storeEvent(cancelEvent)
-        console.log('[SessionRunner] Stored user cancellation event')
-        
         // Don't update status here - the stop endpoint already set it to 'completed'
         callback(new Error('Job cancelled by user'))
         return

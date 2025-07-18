@@ -112,9 +112,6 @@ export default function SessionDetail() {
     content: string;
     timestamp: number;
   } | null>(null);
-  const [optimisticCancelMessage, setOptimisticCancelMessage] = useState<{
-    timestamp: number;
-  } | null>(null);
   
   // Track form submission state
   const isSubmitting = navigation.state === "submitting";
@@ -161,32 +158,11 @@ export default function SessionDetail() {
       allEvents = [...allEvents, optimisticEvent];
     }
     
-    // Add optimistic cancel message if present
-    if (optimisticCancelMessage) {
-      const optimisticCancelEvent = {
-        uuid: `optimistic-cancel-${optimisticCancelMessage.timestamp}`,
-        event_type: 'user_cancelled' as const,
-        timestamp: new Date(optimisticCancelMessage.timestamp).toISOString(),
-        data: {
-          type: 'user_cancelled',
-          content: 'Processing cancelled by user',
-          session_id: ''
-        },
-        // Required fields for EventRenderer
-        memva_session_id: sessionId,
-        session_id: '',
-        is_sidechain: false,
-        parent_uuid: null,
-        cwd: session?.project_path || '',
-        project_name: session?.project_path?.split('/').pop() || 'Unknown'
-      };
-      allEvents = [...allEvents, optimisticCancelEvent];
-    }
     
     // Remove duplicates, including optimistic if real message arrived
     const unique = allEvents.filter((event, index, arr) => {
       // For optimistic user message, check if replaced by real event
-      if (event.uuid?.startsWith('optimistic-') && !event.uuid?.startsWith('optimistic-cancel-') && optimisticUserMessage) {
+      if (event.uuid?.startsWith('optimistic-') && optimisticUserMessage) {
         return !arr.some(e => 
           e.event_type === 'user' &&
           !e.uuid?.startsWith('optimistic-') &&
@@ -195,14 +171,6 @@ export default function SessionDetail() {
         );
       }
       
-      // For optimistic cancel message, check if replaced by real cancel event
-      if (event.uuid?.startsWith('optimistic-cancel-') && optimisticCancelMessage) {
-        return !arr.some(e => 
-          e.event_type === 'user_cancelled' &&
-          !e.uuid?.startsWith('optimistic-') &&
-          Math.abs(new Date(e.timestamp).getTime() - optimisticCancelMessage.timestamp) < 15000 // 15s window (cancellation can take longer)
-        );
-      }
       
       // Regular deduplication
       return arr.findIndex(e => e.uuid === event.uuid) === index;
@@ -282,17 +250,12 @@ export default function SessionDetail() {
     });
     
     return { displayEvents, toolResults };
-  }, [initialEvents, newEvents, optimisticUserMessage, optimisticCancelMessage, sessionId, session?.project_path]);
+  }, [initialEvents, newEvents, optimisticUserMessage, sessionId, session?.project_path]);
   
   // Handle stop functionality (Escape key only)
   const handleStop = useCallback(async () => {
     // Set stop in progress
     setIsStopInProgress(true);
-    
-    // Add optimistic cancel message immediately
-    setOptimisticCancelMessage({
-      timestamp: Date.now()
-    });
     
     // Clear pending state immediately for better UX
     setProcessingStartTime(null);

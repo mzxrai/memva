@@ -35,30 +35,12 @@ export async function streamClaudeCodeResponse({
   let lastEventUuid: string | null = initialParentUuid || null
   let lastSessionId: string | undefined
   let isAborted = false
-  let cancellationEventStored = false
   let messageCount = 0
   let hasReceivedFirstMessage = false
   let hasReceivedAssistantMessage = false
   let abortRequested = false
   let earlyAbortRequested = false
   
-  // Helper function to create cancellation event
-  const createCancellationEvent = () => {
-    if (!memvaSessionId) {
-      throw new Error('Cannot create cancellation event without memvaSessionId')
-    }
-    return createEventFromMessage({
-      message: {
-        type: 'user_cancelled',
-        content: 'Processing cancelled by user',
-        session_id: lastSessionId || ''
-      },
-      memvaSessionId,
-      projectPath,
-      parentUuid: lastEventUuid,
-      timestamp: new Date().toISOString()
-    })
-  }
   
   // Create our own abort controller that we'll trigger when ready
   const internalAbortController = new AbortController()
@@ -128,18 +110,6 @@ export async function streamClaudeCodeResponse({
           console.log(`[Claude Code]   memvaSessionId: ${memvaSessionId}`)
           console.log(`[Claude Code]   hasReceivedFirstMessage: ${hasReceivedFirstMessage}`)
         
-          // Store a cancellation event (only once per query)
-          if (memvaSessionId && messageCount > 0 && !cancellationEventStored) {
-            const cancelEvent = createCancellationEvent()
-            
-            await storeEvent(cancelEvent)
-            cancellationEventStored = true
-            
-            if (onStoredEvent) {
-              onStoredEvent(cancelEvent)
-            }
-          }
-          
           console.log(`[Claude Code] Breaking out of message loop due to abort`)
           break
         }
@@ -243,19 +213,6 @@ export async function streamClaudeCodeResponse({
         }
       }
     
-    // If we exited the loop due to abort, store a cancellation event (if we haven't already)
-    if (isAborted && memvaSessionId && messageCount > 0 && !cancellationEventStored) {
-      const cancelEvent = createCancellationEvent()
-      
-      await storeEvent(cancelEvent)
-      cancellationEventStored = true
-      
-      if (onStoredEvent) {
-        onStoredEvent(cancelEvent)
-      }
-      
-      console.log(`[Claude Code] Stored cancellation event after loop exit`)
-    }
     
     } catch (loopError) {
       console.log(`[Claude Code] Error in message loop:`, loopError)
@@ -290,26 +247,6 @@ export async function streamClaudeCodeResponse({
     if (isAborted || (controller.signal.aborted && hasReceivedAssistantMessage)) {
       console.log(`[Claude Code] Processing stopped by user (isAborted=${isAborted}, signal.aborted=${controller.signal.aborted}, hasReceivedAssistantMessage=${hasReceivedAssistantMessage})`)
       
-      // Store cancellation event if we haven't already
-      if (memvaSessionId && messageCount > 0 && !cancellationEventStored) {
-        console.log(`[Claude Code] Storing cancellation event...`)
-        const cancelEvent = createCancellationEvent()
-        
-        await storeEvent(cancelEvent)
-        cancellationEventStored = true
-        
-        if (onStoredEvent) {
-          onStoredEvent(cancelEvent)
-        }
-        
-        console.log(`[Claude Code] Stored cancellation event in catch block`)
-      } else {
-        console.log(`[Claude Code] Not storing cancellation event:`, {
-          memvaSessionId,
-          messageCount,
-          cancellationEventStored
-        })
-      }
       
       // Don't propagate abort errors
       return { lastSessionId }
