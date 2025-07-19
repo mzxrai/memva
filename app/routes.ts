@@ -11,4 +11,5 @@ export default [
   route("api/claude-code/:sessionId", "routes/api.claude-code.$sessionId.tsx"),
   route("api/jobs", "routes/api.jobs.tsx"),
   route("api/jobs/:jobId", "routes/api.jobs.$jobId.tsx"),
+  route("api/filesystem", "routes/api.filesystem.tsx"),
 ] satisfies RouteConfig;

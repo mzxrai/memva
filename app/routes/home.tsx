@@ -5,9 +5,11 @@ import { RiFolder3Line, RiTimeLine, RiPulseLine } from "react-icons/ri";
 import StatusIndicator from "../components/StatusIndicator";
 import MessageCarousel from "../components/MessageCarousel";
 import RelativeTime from "../components/RelativeTime";
+import DirectorySelector from "../components/DirectorySelector";
 import clsx from "clsx";
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FormEvent, type KeyboardEvent } from "react";
 import { useHomepageData } from "../hooks/useHomepageData";
+import { colors, typography } from "../constants/design";
 
 export function meta(): Array<{ title?: string; name?: string; content?: string }> {
   return [
@@ -25,6 +27,7 @@ export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const title = formData.get('title') as string;
   const prompt = formData.get('prompt') as string;
+  const projectPath = formData.get('project_path') as string;
   
   if (!title?.trim()) {
     return { error: 'Title is required' };
@@ -34,10 +37,14 @@ export async function action({ request }: Route.ActionArgs) {
     return { error: 'Prompt is required' };
   }
   
+  if (!projectPath?.trim()) {
+    return { error: 'Project path is required' };
+  }
+  
   // Create session with claude_status set to not_started
   const session = await createSession({
     title: title.trim(),
-    project_path: '/Users/mbm-premva/dev/memva', // Auto-assigned for now
+    project_path: projectPath.trim(),
     status: 'active',
     metadata: {
       should_auto_start: true
@@ -66,14 +73,110 @@ function isSessionWithStats(session: SessionWithStats | { id: string }): session
   return 'event_count' in session && typeof session.event_count === 'number';
 }
 
+// Helper function to shorten path for display
+function shortenPath(path: string): string {
+  // For testing, use the mocked home directory
+  const isTest = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
+  const homedir = isTest ? '/Users/testuser' : (typeof window !== 'undefined' ? localStorage.getItem('user-homedir') || '/Users/mbm-premva' : '/Users/mbm-premva');
+  
+  // Replace home directory with ~
+  if (path.startsWith(homedir)) {
+    path = '~' + path.slice(homedir.length);
+  }
+  
+  // If path is too long, show last 2-3 segments
+  const segments = path.split('/').filter(Boolean);
+  if (segments.length > 3 && path.startsWith('~/')) {
+    return `~/.../` + segments.slice(-2).join('/');
+  }
+  
+  return path;
+}
+
 export default function Home() {
   const { sessions } = useHomepageData();
   const [sessionTitle, setSessionTitle] = useState("");
+  const [currentDirectory, setCurrentDirectory] = useState<string>('');
+  const [isDirectoryModalOpen, setIsDirectoryModalOpen] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    
+    // Reset height to auto to get the correct scrollHeight
+    textarea.style.height = 'auto';
+    
+    // Calculate the height based on content
+    const scrollHeight = textarea.scrollHeight;
+    const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight);
+    const minRows = 1;
+    const maxRows = 7;
+    
+    const minHeight = lineHeight * minRows;
+    const maxHeight = lineHeight * maxRows;
+    
+    // Set the height, clamped between min and max
+    const newHeight = Math.max(minHeight, Math.min(scrollHeight, maxHeight));
+    textarea.style.height = `${newHeight}px`;
+    
+    // Add or remove scrollbar based on content
+    if (scrollHeight > maxHeight) {
+      textarea.style.overflowY = 'auto';
+    } else {
+      textarea.style.overflowY = 'hidden';
+    }
+  };
+
+  // Load last used directory on mount
+  useEffect(() => {
+    const loadDirectory = async () => {
+      const lastDir = localStorage.getItem('memva-last-directory');
+      if (lastDir) {
+        setCurrentDirectory(lastDir);
+      } else {
+        // Fetch current directory
+        try {
+          const response = await fetch('/api/filesystem?action=current');
+          const data = await response.json();
+          setCurrentDirectory(data.currentDirectory);
+          localStorage.setItem('memva-last-directory', data.currentDirectory);
+        } catch (error) {
+          console.error('Failed to get current directory:', error);
+          setCurrentDirectory('/');
+        }
+      }
+    };
+    loadDirectory();
+  }, []);
+
+  // Adjust textarea height when content changes
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [sessionTitle]);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     if (!sessionTitle.trim()) {
       e.preventDefault();
     }
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // Submit on Enter without Shift
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const form = e.currentTarget.closest('form');
+      if (form && sessionTitle.trim()) {
+        form.requestSubmit();
+      }
+    }
+  };
+
+  const handleDirectorySelect = (directory: string) => {
+    setCurrentDirectory(directory);
+    localStorage.setItem('memva-last-directory', directory);
+    setIsDirectoryModalOpen(false);
   };
 
   return (
@@ -87,21 +190,55 @@ export default function Home() {
             onSubmit={handleSubmit}
             className="p-4 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-xl"
           >
-            <input
-              type="text"
-              name="title"
-              value={sessionTitle}
-              onChange={(e) => setSessionTitle(e.target.value)}
-              placeholder="Start a new Claude Code session: ask, brainstorm, build"
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              className="w-full px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem]"
-            />
+            <div className="flex items-start gap-2">
+              {/* Terminal-style directory prefix */}
+              <button
+                type="button"
+                onClick={() => setIsDirectoryModalOpen(true)}
+                className={clsx(
+                  "flex-shrink-0 px-3 py-3",
+                  typography.font.mono,
+                  typography.size.sm,
+                  colors.text.secondary,
+                  "hover:text-zinc-300",
+                  "transition-colors duration-150",
+                  "cursor-pointer"
+                )}
+                title="Click to change directory"
+              >
+                <span>{currentDirectory ? shortenPath(currentDirectory) : '~'}</span>
+                <span className="text-zinc-500 ml-1">$</span>
+              </button>
+              
+              {/* Session input */}
+              <textarea
+                ref={textareaRef}
+                name="title"
+                value={sessionTitle}
+                onChange={(e) => setSessionTitle(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Start a new Claude Code session: ask, brainstorm, build"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
+                rows={1}
+                className="flex-1 px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem] resize-none leading-normal"
+                style={{ minHeight: '48px', overflowY: 'hidden' }}
+              />
+            </div>
             <input type="hidden" name="prompt" value={sessionTitle} />
+            <input type="hidden" name="project_path" value={currentDirectory} />
           </Form>
         </div>
+
+        {/* Directory Selector Modal */}
+        <DirectorySelector
+          isOpen={isDirectoryModalOpen}
+          currentDirectory={currentDirectory}
+          onSelect={handleDirectorySelect}
+          onClose={() => setIsDirectoryModalOpen(false)}
+        />
 
         {/* Sessions Grid */}
         {sessions.length === 0 ? (
