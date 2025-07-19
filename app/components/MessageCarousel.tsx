@@ -14,8 +14,7 @@ interface MessageCarouselProps {
 
 export default function MessageCarousel({ sessionId, latestMessage }: MessageCarouselProps) {
   const [messageKey, setMessageKey] = useState<string>('')
-  const previousMessageId = useRef<string | null>(null)
-  const isInitialMount = useRef(true)
+  const previousMessageId = useRef<string | undefined>(latestMessage?.uuid)
   
   // Use the new message tracking hook
   const { hasNewMessage, markAsNew } = useNewMessageTracking(
@@ -23,29 +22,23 @@ export default function MessageCarousel({ sessionId, latestMessage }: MessageCar
     latestMessage?.uuid
   )
 
-  // Initialize previousMessageId on first render
-  useEffect(() => {
-    if (isInitialMount.current && latestMessage) {
-      previousMessageId.current = latestMessage.uuid
-      isInitialMount.current = false
-    }
-  }, [])
-
-  // Detect when a new message arrives
   useEffect(() => {
     if (!latestMessage) return
     
-    // Skip if this is the initial message
-    if (previousMessageId.current === null) {
-      previousMessageId.current = latestMessage.uuid
-      return
-    }
-    
-    // Only mark as new for actual new messages
+    // If this is a different message than what we had before
     if (latestMessage.uuid !== previousMessageId.current) {
+      setMessageKey(latestMessage.uuid)
+      
+      // Check if message is recent (within last 30 seconds)
+      const messageTime = new Date(latestMessage.timestamp).getTime()
+      const now = Date.now()
+      const isRecent = (now - messageTime) < 30000 // 30 seconds
+      
+      if (isRecent) {
+        markAsNew(latestMessage.uuid)
+      }
+      
       previousMessageId.current = latestMessage.uuid
-      setMessageKey(latestMessage.uuid) // Trigger re-render with new key for animation
-      markAsNew(latestMessage.uuid) // Store in localStorage
     }
   }, [latestMessage?.uuid, markAsNew])
   

@@ -6,6 +6,7 @@ type NewMessageData = {
 }
 
 const STORAGE_KEY = 'memva_new_messages'
+const CLEARED_KEY = 'memva_cleared_messages'
 const EXPIRY_TIME = 5 * 60 * 1000 // 5 minutes in milliseconds
 
 export function useNewMessageTracking(sessionId: string, latestMessageId?: string) {
@@ -18,10 +19,13 @@ export function useNewMessageTracking(sessionId: string, latestMessageId?: strin
       const newMessages: Record<string, NewMessageData> = JSON.parse(stored)
       const sessionData = newMessages[sessionId]
       
-      if (sessionData && latestMessageId && sessionData.messageId === latestMessageId) {
+      if (sessionData) {
         // Check if not expired
         const now = Date.now()
-        return now - sessionData.timestamp <= EXPIRY_TIME
+        const notExpired = now - sessionData.timestamp <= EXPIRY_TIME
+        
+        // Only show as new if we have a latestMessageId AND it matches the stored one
+        return notExpired && latestMessageId && sessionData.messageId === latestMessageId
       }
       return false
     } catch {
@@ -48,21 +52,19 @@ export function useNewMessageTracking(sessionId: string, latestMessageId?: strin
           const age = now - sessionData.timestamp
           const isExpired = age > EXPIRY_TIME
           
-          console.log(`[NewMessage] Session ${sessionId}: age=${Math.floor(age/1000)}s, expired=${isExpired}, messageId=${sessionData.messageId}, latestMessageId=${latestMessageId}`)
           
           if (isExpired) {
             // Expired, remove it
             delete newMessages[sessionId]
             localStorage.setItem(STORAGE_KEY, JSON.stringify(newMessages))
             setHasNewMessage(false)
-          } else if (latestMessageId && sessionData.messageId === latestMessageId) {
-            // Still valid and matches current message
-            setHasNewMessage(true)
           } else {
-            // Message ID doesn't match anymore
-            setHasNewMessage(false)
+            // Only show as new if we have a latestMessageId AND it matches the stored one
+            const shouldShowAsNew = latestMessageId && sessionData.messageId === latestMessageId
+            setHasNewMessage(shouldShowAsNew)
           }
         } else {
+          // No session data in localStorage means no new message
           setHasNewMessage(false)
         }
       } catch (error) {
@@ -94,6 +96,12 @@ export function useNewMessageTracking(sessionId: string, latestMessageId?: strin
   // Mark message as new
   const markAsNew = useCallback((messageId: string) => {
     try {
+      // Check if this message was already cleared
+      const cleared = JSON.parse(localStorage.getItem(CLEARED_KEY) || '[]')
+      if (cleared.includes(messageId)) {
+        return
+      }
+      
       const stored = localStorage.getItem(STORAGE_KEY)
       const newMessages: Record<string, NewMessageData> = stored ? JSON.parse(stored) : {}
       
@@ -116,9 +124,18 @@ export function useNewMessageTracking(sessionId: string, latestMessageId?: strin
       if (!stored) return
       
       const newMessages: Record<string, NewMessageData> = JSON.parse(stored)
-      delete newMessages[sessionId]
+      const messageData = newMessages[sessionId]
       
+      delete newMessages[sessionId]
       localStorage.setItem(STORAGE_KEY, JSON.stringify(newMessages))
+      
+      // Also add to cleared list to prevent re-marking
+      if (messageData) {
+        const cleared = JSON.parse(localStorage.getItem(CLEARED_KEY) || '[]')
+        cleared.push(messageData.messageId)
+        localStorage.setItem(CLEARED_KEY, JSON.stringify(cleared))
+      }
+      
       setHasNewMessage(false)
     } catch (error) {
       console.error('Error clearing new message from localStorage:', error)
