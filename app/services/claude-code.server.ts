@@ -33,9 +33,9 @@ export async function streamClaudeCodeResponse({
   console.log(`[Claude Code] Project path: ${projectPath}`)
   console.log(`[Claude Code] Initial parent UUID: ${initialParentUuid || 'none'}`)
   console.log(`[Claude Code] Timeout: ${timeoutMs}ms (${timeoutMs / 60000} minutes)`)
-  
+
   const controller = abortController || new AbortController()
-  
+
   // Set up global timeout
   const timeoutId = setTimeout(() => {
     console.log(`[Claude Code] Global timeout reached (${timeoutMs}ms), aborting...`)
@@ -51,11 +51,11 @@ export async function streamClaudeCodeResponse({
   let abortRequested = false
   let earlyAbortRequested = false
   let timeoutAbort = false
-  
-  
+
+
   // Create our own abort controller that we'll trigger when ready
   const internalAbortController = new AbortController()
-  
+
   // Monitor the external abort signal
   controller.signal.addEventListener('abort', () => {
     const abortTime = new Date().toISOString()
@@ -65,9 +65,9 @@ export async function streamClaudeCodeResponse({
     console.log(`[Claude Code] Has received assistant message: ${hasReceivedAssistantMessage}`)
     console.log(`[Claude Code] Current lastSessionId: ${lastSessionId}`)
     console.log(`[Claude Code] Resume session ID was: ${resumeSessionId}`)
-    
+
     abortRequested = true
-    
+
     // Only actually abort if we've received an assistant message
     if (hasReceivedAssistantMessage) {
       console.log(`[Claude Code] Abort accepted - assistant message already received`)
@@ -86,7 +86,7 @@ export async function streamClaudeCodeResponse({
       permissionMode: 'acceptEdits',
       allowedTools: ['Read', 'Write', 'Bash']
     }
-    
+
     if (resumeSessionId) {
       console.log('[Claude Code] Attempting to resume session:', resumeSessionId)
       options.resume = resumeSessionId
@@ -104,14 +104,14 @@ export async function streamClaudeCodeResponse({
 
     console.log(`[Claude Code] Entering message loop...`)
     let messageLoopStarted = false
-    
+
     try {
       for await (const message of messages) {
         if (!messageLoopStarted) {
           console.log(`[Claude Code] First iteration of message loop`)
           messageLoopStarted = true
         }
-        
+
         // Check if we've been aborted BEFORE processing (only if we have the session ID)
         if (isAborted) {
           console.log(`[Claude Code] ABORT detected at start of loop iteration:`)
@@ -120,47 +120,54 @@ export async function streamClaudeCodeResponse({
           console.log(`[Claude Code]   messageCount: ${messageCount}`)
           console.log(`[Claude Code]   memvaSessionId: ${memvaSessionId}`)
           console.log(`[Claude Code]   hasReceivedFirstMessage: ${hasReceivedFirstMessage}`)
-        
+
           console.log(`[Claude Code] Breaking out of message loop due to abort`)
           break
         }
-        
+
         messageCount++
-        
+
         // Capture timestamp when message is received
         const receivedTimestamp = new Date().toISOString()
-        
+
         console.log(`[Claude Code] Message ${messageCount} received: type=${message.type}, aborted=${controller.signal.aborted}, timestamp=${new Date().toISOString()}`)
-        
+
         // Track session ID from each message
         if ('session_id' in message) {
-          lastSessionId = message.session_id
-          console.log(`[Claude Code] Updated lastSessionId to: ${lastSessionId}`)
-          
+          const newClaudeSessionId = message.session_id
+
+          if (lastSessionId !== newClaudeSessionId) {
+            lastSessionId = newClaudeSessionId
+            console.log(`[Claude Code] Updated lastSessionId to: ${lastSessionId}`)
+          }
+
           // CRITICAL: Update the Claude session ID in the database immediately
           // This ensures we can resume even if the process is aborted
           if (memvaSessionId && lastSessionId && lastSessionId !== resumeSessionId) {
             console.log(`[Claude Code] New session ID detected, updating database immediately`)
             console.log(`[Claude Code]   Old: ${resumeSessionId || 'none'}`)
             console.log(`[Claude Code]   New: ${lastSessionId}`)
-            
+
             const { updateClaudeSessionId } = await import('../db/sessions.service')
             await updateClaudeSessionId(memvaSessionId, lastSessionId)
             console.log(`[Claude Code] Database updated with new session ID`)
+
+            // IMPORTANT: Update resumeSessionId to prevent re-running this block
+            resumeSessionId = lastSessionId
           }
         }
-        
+
         // Mark that we've received the first message
         if (!hasReceivedFirstMessage) {
           hasReceivedFirstMessage = true
           console.log(`[Claude Code] First message received! Session ID: ${lastSessionId}`)
         }
-        
+
         // Mark if we've received an assistant message (only if not early abort)
         if (message.type === 'assistant' && !hasReceivedAssistantMessage) {
           hasReceivedAssistantMessage = true
           console.log(`[Claude Code] First assistant message received! Can now safely abort if needed`)
-          
+
           // Check if abort was requested before assistant message
           if (abortRequested && !earlyAbortRequested) {
             console.log(`[Claude Code] Processing delayed abort - now that we have an assistant message`)
@@ -172,33 +179,33 @@ export async function streamClaudeCodeResponse({
 
         // Call onMessage for all messages (SDK requirement)
         onMessage(message)
-        
+
         // Store event if we have memvaSessionId
         if (memvaSessionId) {
           // Skip storing ANY messages after system message if early abort requested
           if (earlyAbortRequested && message.type !== 'system') {
             console.log(`[Claude Code] Early abort - skipping storage of ${message.type} message`)
-            
+
             // Check if this is the assistant message we were waiting for
             if (message.type === 'assistant') {
               console.log(`[Claude Code] First assistant message received during early abort - now aborting`)
               isAborted = true
               internalAbortController.abort()
-              
+
               // Continue to next iteration which will break due to isAborted check
               continue
             }
-            
+
             // Skip to next message without storing
             continue
           }
-          
+
           // Check abort one more time before storing (but only if we're past first message)
           if (isAborted && hasReceivedFirstMessage && !earlyAbortRequested) {
             console.log(`[Claude Code] Abort detected before storing message ${messageCount}, will store this message then break`)
             // Don't break here - we want to store this message first
           }
-          
+
           const event = createEventFromMessage({
             message,
             memvaSessionId,
@@ -206,30 +213,30 @@ export async function streamClaudeCodeResponse({
             parentUuid: lastEventUuid,
             timestamp: receivedTimestamp
           })
-          
+
           console.log(`[Claude Code] Storing event type=${event.event_type} at ${new Date().toISOString()}`)
           await storeEvent(event)
           lastEventUuid = event.uuid
-          
+
           // Call onStoredEvent if provided
           if (onStoredEvent) {
             onStoredEvent(event)
           }
         }
-        
+
         // Check abort again after processing the message
         if (isAborted) {
           console.log(`[Claude Code] Abort flag set after processing message ${messageCount}, breaking loop`)
           break
         }
       }
-    
-    
+
+
     } catch (loopError) {
       console.log(`[Claude Code] Error in message loop:`, loopError)
       throw loopError
     }
-    
+
     console.log(`[Claude Code] Finished processing ${messageCount} messages for session ${memvaSessionId}`)
   } catch (error) {
     console.log(`[Claude Code] CATCH BLOCK: Error caught:`, error)
@@ -240,20 +247,20 @@ export async function streamClaudeCodeResponse({
     console.log(`[Claude Code] CATCH BLOCK: isAborted flag:`, isAborted)
     console.log(`[Claude Code] CATCH BLOCK: Message count:`, messageCount)
     console.log(`[Claude Code] CATCH BLOCK: Resume session ID was:`, resumeSessionId)
-    
+
     // Check if this is a resume failure (exit code 1 with no messages)
-    if (error instanceof Error && 
-        error.message === 'Claude Code process exited with code 1' && 
-        messageCount === 0 && 
-        resumeSessionId) {
+    if (error instanceof Error &&
+      error.message === 'Claude Code process exited with code 1' &&
+      messageCount === 0 &&
+      resumeSessionId) {
       console.log(`[Claude Code] RESUME FAILED - Claude session ${resumeSessionId} cannot be resumed`)
       console.log(`[Claude Code] This likely means the session was previously aborted`)
       console.log(`[Claude Code] Consider implementing a fallback to start a new session with context`)
-      
+
       // Don't propagate this error - it's expected when resuming aborted sessions
       return { lastSessionId: resumeSessionId }
     }
-    
+
     // Check if this is an abort error
     if (isAborted || controller.signal.aborted) {
       if (timeoutAbort) {
@@ -266,7 +273,7 @@ export async function streamClaudeCodeResponse({
         return { lastSessionId }
       }
     }
-    
+
     // For non-abort errors, log and handle as before
     console.log(`[Claude Code] Error caught:`, error)
     console.log(`[Claude Code] Error details:`, {
@@ -274,7 +281,7 @@ export async function streamClaudeCodeResponse({
       message: error instanceof Error ? error.message : String(error),
       aborted: controller.signal.aborted
     })
-    
+
     if (onError && error instanceof Error) {
       onError(error)
     } else {

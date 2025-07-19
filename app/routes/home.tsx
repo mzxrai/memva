@@ -1,13 +1,13 @@
 import type { Route } from "./+types/home";
-import { Link, useLoaderData, Form, redirect } from "react-router";
-import { listSessions, getSessionWithStats, createSession, type SessionWithStats } from "../db/sessions.service";
+import { Link, Form, redirect } from "react-router";
+import { createSession, type SessionWithStats } from "../db/sessions.service";
 import { RiFolder3Line, RiTimeLine, RiPulseLine } from "react-icons/ri";
 import StatusIndicator from "../components/StatusIndicator";
 import MessageCarousel from "../components/MessageCarousel";
 import RelativeTime from "../components/RelativeTime";
 import clsx from "clsx";
-import { useState, type FormEvent, useMemo } from "react";
-import { useHomepageSSE } from "../hooks/useHomepageSSE";
+import { useState, type FormEvent } from "react";
+import { useHomepageData } from "../hooks/useHomepageData";
 
 export function meta(): Array<{ title?: string; name?: string; content?: string }> {
   return [
@@ -17,19 +17,8 @@ export function meta(): Array<{ title?: string; name?: string; content?: string 
 }
 
 export async function loader() {
-  const sessions = await listSessions();
-  console.log(`Loaded ${sessions.length} sessions from database`);
-  
-  // Get stats for each session
-  const sessionsWithStats = await Promise.all(
-    sessions.map(async (session) => {
-      const stats = await getSessionWithStats(session.id);
-      return stats || session;
-    })
-  );
-
-  console.log('Sessions with stats:', sessionsWithStats.length);
-  return { sessions: sessionsWithStats };
+  // Initial load doesn't need to fetch all data since React Query will handle it
+  return { sessions: [] };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -78,29 +67,8 @@ function isSessionWithStats(session: SessionWithStats | { id: string }): session
 }
 
 export default function Home() {
-  const { sessions } = useLoaderData<typeof loader>();
-  const { sessionUpdates } = useHomepageSSE();
+  const { sessions } = useHomepageData();
   const [sessionTitle, setSessionTitle] = useState("");
-
-  // Merge static loader data with real-time updates
-  const enhancedSessions = useMemo(() => {
-    return sessions.map(session => {
-      const updates = sessionUpdates.get(session.id);
-      if (!updates) return session;
-      
-      return {
-        ...session,
-        // Real-time status takes precedence
-        claude_status: updates.status ?? session.claude_status,
-        // Add latest message data only if we have one from updates
-        ...(updates.latestMessage !== undefined ? { latestMessage: updates.latestMessage } : {}),
-        // Update event count if available
-        event_count: updates.eventCount ?? (isSessionWithStats(session) ? session.event_count : 0),
-        // Update last event timestamp if available
-        ...(updates.lastEventAt ? { last_event_at: updates.lastEventAt } : {})
-      };
-    });
-  }, [sessions, sessionUpdates]);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     if (!sessionTitle.trim()) {
@@ -136,7 +104,7 @@ export default function Home() {
         </div>
 
         {/* Sessions Grid */}
-        {enhancedSessions.length === 0 ? (
+        {sessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4">
             <div className="text-center max-w-md">
               <div className="mb-6 text-zinc-700">
@@ -150,7 +118,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {enhancedSessions.map((session) => (
+            {sessions.map((session) => (
               <Link
                 key={session.id}
                 to={`/sessions/${session.id}`}
@@ -211,7 +179,7 @@ export default function Home() {
                 <div className="min-h-[60px]">
                   <MessageCarousel 
                     sessionId={session.id} 
-                    latestMessage={'latestMessage' in session ? session.latestMessage : undefined}
+                    latestMessage={session.latestMessage}
                   />
                 </div>
 

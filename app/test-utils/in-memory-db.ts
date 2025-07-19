@@ -91,7 +91,7 @@ export function setupInMemoryDb(): TestDatabase {
       title: input.title !== undefined ? input.title : null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      status: 'active',
+      status: input.status || 'active',
       project_path: input.project_path,
       metadata: input.metadata !== undefined ? input.metadata : null,
       claude_status: input.claude_status || 'not_started'

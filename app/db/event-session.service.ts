@@ -85,8 +85,8 @@ export async function getLatestAssistantMessageBatch(
     return new Map()
   }
 
-  // Use a window function to get only the latest assistant message per session
-  // This is a single query regardless of number of sessions
+  // Get all assistant messages and filter for text content
+  // SQLite doesn't have good JSON support for complex filtering
   const latestMessages = await db
     .select({
       memva_session_id: events.memva_session_id,
@@ -111,18 +111,31 @@ export async function getLatestAssistantMessageBatch(
     .orderBy(desc(events.timestamp))
     .execute()
 
-  // Group by session and take only the first (latest) message per session
+  // Group by session and take only the first TEXT message per session
   const resultMap = new Map<string, Event | null>()
   
   // Initialize with null for all requested sessions
   memvaSessionIds.forEach(id => resultMap.set(id, null))
   
-  // Process results - since ordered by timestamp desc, first occurrence is latest
+  // Process results - since ordered by timestamp desc, first text occurrence is latest text message
   const seenSessions = new Set<string>()
   for (const message of latestMessages) {
     if (message.memva_session_id && !seenSessions.has(message.memva_session_id)) {
-      seenSessions.add(message.memva_session_id)
-      resultMap.set(message.memva_session_id, message as Event)
+      // Check if this message contains text content
+      try {
+        const messageData = message.data as { message?: { content?: Array<{ type: string }> } } | null
+        const hasTextContent = messageData && 
+          typeof messageData === 'object' && 
+          'message' in messageData &&
+          messageData.message?.content?.some(item => item.type === 'text')
+        
+        if (hasTextContent) {
+          seenSessions.add(message.memva_session_id)
+          resultMap.set(message.memva_session_id, message as Event)
+        }
+      } catch {
+        // Skip malformed messages
+      }
     }
   }
   

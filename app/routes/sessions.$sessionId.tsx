@@ -7,7 +7,7 @@ import { EventRenderer } from "../components/events/EventRenderer";
 import { PendingMessage } from "../components/PendingMessage";
 import { getSession } from "../db/sessions.service";
 import { getEventsForSession } from "../db/event-session.service";
-import { useNewMessageTracking } from "../hooks/useNewMessageTracking";
+import { useGreenLineIndicator } from "../hooks/useGreenLineIndicator";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const sessionId = params.sessionId;
@@ -94,11 +94,11 @@ export default function SessionDetail() {
   const [isVisible, setIsVisible] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   
-  // Clear new message indicator when visiting session detail
-  const { clearNewMessage } = useNewMessageTracking(sessionId);
+  // Clear green indicators when visiting session detail
+  const { clearGreenForSession } = useGreenLineIndicator(sessionId);
   useEffect(() => {
-    clearNewMessage();
-  }, [clearNewMessage]);
+    clearGreenForSession(sessionId);
+  }, [sessionId, clearGreenForSession]);
   
   // Autofocus input on mount
   useEffect(() => {

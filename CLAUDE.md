@@ -28,11 +28,12 @@ To start with, we will build this in a local-only fashion; in other words, it wi
 - Inter is our primary variable-width sans font
 - JetBrains Mono is our primary monospace font
 
-## Important processes
+## Helpful info
 
 - IMPORTANT: we have an MCP server called "docs" that you must *always* use when starting new feature development. Use the `mcp__docs__resolve-library-id` and `mcp__docs__get-library-docs` tools to pull the latest library documentation down so that the code you write will have the highest chance of working on the first try.
 - Use the Playwright MCP server to verify functionality works as expected in the Chrome browser. If it does not work as expected, continue to iterate until it does.
 - Do not start webservers or other long-running processes yourself as that will hang the chat. Instead, inform me what command to run, and I will run it in a separate tab for you. Logs for the main webserver will be sent to `dev.log` for you to review.
+- Our main database is `memva-dev.db`. Use the `sqlite3` command to interrogate it when you have data-related questions. 
 
 ## Core Philosophy
 
