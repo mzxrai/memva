@@ -10,10 +10,9 @@ interface MessageCarouselProps {
     timestamp: string
     data: unknown
   } | null
-  isClicked?: boolean
 }
 
-export default function MessageCarousel({ sessionId, latestMessage, isClicked }: MessageCarouselProps) {
+export default function MessageCarousel({ sessionId, latestMessage }: MessageCarouselProps) {
   const [messageKey, setMessageKey] = useState<string>('')
   const previousMessageId = useRef<string | null>(null)
   const isInitialMount = useRef(true)
@@ -50,14 +49,25 @@ export default function MessageCarousel({ sessionId, latestMessage, isClicked }:
     }
   }, [latestMessage?.uuid, markAsNew])
   
-  // Clear new message indicator when clicked
-  useEffect(() => {
-    if (isClicked && hasNewMessage) {
-      clearNewMessage()
-    }
-  }, [isClicked, hasNewMessage, clearNewMessage])
+  // Note: We no longer clear the new message indicator on click
+  // It will only be cleared when the user visits the session page
   const extractTextContent = (data: unknown): string => {
     try {
+      // Handle the actual data structure from the logs
+      if (typeof data === 'object' && data !== null && 'message' in data) {
+        const dataWithMessage = data as { message: { type: string; role: string; content: Array<{ type: string; text: string }> } }
+        if (dataWithMessage.message.type === 'message' && 
+            dataWithMessage.message.role === 'assistant' && 
+            dataWithMessage.message.content) {
+          const textContent = dataWithMessage.message.content
+            .filter(item => item.type === 'text')
+            .map(item => item.text)
+            .join(' ')
+          return textContent
+        }
+      }
+      
+      // Original check for backwards compatibility
       const assistantData = data as AssistantEvent
       if (assistantData.type === 'assistant' && assistantData.message?.content) {
         const textContent = assistantData.message.content
@@ -67,7 +77,8 @@ export default function MessageCarousel({ sessionId, latestMessage, isClicked }:
         return textContent
       }
       return ''
-    } catch {
+    } catch (e) {
+      console.error('[MessageCarousel] Error extracting text:', e)
       return ''
     }
   }
@@ -145,7 +156,7 @@ export default function MessageCarousel({ sessionId, latestMessage, isClicked }:
       
       <div 
         className={clsx(
-          "absolute inset-0 flex flex-col justify-end transition-all duration-300",
+          "absolute inset-0 flex flex-col justify-start transition-all duration-300",
           hasNewMessage ? "pl-4" : "pl-0"
         )}
       >

@@ -1,5 +1,5 @@
 import type { Route } from "./+types/api.homepage-updates"
-import { listSessions, getSessionWithStats } from "../db/sessions.service"
+import { listSessions, getSessionWithStats, getSessionsWithStatsBatch } from "../db/sessions.service"
 import { getLatestAssistantMessageBatch } from "../db/event-session.service"
 import type { SessionStatusEvent } from "../services/session-status-emitter.server"
 
@@ -16,10 +16,15 @@ export async function loader({ request }: Route.LoaderArgs) {
   // Import the session status emitter
   const { sessionStatusEmitter } = await import('../services/session-status-emitter.server')
 
+  // Create unique connection ID for debugging
+  const connectionId = Math.random().toString(36).substring(7)
+  console.log(`[Homepage SSE] New connection: ${connectionId}`)
+
   // Create SSE stream that sends updates for all active sessions
   let statusChangeHandler: ((event: SessionStatusEvent) => void) | null = null
-  let pollInterval: ReturnType<typeof setInterval> | null = null
+  let homepageUpdateHandler: ((event: import('../services/homepage-events.server').HomepageEvent) => Promise<void>) | null = null
   let timeSyncInterval: ReturnType<typeof setInterval> | null = null
+  let isActive = true // Track if this stream is still active
   
   const stream = new ReadableStream({
     async start(controller) {
@@ -27,13 +32,20 @@ export async function loader({ request }: Route.LoaderArgs) {
       
       // Helper to send SSE messages
       const send = (data: Record<string, unknown>) => {
+        if (!isActive) {
+          return
+        }
+        
         try {
           const message = `data: ${JSON.stringify(data)}\n\n`
           controller.enqueue(encoder.encode(message))
         } catch (error) {
-          console.error('[Homepage SSE] Error sending message:', error)
+          console.error(`[Homepage SSE] Connection ${connectionId}: Error sending message:`, error)
+          // Mark as inactive to prevent further attempts
+          isActive = false
         }
       }
+      
       
       // Send initial connection message
       send({ 
@@ -55,37 +67,64 @@ export async function loader({ request }: Route.LoaderArgs) {
       // Listen to the general status-change event (not session-specific)
       sessionStatusEmitter.on('status-change', statusChangeHandler)
       
-      // 2. Poll for latest messages and event counts
-      const pollMessages = async () => {
+      // 2. Listen for homepage events (event-driven instead of polling)
+      const { homepageEvents } = await import('../services/homepage-events.server')
+      
+      // Handler for homepage updates
+      homepageUpdateHandler = async (event: import('../services/homepage-events.server').HomepageEvent) => {
+        console.log(`[Homepage SSE] Received event: ${event.type} for session ${event.sessionId}`)
+        
+        // When we get an event, fetch fresh data for that session
+        if (event.type === 'message_created' || event.type === 'event_created') {
+          try {
+            const session = await getSessionWithStats(event.sessionId)
+            if (!session || session.status !== 'active') return
+            
+            // Get latest assistant message for this session
+            const latestMessagesMap = await getLatestAssistantMessageBatch([event.sessionId])
+            const latestMessage = latestMessagesMap.get(event.sessionId)
+            
+            // Send update for this specific session
+            send({
+              type: 'message_updates',
+              updates: [{
+                sessionId: event.sessionId,
+                message: latestMessage ? {
+                  uuid: latestMessage.uuid,
+                  timestamp: latestMessage.timestamp,
+                  data: latestMessage.data
+                } : null,
+                eventCount: session.event_count || 0,
+                lastEventAt: session.last_event_at
+              }],
+              timestamp: new Date().toISOString()
+            })
+          } catch (error) {
+            console.error(`[Homepage SSE] Error handling event for session ${event.sessionId}:`, error)
+          }
+        }
+      }
+      
+      // Listen for events
+      homepageEvents.on('homepage_update', homepageUpdateHandler)
+      
+      // Send initial data once on connection
+      const sendInitialData = async () => {
         try {
-          // Get all active sessions with stats
           const sessions = await listSessions({ status: 'active' })
           const sessionIds = sessions.map(s => s.id)
           
           if (sessionIds.length === 0) return
           
-          // Single efficient query for all latest messages
-          const latestMessagesMap = await getLatestAssistantMessageBatch(sessionIds)
-          console.log(`[Homepage SSE] Found ${latestMessagesMap.size} sessions, ${Array.from(latestMessagesMap.values()).filter(v => v !== null).length} with assistant messages`)
+          // Fetch all data in parallel with just 2 queries total!
+          const [latestMessagesMap, sessionsWithStatsMap] = await Promise.all([
+            getLatestAssistantMessageBatch(sessionIds),
+            getSessionsWithStatsBatch(sessionIds)
+          ])
           
-          // Get stats for event counts (we already have this from listSessions if they're SessionWithStats)
-          const sessionStatsMap = new Map<string, number>(
-            await Promise.all(
-              sessions.map(async (session): Promise<[string, number]> => {
-                // If session already has event_count, use it
-                if ('event_count' in session && typeof session.event_count === 'number') {
-                  return [session.id, session.event_count]
-                }
-                // Otherwise fetch stats
-                const stats = await getSessionWithStats(session.id)
-                return [session.id, stats?.event_count || 0]
-              })
-            )
-          )
-          
-          // Build updates array
           const updates = sessionIds.map(sessionId => {
             const latestMessage = latestMessagesMap.get(sessionId)
+            const stats = sessionsWithStatsMap.get(sessionId)
             return {
               sessionId,
               message: latestMessage ? {
@@ -93,26 +132,22 @@ export async function loader({ request }: Route.LoaderArgs) {
                 timestamp: latestMessage.timestamp,
                 data: latestMessage.data
               } : null,
-              eventCount: sessionStatsMap.get(sessionId) || 0
+              eventCount: stats?.event_count || 0,
+              lastEventAt: stats?.last_event_at
             }
           })
           
-          // Send batch update
           send({
             type: 'message_updates',
             updates,
             timestamp: new Date().toISOString()
           })
         } catch (error) {
-          console.error('[Homepage SSE] Error polling messages:', error)
+          console.error('[Homepage SSE] Error sending initial data:', error)
         }
       }
       
-      // Initial poll
-      await pollMessages()
-      
-      // Poll every 1 second for more responsive updates
-      pollInterval = setInterval(pollMessages, 1000)
+      await sendInitialData()
       
       // 3. Time sync for relative time updates
       timeSyncInterval = setInterval(() => {
@@ -124,16 +159,22 @@ export async function loader({ request }: Route.LoaderArgs) {
       
       // Cleanup will be handled in cancel method
     },
-    cancel() {
+    async cancel() {
+      // Mark stream as inactive first
+      isActive = false
+      
+      
       // Stream canceled - cleanup
       if (statusChangeHandler) {
         sessionStatusEmitter.off('status-change', statusChangeHandler)
         statusChangeHandler = null
       }
       
-      if (pollInterval) {
-        clearInterval(pollInterval)
-        pollInterval = null
+      // Remove homepage event listener
+      if (homepageUpdateHandler) {
+        const { homepageEvents } = await import('../services/homepage-events.server')
+        homepageEvents.off('homepage_update', homepageUpdateHandler)
+        homepageUpdateHandler = null
       }
       
       if (timeSyncInterval) {
@@ -141,7 +182,7 @@ export async function loader({ request }: Route.LoaderArgs) {
         timeSyncInterval = null
       }
       
-      console.log('[Homepage SSE] Connection closed, cleanup complete')
+      console.log(`[Homepage SSE] Connection ${connectionId}: Closed, cleanup complete`)
     }
   })
 

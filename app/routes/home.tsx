@@ -6,7 +6,7 @@ import { RiFolder3Line, RiTimeLine, RiPulseLine } from "react-icons/ri";
 import StatusIndicator from "../components/StatusIndicator";
 import MessageCarousel from "../components/MessageCarousel";
 import clsx from "clsx";
-import { useState, type FormEvent, useMemo, useCallback } from "react";
+import { useState, type FormEvent, useMemo } from "react";
 import { useHomepageSSE } from "../hooks/useHomepageSSE";
 
 export function meta(): Array<{ title?: string; name?: string; content?: string }> {
@@ -81,12 +81,6 @@ export default function Home() {
   const { sessions } = useLoaderData<typeof loader>();
   const { sessionUpdates } = useHomepageSSE();
   const [sessionTitle, setSessionTitle] = useState("");
-  const [clickedSessions, setClickedSessions] = useState<Set<string>>(new Set());
-
-  // Handle session card clicks
-  const handleSessionClick = useCallback((sessionId: string) => {
-    setClickedSessions(prev => new Set(prev).add(sessionId));
-  }, []);
 
   // Merge static loader data with real-time updates
   const enhancedSessions = useMemo(() => {
@@ -99,9 +93,11 @@ export default function Home() {
         // Real-time status takes precedence
         claude_status: updates.status ?? session.claude_status,
         // Add latest message data only if we have one from updates
-        ...('latestMessage' in updates ? { latestMessage: updates.latestMessage } : {}),
+        ...(updates.latestMessage !== undefined ? { latestMessage: updates.latestMessage } : {}),
         // Update event count if available
-        event_count: updates.eventCount ?? (isSessionWithStats(session) ? session.event_count : 0)
+        event_count: updates.eventCount ?? (isSessionWithStats(session) ? session.event_count : 0),
+        // Update last event timestamp if available
+        ...(updates.lastEventAt ? { last_event_at: updates.lastEventAt } : {})
       };
     });
   }, [sessions, sessionUpdates]);
@@ -162,7 +158,6 @@ export default function Home() {
               <Link
                 key={session.id}
                 to={`/sessions/${session.id}`}
-                onClick={() => handleSessionClick(session.id)}
                 className={clsx(
                   "group relative block p-6",
                   "bg-zinc-900/50 backdrop-blur-sm",
@@ -197,13 +192,18 @@ export default function Home() {
                   </span>
                 </div>
 
-                {/* Created Date */}
+                {/* Last Event Time */}
                 <div className="flex items-center gap-2 text-sm text-zinc-500">
                   <RiTimeLine className="w-4 h-4" />
                   <span>
-                    {formatDistanceToNow(new Date(session.created_at), {
-                      addSuffix: true,
-                    })}
+                    {(() => {
+                      const lastEventAt = isSessionWithStats(session) && session.last_event_at
+                        ? session.last_event_at
+                        : session.updated_at;
+                      return formatDistanceToNow(new Date(lastEventAt), {
+                        addSuffix: true,
+                      });
+                    })()}
                   </span>
                 </div>
 
@@ -220,7 +220,6 @@ export default function Home() {
                   <MessageCarousel 
                     sessionId={session.id} 
                     latestMessage={'latestMessage' in session ? session.latestMessage : undefined}
-                    isClicked={clickedSessions.has(session.id)}
                   />
                 </div>
 

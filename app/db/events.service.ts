@@ -79,4 +79,20 @@ export function createEventFromMessage({
 
 export async function storeEvent(event: NewEvent): Promise<void> {
   await db.insert(events).values(event).execute()
+  
+  // Emit event for real-time updates
+  const { homepageEvents } = await import('../services/homepage-events.server')
+  if (event.memva_session_id) {
+    // For assistant messages, emit the message data
+    if (event.event_type === 'assistant') {
+      homepageEvents.emitMessageCreated(event.memva_session_id, {
+        uuid: event.uuid,
+        timestamp: event.timestamp,
+        data: event.data
+      })
+    }
+    
+    // Emit generic event created for all event types
+    homepageEvents.emitEventCreated(event.memva_session_id, event as Event)
+  }
 }

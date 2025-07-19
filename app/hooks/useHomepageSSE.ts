@@ -8,6 +8,7 @@ type SessionUpdate = {
     data: unknown
   } | null
   eventCount?: number
+  lastEventAt?: string
 }
 
 type UseHomepageSSEReturn = {
@@ -31,7 +32,6 @@ export function useHomepageSSE(): UseHomepageSSEReturn {
 
     eventSource.onopen = () => {
       setConnectionState('connected')
-      console.log('[Homepage SSE] Connection established')
     }
 
     eventSource.onmessage = (event) => {
@@ -40,7 +40,7 @@ export function useHomepageSSE(): UseHomepageSSEReturn {
         
         switch (data.type) {
           case 'connection':
-            console.log('[Homepage SSE] Connection confirmed:', data)
+            // Connection confirmed
             break
             
           case 'session_status':
@@ -64,6 +64,7 @@ export function useHomepageSSE(): UseHomepageSSEReturn {
                 sessionId: string
                 message: { uuid: string; timestamp: string; data: unknown } | null
                 eventCount: number
+                lastEventAt?: string
               }) => {
                 const existing = next.get(update.sessionId) || {}
                 const newUpdate: SessionUpdate = {
@@ -71,13 +72,30 @@ export function useHomepageSSE(): UseHomepageSSEReturn {
                   eventCount: update.eventCount
                 }
                 
-                // Only set latestMessage if we have an actual message
-                // Don't set it to undefined - just omit the key
+                // Only update latestMessage if we have a text message
                 if (update.message !== null) {
-                  newUpdate.latestMessage = update.message
+                  // Check if this is a text message (not tool use)
+                  const messageData = update.message.data as { message?: { content?: Array<{ type: string }> } } | null
+                  const hasTextContent = messageData && 
+                    typeof messageData === 'object' && 
+                    'message' in messageData &&
+                    messageData.message?.content?.some(item => item.type === 'text')
+                  
+                  if (hasTextContent) {
+                    // Update with new text message
+                    newUpdate.latestMessage = update.message
+                  } else if (existing.latestMessage) {
+                    // Preserve existing message when receiving non-text messages
+                    newUpdate.latestMessage = existing.latestMessage
+                  }
                 } else if (existing.latestMessage) {
-                  // Preserve existing message if we have one
+                  // Preserve existing message if update has null message
                   newUpdate.latestMessage = existing.latestMessage
+                }
+                
+                // Update last event timestamp if provided
+                if (update.lastEventAt) {
+                  newUpdate.lastEventAt = update.lastEventAt
                 }
                 
                 next.set(update.sessionId, newUpdate)
@@ -92,7 +110,7 @@ export function useHomepageSSE(): UseHomepageSSEReturn {
             break
             
           default:
-            console.log('[Homepage SSE] Unknown message type:', data.type)
+            // Unknown message type - ignore
         }
       } catch (err) {
         console.error('[Homepage SSE] Error parsing message:', err)
@@ -114,7 +132,6 @@ export function useHomepageSSE(): UseHomepageSSEReturn {
         eventSourceRef.current = null
       }
       setConnectionState('disconnected')
-      console.log('[Homepage SSE] Connection closed')
     }
   }, []) // Empty deps - only connect once on mount
 

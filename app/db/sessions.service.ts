@@ -1,5 +1,5 @@
 import { db, sessions, events, type Session, type NewSession } from './index'
-import { eq, desc, and, ne } from 'drizzle-orm'
+import { eq, desc, and, ne, inArray } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 
 export type CreateSessionInput = {
@@ -24,6 +24,7 @@ export type SessionWithStats = Session & {
   event_count: number
   duration_minutes: number
   event_types: Record<string, number>
+  last_event_at?: string
 }
 
 export async function createSession(input: CreateSessionInput): Promise<Session> {
@@ -114,12 +115,14 @@ export async function getSessionWithStats(id: string): Promise<SessionWithStats 
   // Calculate stats
   const event_count = sessionEvents.length
   let duration_minutes = 0
+  let last_event_at: string | undefined
   const event_types: Record<string, number> = {}
   
   if (sessionEvents.length > 0) {
     const firstTimestamp = new Date(sessionEvents[0].timestamp).getTime()
     const lastTimestamp = new Date(sessionEvents[sessionEvents.length - 1].timestamp).getTime()
     duration_minutes = Math.round((lastTimestamp - firstTimestamp) / (1000 * 60))
+    last_event_at = sessionEvents[sessionEvents.length - 1].timestamp
   }
   
   // Count event types
@@ -131,7 +134,8 @@ export async function getSessionWithStats(id: string): Promise<SessionWithStats 
     ...session,
     event_count,
     duration_minutes,
-    event_types
+    event_types,
+    last_event_at
   }
 }
 
@@ -196,4 +200,81 @@ export async function updateSessionClaudeStatus(sessionId: string, status: strin
   // Emit status change event for SSE
   const { sessionStatusEmitter } = await import('../services/session-status-emitter.server')
   sessionStatusEmitter.emitStatusChange(sessionId, status)
+}
+
+export async function getSessionsWithStatsBatch(sessionIds: string[]): Promise<Map<string, SessionWithStats>> {
+  if (sessionIds.length === 0) {
+    return new Map()
+  }
+
+  // Get all requested sessions in one query
+  const sessionsList = await db
+    .select()
+    .from(sessions)
+    .where(inArray(sessions.id, sessionIds))
+    .execute()
+  
+  // Create a map for quick lookup
+  const sessionMap = new Map<string, Session>()
+  sessionsList.forEach(session => {
+    sessionMap.set(session.id, session)
+  })
+
+  // Get all events for all sessions in one query
+  const allEvents = await db
+    .select()
+    .from(events)
+    .where(inArray(events.memva_session_id, sessionIds))
+    .orderBy(events.memva_session_id, events.timestamp)
+    .execute()
+
+  // Group events by session
+  const eventsBySession = new Map<string, typeof allEvents>()
+  allEvents.forEach(event => {
+    if (!event.memva_session_id) return
+    
+    if (!eventsBySession.has(event.memva_session_id)) {
+      eventsBySession.set(event.memva_session_id, [])
+    }
+    const sessionEvents = eventsBySession.get(event.memva_session_id)
+    if (sessionEvents) {
+      sessionEvents.push(event)
+    }
+  })
+
+  // Calculate stats for each session
+  const resultsMap = new Map<string, SessionWithStats>()
+  
+  sessionIds.forEach(sessionId => {
+    const session = sessionMap.get(sessionId)
+    if (!session) return
+    
+    const sessionEvents = eventsBySession.get(sessionId) || []
+    const event_count = sessionEvents.length
+    let duration_minutes = 0
+    let last_event_at: string | undefined
+    const event_types: Record<string, number> = {}
+    
+    if (sessionEvents.length > 0) {
+      const firstTimestamp = new Date(sessionEvents[0].timestamp).getTime()
+      const lastTimestamp = new Date(sessionEvents[sessionEvents.length - 1].timestamp).getTime()
+      duration_minutes = Math.round((lastTimestamp - firstTimestamp) / (1000 * 60))
+      last_event_at = sessionEvents[sessionEvents.length - 1].timestamp
+    }
+    
+    // Count event types
+    for (const event of sessionEvents) {
+      event_types[event.event_type] = (event_types[event.event_type] || 0) + 1
+    }
+    
+    resultsMap.set(sessionId, {
+      ...session,
+      event_count,
+      duration_minutes,
+      event_types,
+      last_event_at
+    })
+  })
+  
+  return resultsMap
 }
