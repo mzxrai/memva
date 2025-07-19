@@ -100,6 +100,13 @@ export default function SessionDetail() {
     clearNewMessage();
   }, [clearNewMessage]);
   
+  // Autofocus input on mount
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+  
   // Use SSE for real-time new events and session status
   const { newEvents, sessionStatus } = useSSEEvents(sessionId);
   

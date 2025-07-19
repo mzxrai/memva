@@ -18,7 +18,7 @@ export default function MessageCarousel({ sessionId, latestMessage }: MessageCar
   const isInitialMount = useRef(true)
   
   // Use the new message tracking hook
-  const { hasNewMessage, markAsNew, clearNewMessage } = useNewMessageTracking(
+  const { hasNewMessage, markAsNew } = useNewMessageTracking(
     sessionId, 
     latestMessage?.uuid
   )
