@@ -15,6 +15,8 @@ interface MessageCarouselProps {
 export default function MessageCarousel({ sessionId, latestMessage }: MessageCarouselProps) {
   const [messageKey, setMessageKey] = useState<string>('')
   const [lastGoodText, setLastGoodText] = useState<string>('')
+  const [hasReceivedFirstMessage, setHasReceivedFirstMessage] = useState(false)
+  const [shouldAnimate, setShouldAnimate] = useState(false)
   const previousMessageId = useRef<string | undefined>(latestMessage?.uuid)
   
   // Use the new message tracking hook
@@ -35,13 +37,21 @@ export default function MessageCarousel({ sessionId, latestMessage }: MessageCar
       const now = Date.now()
       const isRecent = (now - messageTime) < 30000 // 30 seconds
       
-      if (isRecent) {
+      // Only mark as new (which triggers animation) if this is NOT the first message
+      if (isRecent && hasReceivedFirstMessage) {
         markAsNew(latestMessage.uuid)
+        setShouldAnimate(true)
+        setTimeout(() => setShouldAnimate(false), 300) // Clear after animation
+      }
+      
+      // Mark that we've received our first message
+      if (!hasReceivedFirstMessage) {
+        setHasReceivedFirstMessage(true)
       }
       
       previousMessageId.current = latestMessage.uuid
     }
-  }, [latestMessage?.uuid, markAsNew])
+  }, [latestMessage?.uuid, markAsNew, hasReceivedFirstMessage])
 
   // Update lastGoodText if we have new text content - must be before early returns
   useEffect(() => {
@@ -172,7 +182,7 @@ export default function MessageCarousel({ sessionId, latestMessage }: MessageCar
           data-testid="message-item"
           className={clsx(
             "text-zinc-300 text-sm font-mono leading-5",
-            hasNewMessage && "animate-fade-in"
+            shouldAnimate && "animate-fade-in"
           )}
           style={{
             display: '-webkit-box',

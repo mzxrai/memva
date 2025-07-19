@@ -271,8 +271,7 @@ export default function SessionDetail() {
     // Set stop in progress
     setIsStopInProgress(true);
     
-    // Clear pending state immediately for better UX
-    setProcessingStartTime(null);
+    // Clear optimistic message immediately for better UX
     setOptimisticUserMessage(null);
     
     // Focus input immediately since we're enabling it

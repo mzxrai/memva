@@ -20,22 +20,22 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
     dotClass: 'bg-zinc-400',
   },
   processing: {
-    displayText: 'Processing',
-    dotColor: 'bg-emerald-500',
+    displayText: 'Working',
+    dotColor: 'bg-blue-500',
     pulse: true,
-    dotClass: 'bg-emerald-500 animate-pulse',
+    dotClass: 'bg-blue-500 animate-pulse',
   },
   waiting_for_input: {
     displayText: 'Ready',
-    dotColor: 'bg-blue-500',
+    dotColor: 'bg-emerald-500',
     badgeText: 'Ready',
-    dotClass: 'bg-blue-500',
+    dotClass: 'bg-emerald-500',
   },
   completed: {
     displayText: 'Ready',
-    dotColor: 'bg-blue-500',
+    dotColor: 'bg-emerald-500',
     badgeText: 'Ready',
-    dotClass: 'bg-blue-500',
+    dotClass: 'bg-emerald-500',
   },
   error: {
     displayText: 'Error',
@@ -72,8 +72,8 @@ export default function StatusIndicator({ session }: StatusIndicatorProps) {
         <span className={clsx(
           'font-medium',
           status === 'error' ? 'text-red-500' : 
-          status === 'processing' ? 'text-emerald-500' :
-          status === 'waiting_for_input' || status === 'completed' ? 'text-blue-500' :
+          status === 'processing' ? 'text-blue-500' :
+          status === 'waiting_for_input' || status === 'completed' ? 'text-emerald-500' :
           'text-zinc-500'
         )}>
           {config.badgeText || config.displayText}

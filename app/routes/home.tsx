@@ -1,10 +1,10 @@
 import type { Route } from "./+types/home";
 import { Link, useLoaderData, Form, redirect } from "react-router";
 import { listSessions, getSessionWithStats, createSession, type SessionWithStats } from "../db/sessions.service";
-import { formatDistanceToNow } from "date-fns";
 import { RiFolder3Line, RiTimeLine, RiPulseLine } from "react-icons/ri";
 import StatusIndicator from "../components/StatusIndicator";
 import MessageCarousel from "../components/MessageCarousel";
+import RelativeTime from "../components/RelativeTime";
 import clsx from "clsx";
 import { useState, type FormEvent, useMemo } from "react";
 import { useHomepageSSE } from "../hooks/useHomepageSSE";
@@ -111,10 +111,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-zinc-950">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold text-zinc-100 mb-2">Sessions</h1>
-        </div>
 
         {/* New Session Bar */}
         <div className="mb-8">
@@ -195,16 +191,12 @@ export default function Home() {
                 {/* Last Event Time */}
                 <div className="flex items-center gap-2 text-sm text-zinc-500">
                   <RiTimeLine className="w-4 h-4" />
-                  <span>
-                    {(() => {
-                      const lastEventAt = isSessionWithStats(session) && session.last_event_at
-                        ? session.last_event_at
-                        : session.updated_at;
-                      return formatDistanceToNow(new Date(lastEventAt), {
-                        addSuffix: true,
-                      });
-                    })()}
-                  </span>
+                  <RelativeTime 
+                    timestamp={isSessionWithStats(session) && session.last_event_at
+                      ? session.last_event_at
+                      : session.updated_at
+                    } 
+                  />
                 </div>
 
                 {/* Event Count */}

@@ -11,6 +11,7 @@ interface StreamClaudeCodeOptions {
   onStoredEvent?: (event: Record<string, unknown>) => void
   resumeSessionId?: string
   initialParentUuid?: string
+  timeoutMs?: number
 }
 
 export async function streamClaudeCodeResponse({
@@ -22,7 +23,8 @@ export async function streamClaudeCodeResponse({
   memvaSessionId,
   onStoredEvent,
   resumeSessionId,
-  initialParentUuid
+  initialParentUuid,
+  timeoutMs = 30 * 60 * 1000 // 30 minutes default
 }: StreamClaudeCodeOptions): Promise<{ lastSessionId?: string }> {
   console.log(`[Claude Code] === STREAM START ===`)
   console.log(`[Claude Code] Resume session ID: ${resumeSessionId || 'NONE (new session)'}`)
@@ -30,8 +32,16 @@ export async function streamClaudeCodeResponse({
   console.log(`[Claude Code] Prompt: "${prompt}"`)
   console.log(`[Claude Code] Project path: ${projectPath}`)
   console.log(`[Claude Code] Initial parent UUID: ${initialParentUuid || 'none'}`)
+  console.log(`[Claude Code] Timeout: ${timeoutMs}ms (${timeoutMs / 60000} minutes)`)
   
   const controller = abortController || new AbortController()
+  
+  // Set up global timeout
+  const timeoutId = setTimeout(() => {
+    console.log(`[Claude Code] Global timeout reached (${timeoutMs}ms), aborting...`)
+    timeoutAbort = true
+    controller.abort()
+  }, timeoutMs)
   let lastEventUuid: string | null = initialParentUuid || null
   let lastSessionId: string | undefined
   let isAborted = false
@@ -40,6 +50,7 @@ export async function streamClaudeCodeResponse({
   let hasReceivedAssistantMessage = false
   let abortRequested = false
   let earlyAbortRequested = false
+  let timeoutAbort = false
   
   
   // Create our own abort controller that we'll trigger when ready
@@ -244,12 +255,16 @@ export async function streamClaudeCodeResponse({
     }
     
     // Check if this is an abort error
-    if (isAborted || (controller.signal.aborted && hasReceivedAssistantMessage)) {
-      console.log(`[Claude Code] Processing stopped by user (isAborted=${isAborted}, signal.aborted=${controller.signal.aborted}, hasReceivedAssistantMessage=${hasReceivedAssistantMessage})`)
-      
-      
-      // Don't propagate abort errors
-      return { lastSessionId }
+    if (isAborted || controller.signal.aborted) {
+      if (timeoutAbort) {
+        console.log(`[Claude Code] Processing stopped by timeout (${timeoutMs}ms)`)
+        // Let timeout errors propagate to trigger error status
+        throw new Error(`Claude Code session timed out after ${timeoutMs / 60000} minutes`)
+      } else {
+        console.log(`[Claude Code] Processing stopped by user (isAborted=${isAborted}, signal.aborted=${controller.signal.aborted}, hasReceivedAssistantMessage=${hasReceivedAssistantMessage})`)
+        // Don't propagate user abort errors
+        return { lastSessionId }
+      }
     }
     
     // For non-abort errors, log and handle as before
@@ -265,6 +280,9 @@ export async function streamClaudeCodeResponse({
     } else {
       throw error
     }
+  } finally {
+    // Clear the timeout to prevent it from firing after completion
+    clearTimeout(timeoutId)
   }
 
   return { lastSessionId }
