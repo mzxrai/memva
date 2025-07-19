@@ -14,6 +14,7 @@ interface MessageCarouselProps {
 
 export default function MessageCarousel({ sessionId, latestMessage }: MessageCarouselProps) {
   const [messageKey, setMessageKey] = useState<string>('')
+  const [lastGoodText, setLastGoodText] = useState<string>('')
   const previousMessageId = useRef<string | undefined>(latestMessage?.uuid)
   
   // Use the new message tracking hook
@@ -41,6 +42,16 @@ export default function MessageCarousel({ sessionId, latestMessage }: MessageCar
       previousMessageId.current = latestMessage.uuid
     }
   }, [latestMessage?.uuid, markAsNew])
+
+  // Update lastGoodText if we have new text content - must be before early returns
+  useEffect(() => {
+    if (latestMessage) {
+      const rawText = extractTextContent(latestMessage.data)
+      if (rawText) {
+        setLastGoodText(rawText)
+      }
+    }
+  }, [latestMessage])
   
   // Note: We no longer clear the new message indicator on click
   // It will only be cleared when the user visits the session page
@@ -118,8 +129,11 @@ export default function MessageCarousel({ sessionId, latestMessage }: MessageCar
 
   const rawText = extractTextContent(latestMessage.data)
 
-  // If no text content extracted, show placeholder
-  if (!rawText) {
+  // Use lastGoodText if current message has no text, but never show placeholder if we had text before
+  const textToDisplay = rawText || lastGoodText
+
+  // Only show placeholder if we've never had any text content
+  if (!textToDisplay) {
     return (
       <div 
         data-testid="message-carousel" 
@@ -132,7 +146,7 @@ export default function MessageCarousel({ sessionId, latestMessage }: MessageCar
     )
   }
 
-  const displayText = formatTextForPreview(rawText)
+  const displayText = formatTextForPreview(textToDisplay)
 
   return (
     <div 
