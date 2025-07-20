@@ -15,6 +15,7 @@ import { useTextareaSubmit } from "../hooks/useTextareaSubmit";
 import { colors, typography, transition, iconSize } from "../constants/design";
 import { useImageUpload } from "../hooks/useImageUpload";
 import { ImagePreview } from "../components/ImagePreview";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function meta(): Array<{ title?: string; name?: string; content?: string }> {
   return [
@@ -38,13 +39,8 @@ export async function action({ request }: Route.ActionArgs) {
     return { error: 'Title is required' };
   }
   
-  // Check if we have images
-  const imageDataEntries = [...formData.entries()].filter(([key]) => key.startsWith('image-data-'));
-  const hasImages = imageDataEntries.length > 0;
-  
-  // Require either prompt or images
-  if (!prompt?.trim() && !hasImages) {
-    return { error: 'Please provide a prompt or upload images' };
+  if (!prompt?.trim()) {
+    return { error: 'Prompt is required' };
   }
   
   if (!projectPath?.trim()) {
@@ -67,8 +63,9 @@ export async function action({ request }: Route.ActionArgs) {
   
   // Handle image uploads
   const imagePaths: string[] = [];
+  const imageDataEntries = [...formData.entries()].filter(([key]) => key.startsWith('image-data-'));
   
-  if (hasImages) {
+  if (imageDataEntries.length > 0) {
     const { saveImageToDisk } = await import('../services/image-storage.server');
     
     for (const [key, value] of imageDataEntries) {
@@ -159,6 +156,19 @@ export default function Home() {
     handleDrop,
     removeImage,
   } = useImageUpload();
+  
+  // Sort sessions by latest user message timestamp
+  const sortedSessions = [...sessions].sort((a, b) => {
+    // If neither has a user message, maintain original order
+    if (!a.latest_user_message_at && !b.latest_user_message_at) {
+      return 0;
+    }
+    // Sessions with user messages come first
+    if (!a.latest_user_message_at) return 1;
+    if (!b.latest_user_message_at) return -1;
+    // Sort by timestamp (most recent first)
+    return new Date(b.latest_user_message_at).getTime() - new Date(a.latest_user_message_at).getTime();
+  });
 
   // Load last used directory on mount
   useEffect(() => {
@@ -183,6 +193,7 @@ export default function Home() {
   }, []);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    // Always require a prompt for new sessions
     if (!sessionTitle.trim()) {
       e.preventDefault();
     }
@@ -219,27 +230,25 @@ export default function Home() {
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* New Session Bar */}
         <div className="mb-8">
+          {/* Image Preview - Outside the form for overlay effect */}
+          {images.length > 0 && (
+            <div className="mb-2">
+              <ImagePreview images={images} onRemove={removeImage} />
+            </div>
+          )}
+          
           <Form 
             method="post" 
             onSubmit={handleSubmit}
-            className="p-4 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-xl"
-          >
-            {/* Image Preview */}
-            {images.length > 0 && (
-              <div className="mb-3">
-                <ImagePreview images={images} onRemove={removeImage} />
-              </div>
+            className={clsx(
+              "p-4 bg-zinc-900/50 backdrop-blur-sm border rounded-xl",
+              isDragging ? "border-zinc-500" : "border-zinc-800"
             )}
-            
-            <div 
-              className={clsx(
-                "flex items-start gap-2",
-                isDragging && "border-zinc-500"
-              )}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <div className="flex items-start gap-2">
               {/* Terminal-style directory prefix */}
               <button
                 type="button"
@@ -313,7 +322,7 @@ export default function Home() {
         />
 
         {/* Sessions Grid */}
-        {sessions.length === 0 ? (
+        {sortedSessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4">
             <div className="text-center max-w-md">
               <div className="mb-6 text-zinc-700">
@@ -326,27 +335,44 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sessions.map((session) => (
-              <Link
-                key={session.id}
-                to={`/sessions/${session.id}`}
-                className={clsx(
-                  "group relative block p-6",
-                  "bg-zinc-900/50 backdrop-blur-sm",
-                  "border border-zinc-800",
-                  "rounded-xl",
-                  "hover:bg-zinc-900/70",
-                  "hover:border-zinc-700",
-                  "hover:shadow-lg hover:shadow-zinc-950/50",
-                  "transform hover:scale-[1.02]",
-                  "transition-all duration-150",
-                  "cursor-pointer",
-                  "min-h-[240px]",
-                  "grid grid-rows-[1fr_auto_auto_auto_auto]",
-                  "gap-4"
-                )}
-              >
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            layout
+          >
+            <AnimatePresence mode="popLayout">
+              {sortedSessions.map((session) => (
+                <motion.div
+                  key={session.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 500,
+                    damping: 30,
+                    mass: 1,
+                  }}
+                  layoutId={session.id}
+                >
+                  <Link
+                    to={`/sessions/${session.id}`}
+                    className={clsx(
+                      "group relative block p-6 h-full",
+                      "bg-zinc-900/50 backdrop-blur-sm",
+                      "border border-zinc-800",
+                      "rounded-xl",
+                      "hover:bg-zinc-900/70",
+                      "hover:border-zinc-700",
+                      "hover:shadow-lg hover:shadow-zinc-950/50",
+                      "transform hover:scale-[1.02]",
+                      "transition-all duration-150",
+                      "cursor-pointer",
+                      "min-h-[240px]",
+                      "grid grid-rows-[1fr_auto_auto_auto_auto]",
+                      "gap-4"
+                    )}
+                  >
                 {/* Status Indicator */}
                 <div className="absolute top-4 right-4">
                   <StatusIndicator session={session} />
@@ -392,11 +418,13 @@ export default function Home() {
                   />
                 </div>
 
-                {/* Hover Gradient */}
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-zinc-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-              </Link>
-            ))}
-          </div>
+                    {/* Hover Gradient */}
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-zinc-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                  </Link>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
         )}
       </div>
     </div>

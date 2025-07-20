@@ -1,5 +1,5 @@
 import { listSessions, getSessionsWithStatsBatch } from "../db/sessions.service"
-import { getLatestAssistantMessageBatch } from "../db/event-session.service"
+import { getLatestAssistantMessageBatch, getLatestUserMessageWithTextBatch } from "../db/event-session.service"
 
 export async function loader() {
   try {
@@ -14,14 +14,16 @@ export async function loader() {
     
     const sessionIds = sessions.map(s => s.id)
     
-    const [sessionStatsMap, latestMessagesMap] = await Promise.all([
+    const [sessionStatsMap, latestMessagesMap, latestUserMessagesMap] = await Promise.all([
       getSessionsWithStatsBatch(sessionIds),
-      getLatestAssistantMessageBatch(sessionIds)
+      getLatestAssistantMessageBatch(sessionIds),
+      getLatestUserMessageWithTextBatch(sessionIds)
     ])
     
     const enhancedSessions = sessions.map(session => {
       const stats = sessionStatsMap.get(session.id)
       const latestMessage = latestMessagesMap.get(session.id)
+      const latestUserMessage = latestUserMessagesMap.get(session.id)
       
       if (latestMessage) {
         console.log(`[API Sessions Homepage] Session ${session.id} has latest message:`, {
@@ -34,6 +36,7 @@ export async function loader() {
         ...session,
         event_count: stats?.event_count || 0,
         last_event_at: stats?.last_event_at || session.updated_at,
+        latest_user_message_at: latestUserMessage?.timestamp || null,
         latestMessage: latestMessage ? {
           uuid: latestMessage.uuid,
           timestamp: latestMessage.timestamp,

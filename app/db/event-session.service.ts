@@ -141,3 +141,81 @@ export async function getLatestAssistantMessageBatch(
   
   return resultMap
 }
+
+export async function getLatestUserMessageWithTextBatch(
+  memvaSessionIds: string[]
+): Promise<Map<string, Event | null>> {
+  if (memvaSessionIds.length === 0) {
+    return new Map()
+  }
+
+  // Get all user messages
+  const userMessages = await db
+    .select({
+      memva_session_id: events.memva_session_id,
+      uuid: events.uuid,
+      session_id: events.session_id,
+      event_type: events.event_type,
+      timestamp: events.timestamp,
+      is_sidechain: events.is_sidechain,
+      parent_uuid: events.parent_uuid,
+      cwd: events.cwd,
+      project_name: events.project_name,
+      data: events.data
+    })
+    .from(events)
+    .where(
+      and(
+        inArray(events.memva_session_id, memvaSessionIds),
+        eq(events.event_type, 'user'),
+        eq(events.is_sidechain, false)
+      )
+    )
+    .orderBy(desc(events.timestamp))
+    .execute()
+
+  // Group by session and take only the first message with text content per session
+  const resultMap = new Map<string, Event | null>()
+  
+  // Initialize with null for all requested sessions
+  memvaSessionIds.forEach(id => resultMap.set(id, null))
+  
+  // Process results - since ordered by timestamp desc, first text occurrence is latest text message
+  const seenSessions = new Set<string>()
+  for (const message of userMessages) {
+    if (message.memva_session_id && !seenSessions.has(message.memva_session_id)) {
+      // Check if this message contains text content (not just tool results)
+      try {
+        const messageData = message.data as { 
+          type?: string; 
+          content?: string; 
+          message?: { 
+            content?: Array<{ type: string; text?: string }> 
+          } 
+        } | null
+        let hasTextContent = false
+        
+        // Handle simple string content (from session form submission)
+        if (messageData?.type === 'user' && typeof messageData.content === 'string' && messageData.content.trim()) {
+          hasTextContent = true
+        }
+        // Handle Claude Code SDK format
+        else if (messageData?.message?.content && Array.isArray(messageData.message.content)) {
+          // Check if there's at least one text item
+          hasTextContent = messageData.message.content.some(item => 
+            item.type === 'text' && item.text && typeof item.text === 'string'
+          )
+        }
+        
+        if (hasTextContent) {
+          seenSessions.add(message.memva_session_id)
+          resultMap.set(message.memva_session_id, message as Event)
+        }
+      } catch {
+        // Skip malformed messages
+      }
+    }
+  }
+  
+  return resultMap
+}

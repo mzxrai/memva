@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { SessionWithStats } from '../db/sessions.service'
 
 type EnhancedSession = SessionWithStats & {
+  latest_user_message_at?: string | null
   latestMessage?: {
     uuid: string
     timestamp: string
