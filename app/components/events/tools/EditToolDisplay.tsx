@@ -74,9 +74,22 @@ export const EditToolDisplay = memo(({ toolCall, hasResult, result, lineInfo }: 
 
   const isError = sdkResult.is_error === true
 
-  // Don't show if there was an error
+  // Handle error display
   if (isError) {
-    return null
+    const errorContent = typeof sdkResult.content === 'string' ? sdkResult.content : 'Edit operation failed'
+    
+    return (
+      <div className="py-2">
+        <div className={clsx(
+          typography.font.mono,
+          typography.size.sm,
+          colors.accent.red.text,
+          'whitespace-pre-wrap'
+        )}>
+          {errorContent}
+        </div>
+      </div>
+    )
   }
 
   // Check if this is an Edit tool with valid diff data

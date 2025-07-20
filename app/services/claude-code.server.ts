@@ -90,7 +90,7 @@ export async function streamClaudeCodeResponse({
       maxTurns,
       cwd: projectPath,
       permissionMode,
-      allowedTools: ['Read', 'Write', 'Bash']
+      allowedTools: ['exit_plan_mode']
     }
 
     if (resumeSessionId) {

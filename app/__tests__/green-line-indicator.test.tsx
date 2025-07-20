@@ -66,8 +66,10 @@ describe('Green Line Indicator', () => {
       timestamp: new Date().toISOString()
     })
 
-    // Mark message as seen in sessionStorage
-    sessionStorage.setItem(`seenMessages-${sessionId}`, JSON.stringify(['msg-456']))
+    // Mark message as seen in localStorage with timestamp structure
+    localStorage.setItem(`seenMessages-${sessionId}`, JSON.stringify([
+      { uuid: 'msg-456', timestamp: Date.now() }
+    ]))
 
     render(
       <MemoryRouter>

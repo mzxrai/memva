@@ -31,10 +31,12 @@ export default function MessageCarousel({ sessionId, latestMessage }: MessageCar
     
     // Check if this is a different message than before
     if (latestMessage.uuid !== previousMessageId.current) {
-      // Get our list of seen messages
-      const seenMessages = new Set(
-        JSON.parse(sessionStorage.getItem(seenMessagesKey) || '[]') as string[]
-      )
+      // Get our list of seen messages with timestamps
+      const storedData = localStorage.getItem(seenMessagesKey)
+      const seenMessagesData: Array<{ uuid: string; timestamp: number }> = storedData 
+        ? JSON.parse(storedData) 
+        : []
+      const seenMessages = new Set(seenMessagesData.map(item => item.uuid))
       
       // If we haven't seen this message before, mark it as green
       if (!seenMessages.has(latestMessage.uuid)) {
@@ -43,14 +45,50 @@ export default function MessageCarousel({ sessionId, latestMessage }: MessageCar
         setShouldAnimate(true)
         setTimeout(() => setShouldAnimate(false), 300)
         
-        // Add to seen messages
-        seenMessages.add(latestMessage.uuid)
-        sessionStorage.setItem(seenMessagesKey, JSON.stringify(Array.from(seenMessages)))
+        // Add to seen messages with timestamp
+        const updatedSeenMessages = [
+          ...seenMessagesData.filter(item => item.uuid !== latestMessage.uuid),
+          { uuid: latestMessage.uuid, timestamp: Date.now() }
+        ]
+        localStorage.setItem(seenMessagesKey, JSON.stringify(updatedSeenMessages))
       }
       
       previousMessageId.current = latestMessage.uuid
     }
   }, [latestMessage?.uuid, sessionId, markAsGreen, seenMessagesKey])
+  
+  // Cleanup old seen messages (older than 7 days)
+  useEffect(() => {
+    const cleanup = () => {
+      try {
+        const stored = localStorage.getItem(seenMessagesKey)
+        if (!stored) return
+        
+        const seenMessagesData: Array<{ uuid: string; timestamp: number }> = JSON.parse(stored)
+        const now = Date.now()
+        const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000
+        
+        // Filter out messages older than 7 days
+        const filtered = seenMessagesData.filter(item => 
+          (now - item.timestamp) < SEVEN_DAYS
+        )
+        
+        // Only update localStorage if something was removed
+        if (filtered.length !== seenMessagesData.length) {
+          localStorage.setItem(seenMessagesKey, JSON.stringify(filtered))
+          console.log(`[MessageCarousel] Cleaned up ${seenMessagesData.length - filtered.length} old messages`)
+        }
+      } catch (error) {
+        console.error('[MessageCarousel] Error during cleanup:', error)
+      }
+    }
+    
+    // Run cleanup on mount and every minute
+    cleanup()
+    const interval = setInterval(cleanup, 60 * 1000)
+    
+    return () => clearInterval(interval)
+  }, [seenMessagesKey])
   
   // Extract and format text content
   const extractTextContent = (data: unknown): string => {
