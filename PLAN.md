@@ -1,96 +1,211 @@
-# Plan: Session-Specific Settings Implementation
+# Permission Handling Implementation Plan
+
+## Current Status 🚧
+- **Phase 1: Database Layer** ✅ COMPLETE
+- **Phase 2: MCP Permission Server** ✅ COMPLETE
+- **Phase 3: Update Claude Code Service** ✅ COMPLETE
+- **Phase 4: React UI Components** ✅ COMPLETE
+- **Phase 5: Polling and State Management** ✅ COMPLETE
+- **Phase 6: API Routes** ✅ COMPLETE
+- **Phase 7: Maintenance & Cleanup** ⏳ NOT STARTED
+- **Phase 8: Integration Testing** ⏳ NOT STARTED
+- **Phase 9: Documentation & Polish** ⏳ NOT STARTED
+
+**Overall Progress: ~66%**
 
 ## Overview
-Transform the current global settings system into a two-tier system:
-1. **Global defaults** - Set on homepage, used as starting point for new sessions
-2. **Session-specific settings** - Can be overridden per session on the session detail page
+Implement a permission handling system for Claude Code sessions using MCP (Model Context Protocol) with SQLite polling for maximum resilience. Users will have up to 24 hours to respond to permission requests.
 
-## Status: ✅ COMPLETE
+## Architecture Summary
+- **MCP Permission Server**: Standalone TypeScript server that implements the permission prompt tool
+- **SQLite Database**: Central storage for permission requests (polling-based, no WebSockets)
+- **React UI**: Permission notification system with queue management
+- **Polling Strategy**: UI polls every 500ms-1s, MCP server uses exponential backoff
 
-All planned features have been successfully implemented!
+## Implementation Checklist
 
-## Completed Work
+### Phase 1: Database Layer ✅
+- [x] Create database schema for `permission_requests` table
+  - [x] Add migration file `005_add_permission_requests.sql`
+  - [x] Update `app/db/schema.ts` with new table definition
+  - [x] Fields: id, session_id, tool_name, tool_use_id, input, status, decision, decided_at, created_at, expires_at
+- [x] Create permission service layer (`app/db/permissions.service.ts`)
+  - [x] `createPermissionRequest()` - Create new permission request
+  - [x] `getPermissionRequests()` - Get all requests with filters
+  - [x] `getPendingPermissionRequests()` - Get pending requests for UI
+  - [x] `updatePermissionDecision()` - Update request with approval/denial
+  - [x] `expireOldRequests()` - Mark 24h+ requests as timeout
+- [x] Write database tests for permission service
+  - [x] Test CRUD operations
+  - [x] Test expiration logic
+  - [x] Test concurrent request handling
+  - [x] All tests passing ✅
 
-### 1. Database Schema Updates ✅
-- [x] Add `settings` JSON column to sessions table in schema.ts
-- [x] Create migration to add settings column to existing sessions table
-- [x] Update database initialization in database.ts
-- [x] Add settings types to `/app/types/settings.ts`
+### Phase 2: MCP Permission Server ✅
+- [x] Set up new TypeScript project in `mcp-permission-server/`
+  - [x] Initialize package.json with dependencies
+  - [x] Configure tsconfig.json for Node.js target with ES modules
+  - [x] Install @modelcontextprotocol/sdk and better-sqlite3
+- [x] Implement MCP server (`mcp-permission-server/src/index.ts`)
+  - [x] Create MCP server instance
+  - [x] Register `approval_prompt` tool
+  - [x] Implement permission request creation in SQLite (via PermissionPoller class)
+  - [x] Implement polling logic with exponential backoff (100ms → 5s cap)
+  - [x] Handle 24-hour timeout
+  - [x] Return proper JSON response format
+- [x] Create build script
+  - [x] TypeScript compilation to JavaScript
+  - [x] Build successful - outputs to build/ directory
+- [x] Write unit tests for MCP server
+  - [x] Test permission request creation
+  - [x] Test polling behavior
+  - [x] Test timeout handling
+  - [x] Test exponential backoff
+  - [x] All tests passing ✅
 
-### 2. Session Service Layer ✅
-- [x] Modify `createSession` to copy global settings when creating new sessions
-- [x] Add `updateSessionSettings` function to update session-specific settings
-- [x] Add `getSessionSettings` function to retrieve session settings (with fallback to global)
-- [x] Fix JSON serialization/deserialization for settings storage
+### Phase 3: Update Claude Code Service ✅ COMPLETE
+- [x] Modify `app/services/claude-code.server.ts`
+  - [x] Create ~/.memva/tmp directory if not exists
+  - [x] Generate MCP config files at `~/.memva/tmp/mcp-config-{sessionId}.json`
+  - [x] Add `mcpConfig` option to Claude Code SDK options (camelCase version of --mcp-config)
+  - [x] Add `permissionPromptTool` option with mcp__memva-permissions__approval_prompt
+  - [x] Include correct MCP server path and environment variables
+  - [x] Clean up temp files on session end
+- [x] Write tests for MCP config generation
+  - [x] Test config file creation
+  - [x] Test cleanup on session end
+  - [x] Test SDK options with MCP config
+  - [x] Test permission tool is added to allowed tools
 
-### 3. Testing & Quality ✅
-- [x] Write comprehensive tests for session settings service functions
-- [x] Update existing tests to handle new settings structure
-- [x] Test settings inheritance (global → session)
-- [x] Test settings override functionality
-- [x] Fix all linting errors
-- [x] Fix all TypeScript errors
-- [x] Write tests for API routes
-- [x] Write tests for UI components
+**Note**: Claude Code TypeScript SDK accepts all CLI arguments but in camelCase format (e.g., `--mcp-config` becomes `mcpConfig`)
 
-### 4. Settings Modal Enhancement ✅
-- [x] Add `mode: 'global' | 'session'` prop to SettingsModal
-- [x] Add `sessionId?: string` prop for session mode
-- [x] Update modal title dynamically based on mode:
-  - Global: "Default Settings for New Sessions"
-  - Session: "Session Settings"
-- [x] Update save logic to call either global or session settings API
-- [x] Add helper text in global mode: "These are the defaults for new sessions, but can be overridden within each individual session."
-- [x] Add loading skeleton to prevent UI jump when settings load
-- [x] Update tests to verify modal works in both modes
+### Phase 4: React UI Components ✅ COMPLETE
+- [x] Create permission components (`app/components/permissions/`)
+  - [x] `PermissionRequestNotification.tsx` - Persistent notification bar
+  - [ ] `PermissionRequestModal.tsx` - Detailed view with tool info (deferred)
+  - [x] `PermissionQueue.tsx` - List all pending requests
+  - [ ] `PermissionHistory.tsx` - Audit log of past decisions (deferred)
+  - [x] `PermissionBadge.tsx` - Show count of pending permissions
+- [x] Integrate with existing design system
+  - [x] Use Linear-inspired minimal design
+  - [x] Use Inter font for UI text
+  - [x] Use JetBrains Mono for code/tool info
+  - [x] Thoughtful use of color for approve/deny actions
+- [x] Write component tests
+  - [x] Test notification appearance
+  - [x] Test queue management
+  - [x] Test badge behavior
+  - [x] Use semantic testing utilities
 
-### 5. Session Detail Page Integration ✅
-- [x] Add settings button to session detail page header
-- [x] Use same icon as homepage (RiSettings3Line)
-- [x] Add "Session Settings" label to the button
-- [x] Pass session ID to SettingsModal when opened
-- [x] Settings modal opens in session mode with correct props
+**Note**: Focused on core components needed for MVP. Modal and history components can be added later.
 
-### 6. Claude Code API Integration ✅
-- [x] Update `/api/claude-code.$sessionId` route to use session settings
-- [x] Fix SessionRunner to use `getSessionSettings` instead of global `getSettings`
-- [x] Verify Claude Code SDK uses session-specific settings:
-  - maxTurns from session settings
-  - permissionMode from session settings
-- [x] Proper fallback to global settings when session has none
+### Phase 5: Polling and State Management ✅ COMPLETE
+- [x] Create `usePermissionPolling` hook (`app/hooks/usePermissionPolling.ts`)
+  - [x] Poll database every 500ms for new requests (default)
+  - [x] Direct service layer polling (no React Query needed)
+  - [x] Return pending permissions list
+  - [x] Handle approve/deny actions
+  - [x] Support configurable polling interval and enable/disable
+- [ ] Add to main layout to ensure polling is always active (deferred to Phase 6)
+- [x] Write tests for polling behavior
+  - [x] Test new request detection
+  - [x] Test polling intervals
+  - [x] Test action handling
+  - [x] Test error handling
 
-### 7. Session Settings API Routes ✅
-- [x] Create GET `/api/session/:sessionId/settings` route
-- [x] Create PUT `/api/session/:sessionId/settings` route
-- [x] Add validation for settings updates
-- [x] Handle partial updates correctly
-- [x] Write comprehensive tests for API routes
+**Note**: Simplified approach using direct service calls instead of React Query, following existing patterns in codebase.
 
-### 8. Bug Fixes & Polish ✅
-- [x] Fix loading state to prevent UI jump from default to actual settings
-- [x] Add skeleton loader for smooth loading experience
-- [x] Fix SessionRunner to use session-specific settings
-- [x] Update modal text for clarity:
-  - Title: "Default Settings for New Sessions"
-  - Helper: "These are the defaults for new sessions, but can be overridden within each individual session."
+### Phase 6: API Routes ✅ COMPLETE
+- [x] Create permission API routes
+  - [x] `app/routes/api.permissions.tsx` - GET permission history
+  - [x] `app/routes/api.permissions.$id.tsx` - POST decision update
+  - [x] Follow existing route patterns with loaders/actions
+- [x] Write integration tests for API routes
+  - [x] Test permission listing
+  - [x] Test decision updates
+  - [x] Test error cases
+  - [x] All tests passing ✅
 
-## Architecture Decisions
+### Phase 7: Maintenance & Cleanup
+- [ ] Update maintenance handler (`app/workers/handlers/maintenance.handler.ts`)
+  - [ ] Add task to expire old permission requests (>24h)
+  - [ ] Run alongside existing cleanup tasks
+- [ ] Write tests for maintenance tasks
+  - [ ] Test expiration logic
+  - [ ] Test cleanup scheduling
 
-### What Went Well
-- **Service layer pattern** - Clean separation between routes and database operations
-- **JSON columns** - Flexible storage for settings without schema changes
-- **Fallback mechanism** - Graceful handling of sessions without custom settings
-- **TDD approach** - Caught issues early and ensured reliability
+### Phase 8: Integration Testing
+- [ ] Create end-to-end test for full permission flow
+  - [ ] Spawn Claude Code with permission tool
+  - [ ] Trigger permission request
+  - [ ] Verify UI shows notification
+  - [ ] Test approve/deny flow
+  - [ ] Verify Claude Code receives response
+- [ ] Test edge cases
+  - [ ] Multiple concurrent permission requests
+  - [ ] 24-hour timeout behavior
+  - [ ] UI disconnection/reconnection
+  - [ ] Server restart scenarios
 
-### Key Implementation Details
-- New sessions copy global settings at creation time
-- Session settings are optional - null means use global defaults
-- Settings modal is reusable with `mode` prop
-- All settings changes are validated before saving
+### Phase 9: Documentation & Polish
+- [ ] Update CLAUDE.md with any learnings
+- [ ] Add JSDoc comments to service functions
+- [ ] Ensure all tests pass
+- [ ] Run lint and typecheck
+- [ ] Manual testing with real Claude Code sessions
 
-## Future Enhancements (Not Implemented)
-- Settings templates/presets
-- Import/export functionality
-- Visual indicators on session cards for custom settings
-- "Reset to defaults" button
-- Settings change history/audit log
+## Success Criteria
+- [ ] Permission requests appear in UI within 1 second
+- [ ] Users can approve/deny requests up to 24 hours later
+- [ ] System handles multiple concurrent sessions gracefully
+- [ ] All tests pass with proper TDD approach
+- [ ] Clean separation of concerns following service layer pattern
+- [ ] Resilient to disconnections and restarts
+
+## Technical Details
+
+### Database Schema
+```sql
+CREATE TABLE permission_requests (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  tool_name TEXT NOT NULL,
+  tool_use_id TEXT,
+  input TEXT NOT NULL, -- JSON
+  status TEXT NOT NULL DEFAULT 'pending', -- pending, approved, denied, timeout
+  decision TEXT, -- allow, deny
+  decided_at TEXT,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  FOREIGN KEY (session_id) REFERENCES sessions(id)
+);
+```
+
+### MCP Server Tool Response Format
+```typescript
+// Success response
+{
+  "behavior": "allow",
+  "updatedInput": {...} // original or modified input
+}
+
+// Denial response
+{
+  "behavior": "deny",
+  "message": "Permission denied by user"
+}
+```
+
+### Polling Strategy
+- **UI Polling**: Every 500ms-1s for responsiveness
+- **MCP Server Polling**: Exponential backoff
+  - Start: 100ms
+  - Double each iteration
+  - Cap: 5 seconds
+  - Total timeout: 24 hours
+
+## Notes
+- All times in UTC for consistency
+- Permission requests are session-specific
+- Database remains source of truth for all state
+- MCP config assumes merge behavior (not override)

@@ -49,6 +49,19 @@ export const settings = sqliteTable('settings', {
   updated_at: text('updated_at').notNull()
 })
 
+export const permissionRequests = sqliteTable('permission_requests', {
+  id: text('id').primaryKey(),
+  session_id: text('session_id').notNull(),
+  tool_name: text('tool_name').notNull(),
+  tool_use_id: text('tool_use_id'),
+  input: text('input', { mode: 'json' }).notNull(),
+  status: text('status').notNull().default('pending'), // pending, approved, denied, timeout
+  decision: text('decision'), // allow, deny
+  decided_at: text('decided_at'),
+  created_at: text('created_at').notNull(),
+  expires_at: text('expires_at').notNull()
+})
+
 export type Session = typeof sessions.$inferSelect
 export type NewSession = typeof sessions.$inferInsert
 export type Event = typeof events.$inferSelect
@@ -57,3 +70,5 @@ export type Job = typeof jobs.$inferSelect
 export type NewJob = typeof jobs.$inferInsert
 export type Settings = typeof settings.$inferSelect
 export type NewSettings = typeof settings.$inferInsert
+export type PermissionRequest = typeof permissionRequests.$inferSelect
+export type NewPermissionRequest = typeof permissionRequests.$inferInsert

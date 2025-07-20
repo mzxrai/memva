@@ -22,3 +22,6 @@ dev.log
 # Temporary files (old location, kept for safety)
 .tmp/
 
+# MCP Permission Server
+mcp-permission-server/node_modules/
+mcp-permission-server/build/

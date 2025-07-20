@@ -12,6 +12,7 @@ export type TestDatabase = {
   getSession: (sessionId: string) => typeof sessions.$inferSelect | null
   insertEvent: (event: typeof events.$inferInsert) => void
   getEventsForSession: (sessionId: string) => Array<typeof events.$inferSelect>
+  getDb: () => ReturnType<typeof drizzle>
   cleanup: () => void
 }
 
@@ -77,6 +78,22 @@ export function setupInMemoryDb(): TestDatabase {
     )
   `)
 
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS permission_requests (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      tool_name TEXT NOT NULL,
+      tool_use_id TEXT,
+      input TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      decision TEXT,
+      decided_at TEXT,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      FOREIGN KEY (session_id) REFERENCES sessions(id)
+    )
+  `)
+
   // Create indexes
   sqlite.exec(`
     CREATE INDEX IF NOT EXISTS idx_session_id ON events(session_id);
@@ -93,6 +110,10 @@ export function setupInMemoryDb(): TestDatabase {
     CREATE INDEX IF NOT EXISTS idx_jobs_priority_created ON jobs(priority DESC, created_at ASC);
     CREATE INDEX IF NOT EXISTS idx_jobs_scheduled_at ON jobs(scheduled_at);
     CREATE INDEX IF NOT EXISTS idx_jobs_status_priority ON jobs(status, priority DESC);
+    CREATE INDEX IF NOT EXISTS idx_permission_requests_session_id ON permission_requests(session_id);
+    CREATE INDEX IF NOT EXISTS idx_permission_requests_status ON permission_requests(status);
+    CREATE INDEX IF NOT EXISTS idx_permission_requests_expires_at ON permission_requests(expires_at);
+    CREATE INDEX IF NOT EXISTS idx_permission_requests_created_at ON permission_requests(created_at);
   `)
 
   // Insert default settings
@@ -130,6 +151,8 @@ export function setupInMemoryDb(): TestDatabase {
     return db.select().from(events).where(eq(events.memva_session_id, sessionId)).all()
   }
 
+  const getDb = () => db
+
   const cleanup = () => {
     sqlite.close()
   }
@@ -142,6 +165,7 @@ export function setupInMemoryDb(): TestDatabase {
     getSession,
     insertEvent,
     getEventsForSession,
+    getDb,
     cleanup
   }
 }

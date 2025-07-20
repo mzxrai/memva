@@ -172,3 +172,45 @@ export const MOCK_TOOLS = {
   edit: (filePath: string, oldString: string, newString: string) => createMockToolUse('Edit', { file_path: filePath, old_string: oldString, new_string: newString }),
   todoWrite: (todos: TodoItem[]) => createMockToolUse('TodoWrite', { todos })
 }
+
+// Permission Request Factory
+export function createMockPermissionRequest(overrides: Partial<{
+  id: string
+  session_id: string
+  tool_name: string
+  tool_use_id: string | null
+  input: Record<string, unknown>
+  status: string
+  decision: string | null
+  decided_at: string | null
+  created_at: string
+  expires_at: string
+}> = {}): {
+  id: string
+  session_id: string
+  tool_name: string
+  tool_use_id: string | null
+  input: Record<string, unknown>
+  status: string
+  decision: string | null
+  decided_at: string | null
+  created_at: string
+  expires_at: string
+} {
+  const now = new Date()
+  const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000) // 24 hours from now
+  
+  return {
+    id: `perm-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    session_id: 'test-session-123',
+    tool_name: 'Bash',
+    tool_use_id: null,
+    input: { command: 'ls -la' },
+    status: 'pending',
+    decision: null,
+    decided_at: null,
+    created_at: now.toISOString(),
+    expires_at: expiresAt.toISOString(),
+    ...overrides
+  }
+}

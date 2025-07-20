@@ -14,4 +14,6 @@ export default [
   route("api/filesystem", "routes/api.filesystem.tsx"),
   route("api/settings", "routes/api.settings.tsx"),
   route("api/session/:sessionId/settings", "routes/api.session.$sessionId.settings.tsx"),
+  route("api/permissions", "routes/api.permissions.tsx"),
+  route("api/permissions/:id", "routes/api.permissions.$id.tsx"),
 ] satisfies RouteConfig;
