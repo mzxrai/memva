@@ -12,6 +12,8 @@ interface StreamClaudeCodeOptions {
   resumeSessionId?: string
   initialParentUuid?: string
   timeoutMs?: number
+  maxTurns?: number
+  permissionMode?: string
 }
 
 export async function streamClaudeCodeResponse({
@@ -24,7 +26,9 @@ export async function streamClaudeCodeResponse({
   onStoredEvent,
   resumeSessionId,
   initialParentUuid,
-  timeoutMs = 30 * 60 * 1000 // 30 minutes default
+  timeoutMs = 30 * 60 * 1000, // 30 minutes default
+  maxTurns = 200,
+  permissionMode = 'acceptEdits'
 }: StreamClaudeCodeOptions): Promise<{ lastSessionId?: string }> {
   console.log(`[Claude Code] === STREAM START ===`)
   console.log(`[Claude Code] Resume session ID: ${resumeSessionId || 'NONE (new session)'}`)
@@ -33,6 +37,8 @@ export async function streamClaudeCodeResponse({
   console.log(`[Claude Code] Project path: ${projectPath}`)
   console.log(`[Claude Code] Initial parent UUID: ${initialParentUuid || 'none'}`)
   console.log(`[Claude Code] Timeout: ${timeoutMs}ms (${timeoutMs / 60000} minutes)`)
+  console.log(`[Claude Code] Max turns: ${maxTurns}`)
+  console.log(`[Claude Code] Permission mode: ${permissionMode}`)
 
   const controller = abortController || new AbortController()
 
@@ -81,9 +87,9 @@ export async function streamClaudeCodeResponse({
 
   try {
     const options: Record<string, unknown> = {
-      maxTurns: 100,
+      maxTurns,
       cwd: projectPath,
-      permissionMode: 'acceptEdits',
+      permissionMode,
       allowedTools: ['Read', 'Write', 'Bash']
     }
 

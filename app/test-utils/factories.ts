@@ -16,6 +16,7 @@ export function createMockSession(overrides?: Partial<Session>): Session {
     project_path: '/test/project',
     metadata: null,
     claude_status: 'not_started',
+    settings: null,
     ...overrides
   }
 }
@@ -30,6 +31,7 @@ export function createMockNewSession(overrides?: Partial<NewSession>): NewSessio
     project_path: '/test/project',
     metadata: null,
     claude_status: 'not_started',
+    settings: null,
     ...overrides
   }
 }

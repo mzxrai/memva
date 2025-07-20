@@ -138,7 +138,12 @@ export async function action({ request, params }: Route.ActionArgs) {
   const formData = await request.formData()
   const prompt = formData.get("prompt") as string
   
+  // Get session-specific settings (with fallback to global)
+  const { getSessionSettings } = await import('../db/sessions.service')
+  const settings = await getSessionSettings(params.sessionId)
+  
   console.log(`[API] Received prompt: "${prompt}" for session ${params.sessionId}`)
+  console.log(`[API] Settings from DB - maxTurns: ${settings.maxTurns}, permissionMode: ${settings.permissionMode}`)
 
   if (!prompt?.trim()) {
     return new Response("Prompt is required", { status: 400 })
@@ -219,6 +224,8 @@ export async function action({ request, params }: Route.ActionArgs) {
           memvaSessionId: params.sessionId,
           resumeSessionId: existingClaudeSessionId || undefined,
           initialParentUuid: lastParentUuid,
+          maxTurns: settings.maxTurns,
+          permissionMode: settings.permissionMode,
           onStoredEvent: (event) => {
             console.log(`[API] onStoredEvent called for type=${event.event_type}, aborted=${abortController.signal.aborted}`)
             

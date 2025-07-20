@@ -8,7 +8,8 @@ export const sessions = sqliteTable('sessions', {
   status: text('status').notNull(),
   project_path: text('project_path').notNull(),
   metadata: text('metadata', { mode: 'json' }),
-  claude_status: text('claude_status').default('not_started')
+  claude_status: text('claude_status').default('not_started'),
+  settings: text('settings', { mode: 'json' })
 })
 
 export const events = sqliteTable('events', {
@@ -41,9 +42,18 @@ export const jobs = sqliteTable('jobs', {
   updated_at: text('updated_at').notNull()
 })
 
+export const settings = sqliteTable('settings', {
+  id: text('id').primaryKey().default('singleton'),
+  config: text('config', { mode: 'json' }).notNull().default('{}'),
+  created_at: text('created_at').notNull(),
+  updated_at: text('updated_at').notNull()
+})
+
 export type Session = typeof sessions.$inferSelect
 export type NewSession = typeof sessions.$inferInsert
 export type Event = typeof events.$inferSelect
 export type NewEvent = typeof events.$inferInsert
 export type Job = typeof jobs.$inferSelect
 export type NewJob = typeof jobs.$inferInsert
+export type Settings = typeof settings.$inferSelect
+export type NewSettings = typeof settings.$inferInsert

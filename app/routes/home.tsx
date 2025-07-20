@@ -1,15 +1,16 @@
 import type { Route } from "./+types/home";
 import { Link, Form, redirect } from "react-router";
 import { createSession, type SessionWithStats } from "../db/sessions.service";
-import { RiFolder3Line, RiTimeLine, RiPulseLine } from "react-icons/ri";
+import { RiFolder3Line, RiTimeLine, RiPulseLine, RiSettings3Line } from "react-icons/ri";
 import StatusIndicator from "../components/StatusIndicator";
 import MessageCarousel from "../components/MessageCarousel";
 import RelativeTime from "../components/RelativeTime";
 import DirectorySelector from "../components/DirectorySelector";
+import SettingsModal from "../components/SettingsModal";
 import clsx from "clsx";
 import { useState, useEffect, useRef, type FormEvent, type KeyboardEvent } from "react";
 import { useHomepageData } from "../hooks/useHomepageData";
-import { colors, typography } from "../constants/design";
+import { colors, typography, transition, iconSize } from "../constants/design";
 
 export function meta(): Array<{ title?: string; name?: string; content?: string }> {
   return [
@@ -98,6 +99,7 @@ export default function Home() {
   const [sessionTitle, setSessionTitle] = useState("");
   const [currentDirectory, setCurrentDirectory] = useState<string>('');
   const [isDirectoryModalOpen, setIsDirectoryModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-resize textarea
@@ -181,8 +183,27 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-zinc-950">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      {/* Settings button - fixed to top right */}
+      <button
+        onClick={() => setIsSettingsModalOpen(true)}
+        className={clsx(
+          'fixed top-6 right-6 z-10 p-2.5 rounded-lg',
+          colors.text.secondary,
+          colors.background.secondary,
+          'border',
+          colors.border.subtle,
+          colors.background.hover,
+          transition.fast,
+          'hover:text-zinc-300',
+          'hover:border-zinc-700'
+        )}
+        aria-label="Open settings"
+        title="Settings"
+      >
+        <RiSettings3Line className={iconSize.md} />
+      </button>
 
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* New Session Bar */}
         <div className="mb-8">
           <Form 
@@ -238,6 +259,12 @@ export default function Home() {
           currentDirectory={currentDirectory}
           onSelect={handleDirectorySelect}
           onClose={() => setIsDirectoryModalOpen(false)}
+        />
+
+        {/* Settings Modal */}
+        <SettingsModal
+          isOpen={isSettingsModalOpen}
+          onClose={() => setIsSettingsModalOpen(false)}
         />
 
         {/* Sessions Grid */}

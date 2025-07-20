@@ -9,7 +9,53 @@ import type { Route } from '../routes/+types/api.claude-code.$sessionId'
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
 
+// Define the mock function
+const mockStreamClaudeCodeResponse = vi.fn()
+
+// Mock the claude-code.server module
+vi.mock('../services/claude-code.server', () => ({
+  streamClaudeCodeResponse: vi.fn()
+}))
+
 import { action } from '../routes/api.claude-code.$sessionId'
+import { streamClaudeCodeResponse } from '../services/claude-code.server'
+
+// Set up the mock implementation after imports
+vi.mocked(streamClaudeCodeResponse).mockImplementation(async (options) => {
+  // Capture the settings passed to the function
+  mockStreamClaudeCodeResponse(options)
+  
+  // Call onStoredEvent to simulate events being stored
+  if (options.onStoredEvent) {
+    // Simulate a few events
+    options.onStoredEvent({
+      uuid: 'event-1',
+      event_type: 'system',
+      timestamp: new Date().toISOString(),
+      memva_session_id: options.memvaSessionId,
+      data: { type: 'system', subtype: 'init' }
+    })
+    
+    options.onStoredEvent({
+      uuid: 'event-2',
+      event_type: 'assistant',
+      timestamp: new Date().toISOString(),
+      memva_session_id: options.memvaSessionId,
+      data: { type: 'assistant', message: 'Hello!' }
+    })
+    
+    options.onStoredEvent({
+      uuid: 'event-3',
+      event_type: 'result',
+      timestamp: new Date().toISOString(),
+      memva_session_id: options.memvaSessionId,
+      data: { type: 'result', subtype: 'success' }
+    })
+  }
+  
+  // Return a minimal response
+  return { lastSessionId: 'mock-session-id' }
+})
 
 describe('Claude Code API Route', () => {
   let testDb: TestDatabase
@@ -22,6 +68,7 @@ describe('Claude Code API Route', () => {
   afterEach(() => {
     testDb.cleanup()
     clearTestDatabase()
+    vi.clearAllMocks()
   })
 
   it('should return 404 if session not found', async () => {
@@ -163,5 +210,74 @@ describe('Claude Code API Route', () => {
       },
       { timeoutMs: 5000 }
     )
+  })
+
+  it('should use session-specific settings when sending to Claude Code', async () => {
+    // Create a session with custom settings
+    const session = testDb.createSession({
+      title: 'Test Session',
+      project_path: '/test/project'
+    })
+    
+    // Update session with custom settings
+    const { updateSessionSettings } = await import('../db/sessions.service')
+    await updateSessionSettings(session.id, {
+      maxTurns: 300,
+      permissionMode: 'bypassPermissions'
+    })
+    
+    const formData = new FormData()
+    formData.append('prompt', 'Test with custom settings')
+    
+    const request = new Request(`http://localhost/api/claude-code/${session.id}`, {
+      method: 'POST',
+      body: formData
+    })
+    
+    const params = { sessionId: session.id }
+    
+    const response = await action({ request, params } as Route.ActionArgs)
+    
+    expect(response.status).toBe(200)
+    
+    // Wait a bit for the stream to start
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    // Check that streamClaudeCodeResponse was called with session settings
+    expect(mockStreamClaudeCodeResponse).toHaveBeenCalled()
+    const callOptions = mockStreamClaudeCodeResponse.mock.calls[0][0]
+    expect(callOptions.maxTurns).toBe(300)
+    expect(callOptions.permissionMode).toBe('bypassPermissions')
+  })
+
+  it('should fall back to global settings when session has no custom settings', async () => {
+    // Create a session without custom settings
+    const session = testDb.createSession({
+      title: 'Test Session',
+      project_path: '/test/project'
+    })
+    
+    const formData = new FormData()
+    formData.append('prompt', 'Test with default settings')
+    
+    const request = new Request(`http://localhost/api/claude-code/${session.id}`, {
+      method: 'POST',
+      body: formData
+    })
+    
+    const params = { sessionId: session.id }
+    
+    const response = await action({ request, params } as Route.ActionArgs)
+    
+    expect(response.status).toBe(200)
+    
+    // Wait a bit for the stream to start
+    await new Promise(resolve => setTimeout(resolve, 100))
+    
+    // Check that streamClaudeCodeResponse was called with global defaults
+    expect(mockStreamClaudeCodeResponse).toHaveBeenCalled()
+    const callOptions = mockStreamClaudeCodeResponse.mock.calls[mockStreamClaudeCodeResponse.mock.calls.length - 1][0]
+    expect(callOptions.maxTurns).toBe(200)
+    expect(callOptions.permissionMode).toBe('acceptEdits')
   })
 })

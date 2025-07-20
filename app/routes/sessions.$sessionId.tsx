@@ -2,12 +2,13 @@ import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useParams, Form, useLoaderData, useNavigation } from "react-router";
 import { useSSEEvents } from "../hooks/useSSEEvents";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { RiFolder3Line } from "react-icons/ri";
+import { RiFolder3Line, RiSettings3Line } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
 import { PendingMessage } from "../components/PendingMessage";
 import { getSession } from "../db/sessions.service";
 import { getEventsForSession } from "../db/event-session.service";
 import { useGreenLineIndicator } from "../hooks/useGreenLineIndicator";
+import SettingsModal from "../components/SettingsModal";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const sessionId = params.sessionId;
@@ -126,6 +127,7 @@ export default function SessionDetail() {
     content: string;
     timestamp: number;
   } | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   // Track form submission state
   const isSubmitting = navigation.state === "submitting";
@@ -495,13 +497,23 @@ export default function SessionDetail() {
       <div className="px-4 py-6 border-b border-zinc-800">
         <div className="container mx-auto max-w-7xl">
           <h1 className="text-3xl font-semibold text-zinc-100 mb-2">{session.title || 'Untitled Session'}</h1>
-          <div className="text-sm text-zinc-400 flex items-center">
-            <span className="flex items-center gap-1.5">
-              <RiFolder3Line className="w-4 h-4 text-zinc-500" />
-              <span className="font-mono">{session.project_path}</span>
-            </span>
-            <span className="mx-2">•</span>
-            <span className="capitalize">{session.status}</span>
+          <div className="text-sm text-zinc-400 flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="flex items-center gap-1.5">
+                <RiFolder3Line className="w-4 h-4 text-zinc-500" />
+                <span className="font-mono">{session.project_path}</span>
+              </span>
+              <span className="mx-2">•</span>
+              <span className="capitalize">{session.status}</span>
+            </div>
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/50 transition-all duration-200"
+              aria-label="Session Settings"
+            >
+              <RiSettings3Line className="w-4 h-4" />
+              <span>Session Settings</span>
+            </button>
           </div>
         </div>
       </div>
@@ -586,6 +598,14 @@ export default function SessionDetail() {
           </div>
         </div>
       </div>
+      
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        mode="session"
+        sessionId={sessionId}
+      />
     </div>
   );
 }

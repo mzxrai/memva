@@ -119,6 +119,11 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
       }
     }, 100) // Poll every 100ms for near-instant response
     
+    // Get session-specific settings (with fallback to global)
+    const { getSessionSettings } = await import('../../db/sessions.service')
+    const settings = await getSessionSettings(sessionId)
+    console.log(`[SessionRunner] Using settings - maxTurns: ${settings.maxTurns}, permissionMode: ${settings.permissionMode}`)
+    
     // Execute Claude Code SDK interaction
     try {
       await streamClaudeCodeResponse({
@@ -128,6 +133,8 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
         resumeSessionId,
         initialParentUuid,
         abortController,
+        maxTurns: settings.maxTurns,
+        permissionMode: settings.permissionMode,
         onMessage: () => {
           messagesProcessed++
           // Messages are automatically stored by the service

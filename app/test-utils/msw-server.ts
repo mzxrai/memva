@@ -76,6 +76,37 @@ export const handlers = [
       },
       events: []
     })
+  }),
+  
+  // Mock the settings API endpoints
+  http.get('/api/settings', () => {
+    return HttpResponse.json({
+      maxTurns: 200,
+      permissionMode: 'acceptEdits'
+    })
+  }),
+  
+  http.post('/api/settings', async ({ request }) => {
+    const body = await request.json()
+    return HttpResponse.json(body)
+  }),
+  
+  http.put('/api/settings', async ({ request }) => {
+    const body = await request.json()
+    return HttpResponse.json(body)
+  }),
+  
+  // Mock session-specific settings endpoints
+  http.get('/api/session/:sessionId/settings', ({ params }) => {
+    return HttpResponse.json({
+      maxTurns: 200,
+      permissionMode: 'acceptEdits'
+    })
+  }),
+  
+  http.put('/api/session/:sessionId/settings', async ({ request }) => {
+    const body = await request.json()
+    return HttpResponse.json(body)
   })
 ]
 

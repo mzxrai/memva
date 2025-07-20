@@ -58,7 +58,8 @@ function initializeSchema() {
       status TEXT NOT NULL,
       project_path TEXT NOT NULL,
       metadata TEXT,
-      claude_status TEXT DEFAULT 'not_started'
+      claude_status TEXT DEFAULT 'not_started',
+      settings TEXT
     )
   `)
   
@@ -94,6 +95,16 @@ function initializeSchema() {
       completed_at TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
+    )
+  `)
+  
+  // Create settings table
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS settings (
+      id TEXT PRIMARY KEY DEFAULT 'singleton',
+      config TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `)
   
@@ -142,6 +153,27 @@ function runMigrations() {
   if (!hasClaudeStatus) {
     console.log('Migrating: Adding claude_status column to sessions table')
     sqlite.exec(`ALTER TABLE sessions ADD COLUMN claude_status TEXT DEFAULT 'not_started'`)
+  }
+  
+  // Check if settings table has any records, insert default if not
+  const settingsCount = sqlite.prepare(`SELECT COUNT(*) as count FROM settings`).get() as { count: number }
+  if (settingsCount.count === 0) {
+    console.log('Migrating: Inserting default settings')
+    sqlite.exec(`
+      INSERT INTO settings (id, config, created_at, updated_at)
+      VALUES ('singleton', '{"maxTurns": 200, "permissionMode": "acceptEdits"}', datetime('now'), datetime('now'))
+    `)
+  }
+  
+  // Check if sessions table has settings column
+  const sessionColumns = sqlite.prepare(`PRAGMA table_info(sessions)`).all()
+  const hasSettingsColumn = sessionColumns.some((col: unknown) => 
+    typeof col === 'object' && col !== null && 'name' in col && (col as { name: string }).name === 'settings'
+  )
+  
+  if (!hasSettingsColumn) {
+    console.log('Migrating: Adding settings column to sessions table')
+    sqlite.exec(`ALTER TABLE sessions ADD COLUMN settings TEXT`)
   }
 }
 

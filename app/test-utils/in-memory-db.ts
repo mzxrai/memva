@@ -7,6 +7,7 @@ import { sessions, events } from '../db/schema'
 export type TestDatabase = {
   db: ReturnType<typeof drizzle>
   sqlite: Database.Database
+  schema: typeof schema
   createSession: (input: Partial<typeof sessions.$inferInsert> & { project_path: string }) => typeof sessions.$inferInsert & { id: string }
   getSession: (sessionId: string) => typeof sessions.$inferSelect | null
   insertEvent: (event: typeof events.$inferInsert) => void
@@ -28,7 +29,8 @@ export function setupInMemoryDb(): TestDatabase {
       status TEXT NOT NULL,
       project_path TEXT NOT NULL,
       metadata TEXT,
-      claude_status TEXT DEFAULT 'not_started'
+      claude_status TEXT DEFAULT 'not_started',
+      settings TEXT
     )
   `)
 
@@ -66,6 +68,15 @@ export function setupInMemoryDb(): TestDatabase {
     )
   `)
 
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS settings (
+      id TEXT PRIMARY KEY DEFAULT 'singleton',
+      config TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `)
+
   // Create indexes
   sqlite.exec(`
     CREATE INDEX IF NOT EXISTS idx_session_id ON events(session_id);
@@ -84,6 +95,12 @@ export function setupInMemoryDb(): TestDatabase {
     CREATE INDEX IF NOT EXISTS idx_jobs_status_priority ON jobs(status, priority DESC);
   `)
 
+  // Insert default settings
+  sqlite.exec(`
+    INSERT INTO settings (id, config, created_at, updated_at)
+    VALUES ('singleton', '{"maxTurns": 200, "permissionMode": "acceptEdits"}', datetime('now'), datetime('now'))
+  `)
+
   // Helper functions
   const createSession = (input: Partial<typeof sessions.$inferInsert> & { project_path: string }): typeof sessions.$inferSelect => {
     const session = {
@@ -94,7 +111,8 @@ export function setupInMemoryDb(): TestDatabase {
       status: input.status || 'active',
       project_path: input.project_path,
       metadata: input.metadata !== undefined ? input.metadata : null,
-      claude_status: input.claude_status || 'not_started'
+      claude_status: input.claude_status || 'not_started',
+      settings: input.settings !== undefined ? input.settings : null
     }
     db.insert(sessions).values(session).run()
     return session as typeof sessions.$inferSelect
@@ -119,6 +137,7 @@ export function setupInMemoryDb(): TestDatabase {
   return {
     db,
     sqlite,
+    schema,
     createSession,
     getSession,
     insertEvent,
