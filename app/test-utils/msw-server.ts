@@ -107,6 +107,18 @@ export const handlers = [
   http.put('/api/session/:sessionId/settings', async ({ request }) => {
     const body = await request.json()
     return HttpResponse.json(body)
+  }),
+  
+  // Mock filesystem API endpoint
+  http.get('/api/filesystem', ({ request }) => {
+    const url = new URL(request.url)
+    const action = url.searchParams.get('action')
+    
+    if (action === 'current') {
+      return HttpResponse.json({ currentDirectory: '/' })
+    }
+    
+    return HttpResponse.json({ error: 'Unknown action' }, { status: 400 })
   })
 ]
 

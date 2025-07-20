@@ -13,6 +13,8 @@ import { useHomepageData } from "../hooks/useHomepageData";
 import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
 import { useTextareaSubmit } from "../hooks/useTextareaSubmit";
 import { colors, typography, transition, iconSize } from "../constants/design";
+import { useImageUpload } from "../hooks/useImageUpload";
+import { ImagePreview } from "../components/ImagePreview";
 
 export function meta(): Array<{ title?: string; name?: string; content?: string }> {
   return [
@@ -58,13 +60,42 @@ export async function action({ request }: Route.ActionArgs) {
   const { updateSessionClaudeStatus } = await import('../db/sessions.service');
   await updateSessionClaudeStatus(session.id, 'processing');
   
+  // Handle image uploads
+  const imagePaths: string[] = [];
+  const imageDataEntries = [...formData.entries()].filter(([key]) => key.startsWith('image-data-'));
+  
+  if (imageDataEntries.length > 0) {
+    const { saveImageToDisk } = await import('../services/image-storage.server');
+    
+    for (const [key, value] of imageDataEntries) {
+      const [, , index] = key.split('-');
+      const fileName = formData.get(`image-name-${index}`) as string;
+      const imageData = value as string;
+      
+      // Convert base64 to buffer
+      const base64Data = imageData.split(',')[1];
+      const buffer = Buffer.from(base64Data, 'base64');
+      
+      // Save image to disk
+      const filePath = await saveImageToDisk(session.id, fileName, buffer);
+      imagePaths.push(filePath);
+    }
+  }
+  
+  // Prepend image paths to prompt if any
+  let finalPrompt = prompt.trim();
+  if (imagePaths.length > 0) {
+    const imageReferences = imagePaths.map(path => `[Image: ${path}]`).join('\n');
+    finalPrompt = `${imageReferences}\n\n${finalPrompt}`;
+  }
+  
   // Create session-runner job
   const { createJob } = await import('../db/jobs.service');
   const { createSessionRunnerJob } = await import('../workers/job-types');
   
   const jobInput = createSessionRunnerJob({
     sessionId: session.id,
-    prompt: prompt.trim()
+    prompt: finalPrompt
   });
   
   await createJob(jobInput);
@@ -106,6 +137,16 @@ export default function Home() {
   // Use custom hooks for textarea functionality
   const { textareaRef } = useAutoResizeTextarea(sessionTitle, { maxRows: 5 });
   const handleKeyDown = useTextareaSubmit(sessionTitle);
+  
+  // Use image upload hook
+  const {
+    images,
+    isDragging,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    removeImage,
+  } = useImageUpload();
 
   // Load last used directory on mount
   useEffect(() => {
@@ -171,7 +212,22 @@ export default function Home() {
             onSubmit={handleSubmit}
             className="p-4 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-xl"
           >
-            <div className="flex items-start gap-2">
+            {/* Image Preview */}
+            {images.length > 0 && (
+              <div className="mb-3">
+                <ImagePreview images={images} onRemove={removeImage} />
+              </div>
+            )}
+            
+            <div 
+              className={clsx(
+                "flex items-start gap-2",
+                isDragging && "border-zinc-500"
+              )}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               {/* Terminal-style directory prefix */}
               <button
                 type="button"
@@ -210,6 +266,23 @@ export default function Home() {
             </div>
             <input type="hidden" name="prompt" value={sessionTitle} />
             <input type="hidden" name="project_path" value={currentDirectory} />
+            
+            {/* Hidden inputs for image data */}
+            {images.map((image, index) => (
+              <div key={image.id}>
+                <input
+                  type="hidden"
+                  name={`image-data-${index}`}
+                  value={image.preview}
+                  data-testid={`image-data-${index}`}
+                />
+                <input
+                  type="hidden"
+                  name={`image-name-${index}`}
+                  value={image.file.name}
+                />
+              </div>
+            ))}
           </Form>
         </div>
 

@@ -21,21 +21,19 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
   },
   processing: {
     displayText: 'Working',
-    dotColor: 'bg-blue-500',
+    dotColor: 'bg-emerald-500',
     pulse: true,
-    dotClass: 'bg-blue-500 animate-pulse',
+    dotClass: 'bg-emerald-500 animate-pulse',
   },
   waiting_for_input: {
-    displayText: 'Ready',
-    dotColor: 'bg-emerald-500',
-    badgeText: 'Ready',
-    dotClass: 'bg-emerald-500',
+    displayText: '',
+    dotColor: '',
+    dotClass: '',
   },
   completed: {
-    displayText: 'Ready',
-    dotColor: 'bg-emerald-500',
-    badgeText: 'Ready',
-    dotClass: 'bg-emerald-500',
+    displayText: '',
+    dotColor: '',
+    dotClass: '',
   },
   error: {
     displayText: 'Error',
@@ -52,6 +50,11 @@ export default function StatusIndicator({ session }: StatusIndicatorProps) {
     dotClass: 'bg-zinc-400',
   }
 
+  // Don't render anything for statuses without visual indicators
+  if (!config.dotClass && !config.displayText && !config.badgeText) {
+    return null
+  }
+
   return (
     <div 
       role="status" 
@@ -59,21 +62,22 @@ export default function StatusIndicator({ session }: StatusIndicatorProps) {
       aria-live="polite"
       className="flex items-center gap-2 text-sm"
     >
-      <div
-        data-testid="status-dot"
-        data-status={status === 'unknown_status' ? 'unknown' : status}
-        data-pulse={config.pulse ? 'true' : 'false'}
-        className={clsx(
-          'w-2 h-2 rounded-full',
-          config.dotClass
-        )}
-      />
+      {config.dotClass && (
+        <div
+          data-testid="status-dot"
+          data-status={status === 'unknown_status' ? 'unknown' : status}
+          data-pulse={config.pulse ? 'true' : 'false'}
+          className={clsx(
+            'w-2 h-2 rounded-full',
+            config.dotClass
+          )}
+        />
+      )}
       {(config.badgeText || config.displayText) && (
         <span className={clsx(
           'font-medium',
           status === 'error' ? 'text-red-500' : 
-          status === 'processing' ? 'text-blue-500' :
-          status === 'waiting_for_input' || status === 'completed' ? 'text-emerald-500' :
+          status === 'processing' ? 'text-emerald-500' :
           'text-zinc-500'
         )}>
           {config.badgeText || config.displayText}

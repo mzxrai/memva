@@ -10,6 +10,8 @@ import { getEventsForSession } from "../db/event-session.service";
 import { useGreenLineIndicator } from "../hooks/useGreenLineIndicator";
 import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
 import { useTextareaSubmit } from "../hooks/useTextareaSubmit";
+import { useImageUpload } from "../hooks/useImageUpload";
+import { ImagePreview } from "../components/ImagePreview";
 import SettingsModal from "../components/SettingsModal";
 import PermissionsBadge from "../components/PermissionsBadge";
 import type { PermissionMode } from "../types/settings";
@@ -29,7 +31,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
 
 export async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
-  const prompt = formData.get('prompt') as string;
+  let prompt = formData.get('prompt') as string;
   
   if (!prompt?.trim()) {
     return { error: 'Prompt is required' };
@@ -47,6 +49,52 @@ export async function action({ request, params }: ActionFunctionArgs) {
   
   if (!session) {
     throw new Response("Session not found", { status: 404 });
+  }
+
+  // Handle image uploads
+  const imagePaths: string[] = [];
+  const imageDataEntries = [...formData.entries()].filter(([key]) => key.startsWith('image-data-'));
+  
+  console.log('Image upload debug:', {
+    formDataEntries: [...formData.entries()].map(([k, v]) => [k, typeof v === 'string' ? v.substring(0, 100) : v]),
+    imageDataEntriesCount: imageDataEntries.length,
+    sessionId
+  });
+  
+  if (imageDataEntries.length > 0) {
+    const { saveImageToDisk } = await import('../services/image-storage.server');
+    
+    for (const [key, value] of imageDataEntries) {
+      const index = key.replace('image-data-', '');
+      const dataUrl = value as string;
+      const fileName = formData.get(`image-name-${index}`) as string;
+      
+      console.log('Processing image:', { index, fileName, dataUrlLength: dataUrl?.length });
+      
+      if (dataUrl && fileName) {
+        // Extract base64 data from data URL
+        const base64Data = dataUrl.split(',')[1];
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        console.log('Saving image:', { fileName, bufferSize: buffer.length });
+        
+        try {
+          // Save image to disk
+          const filePath = await saveImageToDisk(sessionId, fileName, buffer);
+          console.log('Image saved to:', filePath);
+          imagePaths.push(filePath);
+        } catch (error) {
+          console.error('Error saving image:', error);
+          throw error;
+        }
+      }
+    }
+    
+    // Prepend image paths to prompt
+    if (imagePaths.length > 0) {
+      const imagePrompt = `Please analyze the following images:\n${imagePaths.map(p => `- ${p}`).join('\n')}\n\n`;
+      prompt = imagePrompt + prompt.trim();
+    }
   }
 
   // Store user message as an event
@@ -167,6 +215,17 @@ export default function SessionDetail() {
     timestamp: number;
   } | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // Use image upload hook
+  const {
+    images,
+    isDragging,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    removeImage,
+    clearImages,
+  } = useImageUpload();
   
   // Track form submission state
   const isSubmitting = navigation.state === "submitting";
@@ -500,12 +559,25 @@ export default function SessionDetail() {
     }
   }, [displayEvents.length, showPending, shouldAutoScroll, newEvents.length]);
   
-  // Clear form when submission completes
+  // Clear prompt and images on successful submission
+  const wasSubmittingRef = useRef(false);
   useEffect(() => {
-    if (navigation.state === "idle" && prompt !== "") {
-      setPrompt("");
+    // Track if we were submitting
+    if (navigation.state === "submitting") {
+      wasSubmittingRef.current = true;
     }
-  }, [navigation.state]);
+    
+    // Only clear prompt and images if we just finished submitting
+    if (navigation.state === "idle" && wasSubmittingRef.current) {
+      if (prompt !== "") {
+        setPrompt("");
+      }
+      if (images.length > 0) {
+        clearImages();
+      }
+      wasSubmittingRef.current = false;
+    }
+  }, [navigation.state, prompt, images.length, clearImages]);
 
   if (!session) {
     return (
@@ -616,14 +688,24 @@ export default function SessionDetail() {
         <div>
           <div className="container mx-auto max-w-7xl">
             <div className="relative">
-              {/* Permissions badge above the input container */}
-              <div className="flex justify-end mb-2">
+              {/* Image preview and permissions badge above the input container */}
+              <div className={`flex items-end mb-2 ${images.length > 0 ? 'justify-between' : 'justify-end'}`}>
+                {images.length > 0 && (
+                  <div className="flex-1 mr-4">
+                    <ImagePreview images={images} onRemove={removeImage} />
+                  </div>
+                )}
                 <PermissionsBadge 
                   mode={currentPermissionMode}
                   isUpdating={isUpdatingPermissions}
                 />
               </div>
-              <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 p-4 flex items-center gap-3">
+              <div 
+                className={`bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border ${isDragging ? 'border-zinc-600' : 'border-zinc-800/50'} p-4 flex items-center gap-3 transition-colors duration-200`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
                 <Form 
                   method="post" 
                   className="flex-1"
@@ -634,6 +716,12 @@ export default function SessionDetail() {
                       setProcessingStartTime(now);
                       setOptimisticUserMessage({ content: message, timestamp: now });
                     }
+                    console.log('Form submission - images:', images.length, images.map(img => ({ 
+                      name: img.file.name, 
+                      size: img.file.size,
+                      type: img.file.type,
+                      previewLength: img.preview.length 
+                    })));
                   }}
                 >
                   <div className="flex items-start px-5 py-3.5 bg-zinc-800/60 border border-zinc-700/50 rounded-xl focus-within:border-zinc-600 focus-within:bg-zinc-800/80 transition-all duration-200">
@@ -656,6 +744,22 @@ export default function SessionDetail() {
                       style={{ overflowY: 'hidden' }}
                     />
                   </div>
+                  
+                  {/* Hidden inputs for image data */}
+                  {images.map((image, index) => (
+                    <div key={image.id}>
+                      <input
+                        type="hidden"
+                        name={`image-data-${index}`}
+                        value={image.preview}
+                      />
+                      <input
+                        type="hidden"
+                        name={`image-name-${index}`}
+                        value={image.file.name}
+                      />
+                    </div>
+                  ))}
                 </Form>
               </div>
             </div>

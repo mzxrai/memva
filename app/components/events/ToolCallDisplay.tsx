@@ -131,7 +131,7 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
         if (lines.length > 3) {
           return { status: 'error', brief: `${lines.slice(0, 3).join('\n')}\n(+${lines.length - 3} more lines)`, full: errorContent }
         }
-        return { status: 'error', brief: errorContent.substring(0, 200) + (errorContent.length > 200 ? '...' : ''), full: errorContent.length > 200 ? errorContent : undefined }
+        return { status: 'error', brief: errorContent.substring(0, 500) + (errorContent.length > 500 ? '...' : ''), full: errorContent.length > 500 ? errorContent : undefined }
       } else {
         // Handle successful tool_result content
         if (typeof content === 'string') {
@@ -139,9 +139,9 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
           if (lines.length > 3) {
             return { status: 'success', brief: `${lines.length} lines`, full: content }
           }
-          return { status: 'success', brief: content.substring(0, 150) + (content.length > 150 ? '...' : ''), full: content }
+          return { status: 'success', brief: content.substring(0, 300) + (content.length > 300 ? '...' : ''), full: content }
         }
-        return { status: 'success', brief: JSON.stringify(content).substring(0, 150) + '...', full: JSON.stringify(content, null, 2) }
+        return { status: 'success', brief: JSON.stringify(content).substring(0, 300) + '...', full: JSON.stringify(content, null, 2) }
       }
     }
     
@@ -157,7 +157,7 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
         if (lines.length > 3) {
           return { status: 'error', brief: `${lines.slice(0, 3).join('\n')}\n(+${lines.length - 3} more lines)`, full: content }
         }
-        return { status: 'error', brief: content.substring(0, 200) + (content.length > 200 ? '...' : ''), full: content.length > 200 ? content : undefined }
+        return { status: 'error', brief: content.substring(0, 500) + (content.length > 500 ? '...' : ''), full: content.length > 500 ? content : undefined }
       }
     }
     
@@ -170,7 +170,7 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
     // Handle legacy error format
     const errorResult = result as { error?: string }
     if (errorResult.error) {
-      return { status: 'error', brief: errorResult.error, full: errorResult.error.length > 150 ? errorResult.error : undefined }
+      return { status: 'error', brief: errorResult.error, full: errorResult.error.length > 300 ? errorResult.error : undefined }
     }
   }
   
@@ -180,10 +180,10 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
     if (lines.length > 3) {
       return { status: 'success', brief: `${lines.length} lines`, full: result }
     }
-    return { status: 'success', brief: result.substring(0, 150) + (result.length > 150 ? '...' : ''), full: result }
+    return { status: 'success', brief: result.substring(0, 300) + (result.length > 300 ? '...' : ''), full: result }
   }
   
-  return { status: 'success', brief: JSON.stringify(result).substring(0, 150) + '...', full: JSON.stringify(result, null, 2) }
+  return { status: 'success', brief: JSON.stringify(result).substring(0, 300) + '...', full: JSON.stringify(result, null, 2) }
 }
 
 // Tools that have custom display components
@@ -390,7 +390,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
             typography.font.mono,
             typography.size.sm,
             colors.text.secondary,
-            'truncate max-w-3xl'
+            'truncate flex-1 min-w-0'
           )}>
             {primaryParam}
           </span>
@@ -411,9 +411,6 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
         )}>
           {toolCall.id}
         </span>
-        
-        {/* Spacer to push expand icon to the right */}
-        <div className="flex-1" />
       </div>
       
       {/* Result section - minimal inline display */}
