@@ -5,10 +5,12 @@ import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { RiFolder3Line, RiSettings3Line } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
 import { PendingMessage } from "../components/PendingMessage";
-import { getSession } from "../db/sessions.service";
+import { getSession, getSessionSettings } from "../db/sessions.service";
 import { getEventsForSession } from "../db/event-session.service";
 import { useGreenLineIndicator } from "../hooks/useGreenLineIndicator";
 import SettingsModal from "../components/SettingsModal";
+import PermissionsBadge from "../components/PermissionsBadge";
+import type { PermissionMode } from "../types/settings";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const sessionId = params.sessionId;
@@ -19,7 +21,8 @@ export async function loader({ params }: LoaderFunctionArgs) {
   
   const session = await getSession(sessionId);
   const events = await getEventsForSession(sessionId);
-  return { session, events };
+  const settings = await getSessionSettings(sessionId);
+  return { session, events, settings };
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -89,17 +92,52 @@ export default function SessionDetail() {
   const params = useParams();
   const sessionId = params.sessionId as string;
   const navigation = useNavigation();
-  const { session: initialSession, events: initialEvents } = useLoaderData<typeof loader>();
+  const { session: initialSession, events: initialEvents, settings: initialSettings } = useLoaderData<typeof loader>();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isInitialMount = useRef(true);
   const [isVisible, setIsVisible] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [currentPermissionMode, setCurrentPermissionMode] = useState<PermissionMode>(initialSettings.permissionMode || 'acceptEdits');
+  const [isUpdatingPermissions, setIsUpdatingPermissions] = useState(false);
   
   // Clear green indicators when visiting session detail
   const { clearGreenForSession } = useGreenLineIndicator(sessionId);
   useEffect(() => {
     clearGreenForSession(sessionId);
   }, [sessionId, clearGreenForSession]);
+  
+  // Cycle through permission modes
+  const cyclePermissionMode = useCallback(async () => {
+    const modes: PermissionMode[] = ['plan', 'acceptEdits', 'bypassPermissions'];
+    const currentIndex = modes.indexOf(currentPermissionMode);
+    const nextMode = modes[(currentIndex + 1) % modes.length];
+    
+    // Update UI optimistically
+    setCurrentPermissionMode(nextMode);
+    setIsUpdatingPermissions(true);
+    
+    try {
+      // Update session settings
+      const response = await fetch(`/api/session/${sessionId}/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...initialSettings,
+          permissionMode: nextMode
+        })
+      });
+      
+      if (!response.ok) {
+        // Revert on error
+        setCurrentPermissionMode(currentPermissionMode);
+      }
+    } catch {
+      // Revert on error
+      setCurrentPermissionMode(currentPermissionMode);
+    } finally {
+      setIsUpdatingPermissions(false);
+    }
+  }, [currentPermissionMode, sessionId, initialSettings]);
   
   // Autofocus input on mount
   useEffect(() => {
@@ -479,24 +517,36 @@ export default function SessionDetail() {
   const isProcessing = session.claude_status === 'processing';
   const hasError = session.claude_status === 'error';
   
-  // Handle Escape key to stop processing
+  // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape key to stop processing
       if (e.key === 'Escape' && processingStartTime && !isStopInProgress) {
         handleStop();
+      }
+      
+      // SHIFT+TAB to cycle permission modes
+      if (e.key === 'Tab' && e.shiftKey) {
+        e.preventDefault();
+        cyclePermissionMode();
       }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [processingStartTime, isStopInProgress, handleStop]);
+  }, [processingStartTime, isStopInProgress, handleStop, cyclePermissionMode]);
 
   return (
     <div className="h-screen bg-zinc-950 flex flex-col overflow-hidden">
       {/* Fixed header */}
       <div className="px-4 py-6 border-b border-zinc-800">
         <div className="container mx-auto max-w-7xl">
-          <h1 className="text-3xl font-semibold text-zinc-100 mb-2">{session.title || 'Untitled Session'}</h1>
+          <h1 
+            className="text-3xl font-semibold text-zinc-100 mb-2 truncate"
+            title={session.title || 'Untitled Session'}
+          >
+            {session.title || 'Untitled Session'}
+          </h1>
           <div className="text-sm text-zinc-400 flex items-center justify-between">
             <div className="flex items-center">
               <span className="flex items-center gap-1.5">
@@ -561,6 +611,13 @@ export default function SessionDetail() {
         <div>
           <div className="container mx-auto max-w-7xl">
             <div className="relative">
+              {/* Permissions badge above the input container */}
+              <div className="flex justify-end mb-2">
+                <PermissionsBadge 
+                  mode={currentPermissionMode}
+                  isUpdating={isUpdatingPermissions}
+                />
+              </div>
               <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 p-4 flex items-center gap-3">
                 <Form 
                   method="post" 
@@ -605,6 +662,9 @@ export default function SessionDetail() {
         onClose={() => setIsSettingsOpen(false)}
         mode="session"
         sessionId={sessionId}
+        onSettingsChange={(newSettings) => {
+          setCurrentPermissionMode(newSettings.permissionMode)
+        }}
       />
     </div>
   );

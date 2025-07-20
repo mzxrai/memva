@@ -9,6 +9,7 @@ interface SettingsModalProps {
   onClose: () => void
   mode?: 'global' | 'session'
   sessionId?: string
+  onSettingsChange?: (settings: Settings) => void
 }
 
 const PERMISSION_MODES: Array<{ value: PermissionMode; label: string; description: string }> = [
@@ -33,7 +34,8 @@ export default function SettingsModal({
   isOpen,
   onClose,
   mode = 'global',
-  sessionId
+  sessionId,
+  onSettingsChange
 }: SettingsModalProps) {
   const [settings, setSettings] = useState<Settings>({ maxTurns: 200, permissionMode: 'acceptEdits' })
   const [isSaved, setIsSaved] = useState(false)
@@ -125,6 +127,10 @@ export default function SettingsModal({
         
         if (response.ok) {
           setIsSaved(true)
+          // Call the callback if provided
+          if (onSettingsChange) {
+            onSettingsChange(settings)
+          }
           // Auto-close after a short delay
           setTimeout(() => {
             onClose()
@@ -299,7 +305,13 @@ export default function SettingsModal({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <div className={clsx(typography.size.sm, typography.weight.medium, colors.text.primary)}>
+                      <div className={clsx(
+                        typography.size.sm, 
+                        typography.weight.medium,
+                        mode.value === 'plan' ? 'text-emerald-400' :
+                        mode.value === 'bypassPermissions' ? 'text-amber-400' :
+                        colors.text.primary
+                      )}>
                         {mode.label}
                       </div>
                       <div className={clsx(typography.size.xs, colors.text.tertiary, 'mt-1')}>
