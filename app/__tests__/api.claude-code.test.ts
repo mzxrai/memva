@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
-import { waitForStreamCompletion } from '../test-utils/async-testing'
 import { createMockEvent } from '../test-utils/factories'
 import { events } from '../db/schema'
 import type { Route } from '../routes/+types/api.claude-code.$sessionId'
@@ -172,7 +171,7 @@ describe('Claude Code API Route', () => {
     // Verify that streamClaudeCodeResponse was called with resume capability
     expect(streamClaudeCodeResponse).toHaveBeenCalled()
     const callArgs = vi.mocked(streamClaudeCodeResponse).mock.calls[vi.mocked(streamClaudeCodeResponse).mock.calls.length - 1][0]
-    expect(callArgs.claudeSessionId).toBe('claude-session-1') // Should resume the existing session
+    expect(callArgs.resumeSessionId).toBe('claude-session-1') // Should resume the existing session
   })
 
   it('should use session-specific settings when sending to Claude Code', async () => {
