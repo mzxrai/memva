@@ -349,9 +349,9 @@ export default function Home() {
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{
                     type: "spring",
-                    stiffness: 500,
-                    damping: 30,
-                    mass: 1,
+                    stiffness: 350,
+                    damping: 25,
+                    mass: 1.2,
                   }}
                   layoutId={session.id}
                 >
