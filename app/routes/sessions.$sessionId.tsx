@@ -8,6 +8,8 @@ import { PendingMessage } from "../components/PendingMessage";
 import { getSession, getSessionSettings } from "../db/sessions.service";
 import { getEventsForSession } from "../db/event-session.service";
 import { useGreenLineIndicator } from "../hooks/useGreenLineIndicator";
+import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
+import { useTextareaSubmit } from "../hooks/useTextareaSubmit";
 import SettingsModal from "../components/SettingsModal";
 import PermissionsBadge from "../components/PermissionsBadge";
 import type { PermissionMode } from "../types/settings";
@@ -96,7 +98,6 @@ export default function SessionDetail() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isInitialMount = useRef(true);
   const [isVisible, setIsVisible] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
   const [currentPermissionMode, setCurrentPermissionMode] = useState<PermissionMode>(initialSettings.permissionMode || 'acceptEdits');
   const [isUpdatingPermissions, setIsUpdatingPermissions] = useState(false);
   
@@ -172,6 +173,10 @@ export default function SessionDetail() {
   
   // Define visibility states
   const showPending = processingStartTime !== null;
+  
+  // Use custom hooks for textarea functionality
+  const { textareaRef: inputRef } = useAutoResizeTextarea(prompt, { maxRows: 5 });
+  const handleTextareaKeyDown = useTextareaSubmit(prompt);
   
   // Helper to extract user message text from event data
   const getUserMessageText = (data: unknown): string | undefined => {
@@ -631,22 +636,24 @@ export default function SessionDetail() {
                     }
                   }}
                 >
-                  <div className="flex items-center px-5 py-3.5 bg-zinc-800/60 border border-zinc-700/50 rounded-xl focus-within:border-zinc-600 focus-within:bg-zinc-800/80 transition-all duration-200">
+                  <div className="flex items-start px-5 py-3.5 bg-zinc-800/60 border border-zinc-700/50 rounded-xl focus-within:border-zinc-600 focus-within:bg-zinc-800/80 transition-all duration-200">
                     <span className="text-zinc-500 font-mono mr-4 select-none">{'>'}</span>
-                    <input
+                    <textarea
                       ref={inputRef}
                       name="prompt"
-                      type="text"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
+                      onKeyDown={handleTextareaKeyDown}
                       disabled={(isProcessing && !isStopInProgress) || isSubmitting}
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck="false"
-                      className="flex-1 bg-transparent text-zinc-100 focus:outline-none disabled:opacity-50 font-mono text-[0.9375rem]"
+                      rows={1}
+                      className="flex-1 bg-transparent text-zinc-100 focus:outline-none disabled:opacity-50 font-mono text-[0.9375rem] resize-none leading-normal"
                       role="textbox"
                       placeholder={isProcessing || isSubmitting ? "Processing... (ESC to stop)" : "Ask Claude Code anything..."}
+                      style={{ overflowY: 'hidden' }}
                     />
                   </div>
                 </Form>

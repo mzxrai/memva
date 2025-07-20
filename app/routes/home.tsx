@@ -8,8 +8,10 @@ import RelativeTime from "../components/RelativeTime";
 import DirectorySelector from "../components/DirectorySelector";
 import SettingsModal from "../components/SettingsModal";
 import clsx from "clsx";
-import { useState, useEffect, useRef, type FormEvent, type KeyboardEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useHomepageData } from "../hooks/useHomepageData";
+import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
+import { useTextareaSubmit } from "../hooks/useTextareaSubmit";
 import { colors, typography, transition, iconSize } from "../constants/design";
 
 export function meta(): Array<{ title?: string; name?: string; content?: string }> {
@@ -100,36 +102,10 @@ export default function Home() {
   const [currentDirectory, setCurrentDirectory] = useState<string>('');
   const [isDirectoryModalOpen, setIsDirectoryModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  // Auto-resize textarea
-  const adjustTextareaHeight = () => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-    
-    // Reset height to auto to get the correct scrollHeight
-    textarea.style.height = 'auto';
-    
-    // Calculate the height based on content
-    const scrollHeight = textarea.scrollHeight;
-    const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight);
-    const minRows = 1;
-    const maxRows = 7;
-    
-    const minHeight = lineHeight * minRows;
-    const maxHeight = lineHeight * maxRows;
-    
-    // Set the height, clamped between min and max
-    const newHeight = Math.max(minHeight, Math.min(scrollHeight, maxHeight));
-    textarea.style.height = `${newHeight}px`;
-    
-    // Add or remove scrollbar based on content
-    if (scrollHeight > maxHeight) {
-      textarea.style.overflowY = 'auto';
-    } else {
-      textarea.style.overflowY = 'hidden';
-    }
-  };
+  
+  // Use custom hooks for textarea functionality
+  const { textareaRef } = useAutoResizeTextarea(sessionTitle, { maxRows: 5 });
+  const handleKeyDown = useTextareaSubmit(sessionTitle);
 
   // Load last used directory on mount
   useEffect(() => {
@@ -153,25 +129,9 @@ export default function Home() {
     loadDirectory();
   }, []);
 
-  // Adjust textarea height when content changes
-  useEffect(() => {
-    adjustTextareaHeight();
-  }, [sessionTitle]);
-
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     if (!sessionTitle.trim()) {
       e.preventDefault();
-    }
-  };
-
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // Submit on Enter without Shift
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      const form = e.currentTarget.closest('form');
-      if (form && sessionTitle.trim()) {
-        form.requestSubmit();
-      }
     }
   };
 
