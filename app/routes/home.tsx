@@ -84,19 +84,8 @@ export async function action({ request }: Route.ActionArgs) {
   }
   
   // Format prompt with image paths
-  let finalPrompt = prompt.trim();
-  if (imagePaths.length > 0) {
-    const userPrompt = prompt.trim();
-    if (userPrompt) {
-      // User provided a prompt
-      const imageList = imagePaths.map(p => `- ${p}`).join('\n');
-      finalPrompt = `Please review the following images and then respond to my prompt:\n${imageList}\n\n${userPrompt}`;
-    } else {
-      // No user prompt, just images
-      const imageList = imagePaths.map(p => `- ${p}`).join('\n');
-      finalPrompt = `Please review the following images:\n${imageList}`;
-    }
-  }
+  const { formatPromptWithImages } = await import('../utils/image-prompt-formatting');
+  const finalPrompt = formatPromptWithImages(prompt.trim(), imagePaths);
   
   // Create session-runner job
   const { createJob } = await import('../db/jobs.service');
@@ -348,10 +337,14 @@ export default function Home() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{
-                    type: "spring",
-                    stiffness: 350,
-                    damping: 25,
-                    mass: 1.2,
+                    layout: {
+                      type: "spring",
+                      stiffness: 100,
+                      damping: 20,
+                      mass: 1.5,
+                    },
+                    opacity: { duration: 0.4 },
+                    scale: { duration: 0.4 }
                   }}
                   layoutId={session.id}
                 >
