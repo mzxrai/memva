@@ -22,6 +22,7 @@ import { ReadToolDisplay } from './tools/ReadToolDisplay'
 import { TodoWriteToolDisplay } from './tools/TodoWriteToolDisplay'
 import { WebSearchToolDisplay } from './tools/WebSearchToolDisplay'
 import { TaskToolDisplay } from './tools/TaskToolDisplay'
+import { ExitPlanModeDisplay } from './tools/ExitPlanModeDisplay'
 import type { ToolUseContent } from '../../types/events'
 import clsx from 'clsx'
 
@@ -49,6 +50,7 @@ const toolIcons: Record<string, ComponentType<{ className?: string; 'data-testid
   Grep: RiSearchLine,
   Glob: RiSearchLine,
   TodoWrite: RiTaskLine,
+  exit_plan_mode: RiFileTextLine,
 }
 
 // Get icon test ID based on tool name
@@ -72,6 +74,7 @@ const getIconTestId = (toolName: string): string => {
 const getToolDisplayName = (toolName: string): string => {
   const displayNames: Record<string, string> = {
     TodoWrite: 'Update Todos',
+    exit_plan_mode: 'Proposed Plan',
   }
   return displayNames[toolName] || toolName
 }
@@ -102,6 +105,8 @@ const getPrimaryParam = (toolName: string, input: unknown): string => {
       return (params.url as string) || (params.query as string) || ''
     case 'Task':
       return (params.description as string) || ''
+    case 'exit_plan_mode':
+      return '' // Don't show the markdown content in the header
     default: {
       // Return first string value found
       const firstValue = Object.values(params).find(v => typeof v === 'string')
@@ -195,7 +200,8 @@ const TOOLS_WITH_CUSTOM_DISPLAY = new Set([
   'WebSearch',
   'Edit',
   'MultiEdit',
-  'Task'
+  'Task',
+  'exit_plan_mode'
 ])
 
 export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, className, isStreaming = false, isError = false }: ToolCallDisplayProps) => {
@@ -524,6 +530,15 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       {/* Task tool result section */}
       {toolCall.name === 'Task' && (
         <TaskToolDisplay 
+          toolCall={toolCall}
+          hasResult={hasResult}
+          result={result}
+        />
+      )}
+      
+      {/* Exit plan mode display */}
+      {toolCall.name === 'exit_plan_mode' && (
+        <ExitPlanModeDisplay 
           toolCall={toolCall}
           hasResult={hasResult}
           result={result}

@@ -38,10 +38,19 @@ export default function MessageCarousel({ sessionId, latestMessage }: MessageCar
         : []
       const seenMessages = new Set(seenMessagesData.map(item => item.uuid))
       
-      // If we haven't seen this message before, mark it as green
+      // If we haven't seen this message before, handle it appropriately
       if (!seenMessages.has(latestMessage.uuid)) {
         console.log(`[MessageCarousel] New message detected: ${latestMessage.uuid}`)
-        markAsGreen(latestMessage.uuid)
+        
+        // Check if user is currently viewing this session
+        const activeSession = localStorage.getItem('activeSession');
+        const isUserViewingSession = activeSession === sessionId;
+        
+        // Only mark as green if user is NOT currently viewing this session
+        if (!isUserViewingSession) {
+          markAsGreen(latestMessage.uuid)
+        }
+        
         setShouldAnimate(true)
         setTimeout(() => setShouldAnimate(false), 300)
         
@@ -66,11 +75,11 @@ export default function MessageCarousel({ sessionId, latestMessage }: MessageCar
         
         const seenMessagesData: Array<{ uuid: string; timestamp: number }> = JSON.parse(stored)
         const now = Date.now()
-        const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000
+        const ONE_DAY = 24 * 60 * 60 * 1000
         
-        // Filter out messages older than 7 days
+        // Filter out messages older than 24 hours
         const filtered = seenMessagesData.filter(item => 
-          (now - item.timestamp) < SEVEN_DAYS
+          (now - item.timestamp) < ONE_DAY
         )
         
         // Only update localStorage if something was removed

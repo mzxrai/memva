@@ -139,6 +139,31 @@ export default function SessionDetail() {
     clearGreenForSession(sessionId);
   }, [sessionId, clearGreenForSession]);
   
+  // Track active session to prevent green lines while user is present
+  useEffect(() => {
+    // Mark this session as active
+    localStorage.setItem('activeSession', sessionId);
+    
+    // Handle page visibility changes
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // User switched away from this tab
+        localStorage.removeItem('activeSession');
+      } else {
+        // User came back to this tab
+        localStorage.setItem('activeSession', sessionId);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Cleanup on unmount
+    return () => {
+      localStorage.removeItem('activeSession');
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [sessionId]);
+  
   // Cycle through permission modes
   const cyclePermissionMode = useCallback(async () => {
     const modes: PermissionMode[] = ['plan', 'acceptEdits', 'bypassPermissions'];
