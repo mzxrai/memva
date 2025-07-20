@@ -90,7 +90,7 @@ export async function streamClaudeCodeResponse({
     let options: Record<string, unknown> = {
       maxTurns,
       cwd: projectPath,
-      // Don't set permissionMode when using custom permission tool
+      permissionMode,
       allowedTools: ['Read'] // Only allow Read by default, everything else requires permission
     }
 
@@ -332,11 +332,7 @@ export async function getClaudeCodeOptionsWithPermissions(
         sessionId,
         '--database-path',
         databasePath
-      ],
-      env: {
-        SESSION_ID: sessionId,
-        DATABASE_PATH: databasePath
-      }
+      ]
     }
   }
   

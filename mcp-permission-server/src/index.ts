@@ -46,16 +46,6 @@ for (let i = 0; i < args.length; i++) {
   }
 }
 
-// Fall back to environment variables if CLI args not provided
-if (!SESSION_ID && process.env.SESSION_ID) {
-  SESSION_ID = process.env.SESSION_ID
-  log('Using SESSION_ID from environment variable')
-}
-if (!DATABASE_PATH && process.env.DATABASE_PATH) {
-  DATABASE_PATH = process.env.DATABASE_PATH
-  log('Using DATABASE_PATH from environment variable')
-}
-
 log(`MCP Permission Server starting...`)
 log(`Command-line args: ${JSON.stringify(args)}`)
 log(`Session ID: ${SESSION_ID}`)
@@ -63,12 +53,12 @@ log(`Database Path: ${DATABASE_PATH}`)
 log(`Current directory: ${process.cwd()}`)
 
 if (!SESSION_ID) {
-  log('ERROR: --session-id argument or SESSION_ID env var is required')
+  log('ERROR: --session-id argument is required')
   process.exit(1)
 }
 
 if (!DATABASE_PATH) {
-  log('ERROR: --database-path argument or DATABASE_PATH env var is required')
+  log('ERROR: --database-path argument is required')
   process.exit(1)
 }
 

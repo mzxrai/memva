@@ -66,7 +66,7 @@ export default function InlinePermissionRequest({
     <div 
       className={clsx(
         "p-4 rounded-lg border",
-        "bg-amber-900/10 border-amber-800/30",
+        "bg-amber-900/90 border-amber-800/50",
         "transition-all duration-200"
       )}
     >
