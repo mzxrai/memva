@@ -1,9 +1,6 @@
 import { query, type SDKMessage } from '@anthropic-ai/claude-code'
 import { createEventFromMessage, storeEvent } from '../db/events.service'
-import { spawn, type ChildProcess } from 'node:child_process'
-import fs from 'node:fs/promises'
 import path from 'node:path'
-import os from 'node:os'
 
 interface StreamClaudeCodeOptions {
   prompt: string
@@ -93,8 +90,8 @@ export async function streamClaudeCodeResponse({
     let options: Record<string, unknown> = {
       maxTurns,
       cwd: projectPath,
-      permissionMode,
-      allowedTools: ['Read']
+      // Don't set permissionMode when using custom permission tool
+      allowedTools: ['Read'] // Only allow Read by default, everything else requires permission
     }
 
     if (resumeSessionId) {
@@ -307,64 +304,12 @@ export async function streamClaudeCodeResponse({
     // Clear the timeout to prevent it from firing after completion
     clearTimeout(timeoutId)
     
-    // Clean up MCP config if we created one
-    if (memvaSessionId) {
-      console.log('[Claude Code] Cleaning up MCP config for session:', memvaSessionId)
-      await cleanupMcpConfig(memvaSessionId).catch(error => {
-        console.error('[Claude Code] Failed to cleanup MCP config:', error)
-      })
-    }
+    // No cleanup needed since we're using direct MCP server config
   }
 
   return { lastSessionId }
 }
 
-/**
- * Generate MCP configuration file for a session
- */
-export async function generateMcpConfig(sessionId: string): Promise<string> {
-  const homeDir = os.homedir()
-  const configDir = path.join(homeDir, '.memva', 'tmp')
-  const configPath = path.join(configDir, `mcp-config-${sessionId}.json`)
-
-  // Ensure directory exists
-  await fs.mkdir(configDir, { recursive: true })
-
-  // Get absolute paths
-  const mcpServerPath = path.resolve(process.cwd(), 'mcp-permission-server', 'build', 'index.js')
-  const databasePath = path.resolve(process.cwd(), 'memva-dev.db')
-
-  const config = {
-    mcpServers: {
-      'memva-permissions': {
-        command: 'node',
-        args: [mcpServerPath],
-        env: {
-          SESSION_ID: sessionId,
-          DATABASE_PATH: databasePath
-        }
-      }
-    }
-  }
-
-  await fs.writeFile(configPath, JSON.stringify(config, null, 2), 'utf-8')
-  return configPath
-}
-
-/**
- * Clean up MCP configuration file for a session
- */
-export async function cleanupMcpConfig(sessionId: string): Promise<void> {
-  const homeDir = os.homedir()
-  const configPath = path.join(homeDir, '.memva', 'tmp', `mcp-config-${sessionId}.json`)
-
-  try {
-    await fs.access(configPath)
-    await fs.unlink(configPath)
-  } catch {
-    // File doesn't exist, that's ok
-  }
-}
 
 /**
  * Get Claude Code SDK options with MCP permissions configured
@@ -373,8 +318,27 @@ export async function getClaudeCodeOptionsWithPermissions(
   sessionId: string,
   baseOptions: Record<string, unknown> = {}
 ): Promise<Record<string, unknown>> {
-  // Generate MCP config
-  const mcpConfigPath = await generateMcpConfig(sessionId)
+  // Get absolute paths
+  const mcpServerPath = path.resolve(process.cwd(), 'mcp-permission-server', 'build', 'index.js')
+  const databasePath = path.resolve(process.cwd(), 'memva-dev.db')
+  
+  // Create MCP server config
+  const mcpServers = {
+    'memva-permissions': {
+      command: 'node',
+      args: [
+        mcpServerPath,
+        '--session-id',
+        sessionId,
+        '--database-path',
+        databasePath
+      ],
+      env: {
+        SESSION_ID: sessionId,
+        DATABASE_PATH: databasePath
+      }
+    }
+  }
   
   // Ensure permission tool is in allowed tools
   const permissionTool = 'mcp__memva-permissions__approval_prompt'
@@ -383,71 +347,13 @@ export async function getClaudeCodeOptionsWithPermissions(
     ? existingTools 
     : [...existingTools, permissionTool]
   
-  // Return options with MCP config and permission tool
+  // Return options with MCP servers and permission tool
   return {
     ...baseOptions,
-    mcpConfig: mcpConfigPath,
-    permissionPromptTool: permissionTool,
+    mcpServers,
+    permissionPromptToolName: permissionTool,
     allowedTools
   }
 }
 
-interface SpawnClaudeCodeOptions {
-  cwd: string
-  apiKey: string
-  maxTurns?: number
-  allowedTools?: string[]
-  permissionMode?: string
-}
 
-interface SpawnClaudeCodeResult {
-  process: ChildProcess
-  mcpConfigPath: string
-}
-
-/**
- * Spawn Claude Code with MCP permission server configured
- */
-export async function spawnClaudeCodeWithPermissions(
-  sessionId: string,
-  options: SpawnClaudeCodeOptions
-): Promise<SpawnClaudeCodeResult> {
-  // Generate MCP config
-  const mcpConfigPath = await generateMcpConfig(sessionId)
-
-  // Ensure permission tool is in allowed tools
-  const permissionTool = 'mcp__memva-permissions__approval_prompt'
-  const allowedTools = options.allowedTools || []
-  if (!allowedTools.includes(permissionTool)) {
-    allowedTools.push(permissionTool)
-  }
-
-  // Build command arguments
-  const args = [
-    '--mcp-config', mcpConfigPath,
-    '--permission-prompt-tool', permissionTool,
-    '--max-turns', String(options.maxTurns || 200)
-  ]
-
-  if (allowedTools.length > 0) {
-    args.push('--allowedTools', allowedTools.join(','))
-  }
-
-  if (options.permissionMode) {
-    args.push('--permission-mode', options.permissionMode)
-  }
-
-  // Spawn Claude Code
-  const claudeProcess = spawn('claude', args, {
-    cwd: options.cwd,
-    env: {
-      ...process.env,
-      ANTHROPIC_API_KEY: options.apiKey
-    }
-  })
-
-  return {
-    process: claudeProcess,
-    mcpConfigPath
-  }
-}

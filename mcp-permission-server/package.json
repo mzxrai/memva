@@ -4,6 +4,9 @@
   "description": "MCP permission server for Memva app",
   "main": "build/index.js",
   "type": "module",
+  "bin": {
+    "memva-permission-server": "./build/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "test": "vitest",
