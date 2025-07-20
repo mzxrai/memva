@@ -181,7 +181,7 @@ describe('Session Detail Job Dispatch', () => {
       context: {} 
     })
 
-    expect(result).toEqual({ error: 'Prompt is required' })
+    expect(result).toEqual({ error: 'Please provide a prompt or upload images' })
     
     // Verify no job was created
     const jobsInDb = testDb.db.select().from(jobs).all()
@@ -210,7 +210,7 @@ describe('Session Detail Job Dispatch', () => {
       context: {} 
     })
 
-    expect(result).toEqual({ error: 'Prompt is required' })
+    expect(result).toEqual({ error: 'Please provide a prompt or upload images' })
     
     // Verify no job was created
     const jobsInDb = testDb.db.select().from(jobs).all()

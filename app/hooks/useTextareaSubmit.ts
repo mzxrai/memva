@@ -2,7 +2,8 @@ import { useCallback, type KeyboardEvent } from 'react';
 
 export function useTextareaSubmit(
   value: string,
-  onSubmit?: () => void
+  onSubmit?: () => void,
+  allowEmptySubmit = false
 ) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -10,7 +11,7 @@ export function useTextareaSubmit(
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         const form = e.currentTarget.closest('form');
-        if (form && value.trim()) {
+        if (form && (value.trim() || allowEmptySubmit)) {
           if (onSubmit) {
             onSubmit();
           }
@@ -18,7 +19,7 @@ export function useTextareaSubmit(
         }
       }
     },
-    [value, onSubmit]
+    [value, onSubmit, allowEmptySubmit]
   );
 
   return handleKeyDown;

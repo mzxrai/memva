@@ -25,7 +25,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
   
   const session = await getSession(sessionId);
   const events = await getEventsForSession(sessionId);
-  const settings = await getSessionSettings(sessionId);
+  const settings = session ? await getSessionSettings(sessionId) : null;
   return { session, events, settings };
 }
 
@@ -56,11 +56,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return { error: 'Please provide a prompt or upload images' };
   }
   
-  console.log('Image upload debug:', {
-    formDataEntries: [...formData.entries()].map(([k, v]) => [k, typeof v === 'string' ? v.substring(0, 100) : v]),
-    imageDataEntriesCount: imageDataEntries.length,
-    sessionId
-  });
   
   if (imageDataEntries.length > 0) {
     const { saveImageToDisk } = await import('../services/image-storage.server');
@@ -70,40 +65,20 @@ export async function action({ request, params }: ActionFunctionArgs) {
       const dataUrl = value as string;
       const fileName = formData.get(`image-name-${index}`) as string;
       
-      console.log('Processing image:', { index, fileName, dataUrlLength: dataUrl?.length });
-      
       if (dataUrl && fileName) {
         // Extract base64 data from data URL
         const base64Data = dataUrl.split(',')[1];
         const buffer = Buffer.from(base64Data, 'base64');
         
-        console.log('Saving image:', { fileName, bufferSize: buffer.length });
-        
-        try {
-          // Save image to disk
-          const filePath = await saveImageToDisk(sessionId, fileName, buffer);
-          console.log('Image saved to:', filePath);
-          imagePaths.push(filePath);
-        } catch (error) {
-          console.error('Error saving image:', error);
-          throw error;
-        }
+        // Save image to disk
+        const filePath = await saveImageToDisk(sessionId, fileName, buffer);
+        imagePaths.push(filePath);
       }
     }
     
     // Format prompt with image paths
-    if (imagePaths.length > 0) {
-      const userPrompt = prompt.trim();
-      if (userPrompt) {
-        // User provided a prompt
-        const imageList = imagePaths.map(p => `- ${p}`).join('\n');
-        prompt = `Please review the following images and then respond to my prompt:\n${imageList}\n\n${userPrompt}`;
-      } else {
-        // No user prompt, just images
-        const imageList = imagePaths.map(p => `- ${p}`).join('\n');
-        prompt = `Please review the following images:\n${imageList}`;
-      }
-    }
+    const { formatPromptWithImages } = await import('../utils/image-prompt-formatting');
+    prompt = formatPromptWithImages(prompt, imagePaths);
   }
 
   // Store user message as an event
@@ -155,7 +130,7 @@ export default function SessionDetail() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isInitialMount = useRef(true);
   const [isVisible, setIsVisible] = useState(false);
-  const [currentPermissionMode, setCurrentPermissionMode] = useState<PermissionMode>(initialSettings.permissionMode || 'acceptEdits');
+  const [currentPermissionMode, setCurrentPermissionMode] = useState<PermissionMode>(initialSettings?.permissionMode || 'acceptEdits');
   const [isUpdatingPermissions, setIsUpdatingPermissions] = useState(false);
   
   // Clear green indicators when visiting session detail
@@ -180,7 +155,7 @@ export default function SessionDetail() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...initialSettings,
+          ...(initialSettings || {}),
           permissionMode: nextMode
         })
       });
@@ -244,7 +219,7 @@ export default function SessionDetail() {
   
   // Use custom hooks for textarea functionality
   const { textareaRef: inputRef } = useAutoResizeTextarea(prompt, { maxRows: 5 });
-  const handleTextareaKeyDown = useTextareaSubmit(prompt);
+  const handleTextareaKeyDown = useTextareaSubmit(prompt, undefined, images.length > 0);
   
   // Helper to extract user message text from event data
   const getUserMessageText = (data: unknown): string | undefined => {
@@ -384,8 +359,9 @@ export default function SessionDetail() {
     // Set stop in progress
     setIsStopInProgress(true);
     
-    // Clear optimistic message immediately for better UX
+    // Clear optimistic message and processing time immediately for better UX
     setOptimisticUserMessage(null);
+    setProcessingStartTime(null);
     
     // Focus input immediately since we're enabling it
     if (inputRef.current) {
@@ -720,17 +696,18 @@ export default function SessionDetail() {
                   className="flex-1"
                   onSubmit={() => {
                     const message = prompt.trim();
-                    if (message) {
+                    const hasImages = images.length > 0;
+                    
+                    // Set processing state for either text or image submissions
+                    if (message || hasImages) {
                       const now = Date.now();
                       setProcessingStartTime(now);
-                      setOptimisticUserMessage({ content: message, timestamp: now });
+                      
+                      // Only set optimistic message if there's actual text
+                      if (message) {
+                        setOptimisticUserMessage({ content: message, timestamp: now });
+                      }
                     }
-                    console.log('Form submission - images:', images.length, images.map(img => ({ 
-                      name: img.file.name, 
-                      size: img.file.size,
-                      type: img.file.type,
-                      previewLength: img.preview.length 
-                    })));
                   }}
                 >
                   <div className="flex items-start px-5 py-3.5 bg-zinc-800/60 border border-zinc-700/50 rounded-xl focus-within:border-zinc-600 focus-within:bg-zinc-800/80 transition-all duration-200">
