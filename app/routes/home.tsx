@@ -38,8 +38,13 @@ export async function action({ request }: Route.ActionArgs) {
     return { error: 'Title is required' };
   }
   
-  if (!prompt?.trim()) {
-    return { error: 'Prompt is required' };
+  // Check if we have images
+  const imageDataEntries = [...formData.entries()].filter(([key]) => key.startsWith('image-data-'));
+  const hasImages = imageDataEntries.length > 0;
+  
+  // Require either prompt or images
+  if (!prompt?.trim() && !hasImages) {
+    return { error: 'Please provide a prompt or upload images' };
   }
   
   if (!projectPath?.trim()) {
@@ -62,9 +67,8 @@ export async function action({ request }: Route.ActionArgs) {
   
   // Handle image uploads
   const imagePaths: string[] = [];
-  const imageDataEntries = [...formData.entries()].filter(([key]) => key.startsWith('image-data-'));
   
-  if (imageDataEntries.length > 0) {
+  if (hasImages) {
     const { saveImageToDisk } = await import('../services/image-storage.server');
     
     for (const [key, value] of imageDataEntries) {
@@ -82,11 +86,19 @@ export async function action({ request }: Route.ActionArgs) {
     }
   }
   
-  // Prepend image paths to prompt if any
+  // Format prompt with image paths
   let finalPrompt = prompt.trim();
   if (imagePaths.length > 0) {
-    const imageReferences = imagePaths.map(path => `[Image: ${path}]`).join('\n');
-    finalPrompt = `${imageReferences}\n\n${finalPrompt}`;
+    const userPrompt = prompt.trim();
+    if (userPrompt) {
+      // User provided a prompt
+      const imageList = imagePaths.map(p => `- ${p}`).join('\n');
+      finalPrompt = `Please review the following images and then respond to my prompt:\n${imageList}\n\n${userPrompt}`;
+    } else {
+      // No user prompt, just images
+      const imageList = imagePaths.map(p => `- ${p}`).join('\n');
+      finalPrompt = `Please review the following images:\n${imageList}`;
+    }
   }
   
   // Create session-runner job
