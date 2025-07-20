@@ -31,12 +31,8 @@ export async function loader({ params }: LoaderFunctionArgs) {
 
 export async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
-  let prompt = formData.get('prompt') as string;
+  let prompt = formData.get('prompt') as string || '';
   
-  if (!prompt?.trim()) {
-    return { error: 'Prompt is required' };
-  }
-
   const sessionId = params.sessionId;
   
   if (!sessionId) {
@@ -54,6 +50,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
   // Handle image uploads
   const imagePaths: string[] = [];
   const imageDataEntries = [...formData.entries()].filter(([key]) => key.startsWith('image-data-'));
+  
+  // Require either prompt or images
+  if (!prompt?.trim() && imageDataEntries.length === 0) {
+    return { error: 'Please provide a prompt or upload images' };
+  }
   
   console.log('Image upload debug:', {
     formDataEntries: [...formData.entries()].map(([k, v]) => [k, typeof v === 'string' ? v.substring(0, 100) : v]),
@@ -90,10 +91,18 @@ export async function action({ request, params }: ActionFunctionArgs) {
       }
     }
     
-    // Prepend image paths to prompt
+    // Format prompt with image paths
     if (imagePaths.length > 0) {
-      const imagePrompt = `Please analyze the following images:\n${imagePaths.map(p => `- ${p}`).join('\n')}\n\n`;
-      prompt = imagePrompt + prompt.trim();
+      const userPrompt = prompt.trim();
+      if (userPrompt) {
+        // User provided a prompt
+        const imageList = imagePaths.map(p => `- ${p}`).join('\n');
+        prompt = `Please review the following images and then respond to my prompt:\n${imageList}\n\n${userPrompt}`;
+      } else {
+        // No user prompt, just images
+        const imageList = imagePaths.map(p => `- ${p}`).join('\n');
+        prompt = `Please review the following images:\n${imageList}`;
+      }
     }
   }
 

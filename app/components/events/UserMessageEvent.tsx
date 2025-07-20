@@ -37,7 +37,7 @@ export function UserMessageEvent({ event }: UserMessageEventProps) {
           <span className={colors.text.tertiary}>{'>'}</span>
           <div className="flex-1">
             {typeof content === 'string' ? (
-              content
+              <span className="whitespace-pre-wrap">{content}</span>
             ) : (
               <CodeBlock 
                 code={JSON.stringify(content, null, 2)}
