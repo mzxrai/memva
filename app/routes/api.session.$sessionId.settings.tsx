@@ -29,7 +29,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   let body: Partial<SettingsConfig>
   try {
     body = await request.json()
-  } catch (error) {
+  } catch {
     return Response.json({ error: "Invalid JSON" }, { status: 400 })
   }
 
@@ -44,7 +44,8 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   if ('permissionMode' in body) {
-    if (!VALID_PERMISSION_MODES.includes(body.permissionMode as any)) {
+    const mode = body.permissionMode as typeof VALID_PERMISSION_MODES[number]
+    if (!VALID_PERMISSION_MODES.includes(mode)) {
       errors.push(`permissionMode must be one of: ${VALID_PERMISSION_MODES.join(', ')}`)
     }
   }

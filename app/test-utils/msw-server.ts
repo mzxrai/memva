@@ -97,7 +97,7 @@ export const handlers = [
   }),
   
   // Mock session-specific settings endpoints
-  http.get('/api/session/:sessionId/settings', ({ params }) => {
+  http.get('/api/session/:sessionId/settings', () => {
     return HttpResponse.json({
       maxTurns: 200,
       permissionMode: 'acceptEdits'

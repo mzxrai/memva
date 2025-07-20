@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
-import { expectSemanticMarkup, expectInteraction } from '../test-utils/component-testing'
+import { expectInteraction } from '../test-utils/component-testing'
 
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
