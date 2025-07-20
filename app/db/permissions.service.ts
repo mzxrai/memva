@@ -68,18 +68,22 @@ export async function getPermissionRequests(filters?: GetPermissionRequestsFilte
   return query.all()
 }
 
-export async function getPendingPermissionRequests(): Promise<PermissionRequest[]> {
+export async function getPendingPermissionRequests(sessionId?: string): Promise<PermissionRequest[]> {
   const now = new Date().toISOString()
+  
+  const conditions = [
+    eq(permissionRequests.status, 'pending'),
+    gt(permissionRequests.expires_at, now)
+  ]
+  
+  if (sessionId) {
+    conditions.push(eq(permissionRequests.session_id, sessionId))
+  }
   
   return db
     .select()
     .from(permissionRequests)
-    .where(
-      and(
-        eq(permissionRequests.status, 'pending'),
-        gt(permissionRequests.expires_at, now)
-      )
-    )
+    .where(and(...conditions))
     .all()
 }
 

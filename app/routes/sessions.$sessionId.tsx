@@ -15,6 +15,8 @@ import { ImagePreview } from "../components/ImagePreview";
 import SettingsModal from "../components/SettingsModal";
 import PermissionsBadge from "../components/PermissionsBadge";
 import type { PermissionMode } from "../types/settings";
+import usePermissionPolling from "../hooks/usePermissionPolling";
+import InlinePermissionRequest from "../components/permissions/InlinePermissionRequest";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const sessionId = params.sessionId;
@@ -132,6 +134,17 @@ export default function SessionDetail() {
   const [isVisible, setIsVisible] = useState(false);
   const [currentPermissionMode, setCurrentPermissionMode] = useState<PermissionMode>(initialSettings?.permissionMode || 'acceptEdits');
   const [isUpdatingPermissions, setIsUpdatingPermissions] = useState(false);
+  
+  // Poll for permission requests
+  const { 
+    permissions, 
+    approve, 
+    deny, 
+    isProcessing: isProcessingPermission 
+  } = usePermissionPolling({ 
+    enabled: true,
+    sessionId // Only poll for this session's permissions
+  });
   
   // Clear green indicators when visiting session detail
   const { clearGreenForSession } = useGreenLineIndicator(sessionId);
@@ -259,7 +272,7 @@ export default function SessionDetail() {
     return undefined;
   };
 
-  // Combine events and handle optimistic message
+  // Combine events, permissions, and handle optimistic message
   const { displayEvents, toolResults } = useMemo(() => {
     let allEvents = [...initialEvents, ...newEvents];
     
@@ -697,6 +710,20 @@ export default function SessionDetail() {
       <div className="fixed bottom-0 left-0 right-0 pb-7 z-30">
         <div>
           <div className="container mx-auto max-w-7xl">
+            {/* Permission requests above input */}
+            {permissions.length > 0 && (
+              <div className="mb-3 space-y-2">
+                {permissions.map(permission => (
+                  <InlinePermissionRequest
+                    key={permission.id}
+                    request={permission}
+                    onApprove={approve}
+                    onDeny={deny}
+                    isProcessing={isProcessingPermission}
+                  />
+                ))}
+              </div>
+            )}
             <div className="relative">
               {/* Image preview and permissions badge above the input container */}
               <div className={`flex items-end mb-2 ${images.length > 0 ? 'justify-between' : 'justify-end'}`}>

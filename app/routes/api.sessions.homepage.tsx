@@ -25,13 +25,6 @@ export async function loader() {
       const latestMessage = latestMessagesMap.get(session.id)
       const latestUserMessage = latestUserMessagesMap.get(session.id)
       
-      if (latestMessage) {
-        console.log(`[API Sessions Homepage] Session ${session.id} has latest message:`, {
-          uuid: latestMessage.uuid,
-          timestamp: latestMessage.timestamp
-        })
-      }
-      
       return {
         ...session,
         event_count: stats?.event_count || 0,

@@ -16,6 +16,7 @@ import { colors, typography, transition, iconSize } from "../constants/design";
 import { useImageUpload } from "../hooks/useImageUpload";
 import { ImagePreview } from "../components/ImagePreview";
 import { motion, AnimatePresence } from "framer-motion";
+import { SessionGridSkeleton } from "../components/SessionCardSkeleton";
 
 export function meta(): Array<{ title?: string; name?: string; content?: string }> {
   return [
@@ -107,6 +108,11 @@ function isSessionWithStats(session: SessionWithStats | { id: string }): session
 
 // Helper function to shorten path for display
 function shortenPath(path: string): string {
+  // If already shortened, return as-is
+  if (path === '~' || path.startsWith('~/')) {
+    return path;
+  }
+  
   // For testing, use the mocked home directory
   const isTest = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
   const homedir = isTest ? '/Users/testuser' : (typeof window !== 'undefined' ? localStorage.getItem('user-homedir') || '/Users/mbm-premva' : '/Users/mbm-premva');
@@ -126,11 +132,20 @@ function shortenPath(path: string): string {
 }
 
 export default function Home() {
-  const { sessions } = useHomepageData();
+  const { sessions, isLoading } = useHomepageData();
   const [sessionTitle, setSessionTitle] = useState("");
-  const [currentDirectory, setCurrentDirectory] = useState<string>('');
+  // Initialize with last directory to prevent layout shift
+  const [currentDirectory, setCurrentDirectory] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('memva-last-directory');
+      // If we have a stored value, use it immediately to prevent shift
+      return stored || ''
+    }
+    return ''
+  });
   const [isDirectoryModalOpen, setIsDirectoryModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
   
   // Use custom hooks for textarea functionality
   const { textareaRef } = useAutoResizeTextarea(sessionTitle, { maxRows: 5 });
@@ -159,14 +174,19 @@ export default function Home() {
     return new Date(b.latest_user_message_at).getTime() - new Date(a.latest_user_message_at).getTime();
   });
 
-  // Load last used directory on mount
+  // Track when we've initially loaded to enable animations only on updates
   useEffect(() => {
-    const loadDirectory = async () => {
+    if (!isLoading && sessions.length > 0 && !hasInitiallyLoaded) {
+      setHasInitiallyLoaded(true);
+    }
+  }, [isLoading, sessions.length, hasInitiallyLoaded]);
+
+  // Verify directory on mount if needed
+  useEffect(() => {
+    const verifyDirectory = async () => {
       const lastDir = localStorage.getItem('memva-last-directory');
-      if (lastDir) {
-        setCurrentDirectory(lastDir);
-      } else {
-        // Fetch current directory
+      if (!lastDir) {
+        // Only fetch if we don't have a stored directory
         try {
           const response = await fetch('/api/filesystem?action=current');
           const data = await response.json();
@@ -174,11 +194,11 @@ export default function Home() {
           localStorage.setItem('memva-last-directory', data.currentDirectory);
         } catch (error) {
           console.error('Failed to get current directory:', error);
-          setCurrentDirectory('/');
+          // Keep the default '~' instead of changing to '/'
         }
       }
     };
-    loadDirectory();
+    verifyDirectory();
   }, []);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -219,14 +239,28 @@ export default function Home() {
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* New Session Bar */}
         <div className="mb-8">
-          {/* Image Preview - Outside the form for overlay effect */}
-          {images.length > 0 && (
-            <div className="mb-2">
-              <ImagePreview images={images} onRemove={removeImage} />
+          {!currentDirectory ? (
+            // Skeleton loader for input bar
+            <div className="p-4 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-xl">
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0 px-3 py-3">
+                  <div className="h-5 w-24 bg-zinc-800 rounded animate-pulse" />
+                </div>
+                <div className="flex-1">
+                  <div className="h-12 bg-zinc-800/50 border border-zinc-700 rounded-lg animate-pulse" />
+                </div>
+              </div>
             </div>
-          )}
-          
-          <Form 
+          ) : (
+            <>
+            {/* Image Preview - Outside the form for overlay effect */}
+            {images.length > 0 && (
+              <div className="mb-2">
+                <ImagePreview images={images} onRemove={removeImage} />
+              </div>
+            )}
+            
+            <Form 
             method="post" 
             onSubmit={handleSubmit}
             className={clsx(
@@ -253,7 +287,7 @@ export default function Home() {
                 )}
                 title="Click to change directory"
               >
-                <span>{currentDirectory ? shortenPath(currentDirectory) : '~'}</span>
+                <span>{shortenPath(currentDirectory)}</span>
                 <span className="text-zinc-500 ml-1">$</span>
               </button>
               
@@ -294,6 +328,8 @@ export default function Home() {
               </div>
             ))}
           </Form>
+          </>
+          )}
         </div>
 
         {/* Directory Selector Modal */}
@@ -311,7 +347,9 @@ export default function Home() {
         />
 
         {/* Sessions Grid */}
-        {sortedSessions.length === 0 ? (
+        {isLoading && !hasInitiallyLoaded ? (
+          <SessionGridSkeleton count={6} />
+        ) : sortedSessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4">
             <div className="text-center max-w-md">
               <div className="mb-6 text-zinc-700">
@@ -326,23 +364,23 @@ export default function Home() {
         ) : (
           <motion.div 
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-            layout
+            layout={hasInitiallyLoaded}
           >
             <AnimatePresence mode="popLayout">
               {sortedSessions.map((session) => (
                 <motion.div
                   key={session.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.8 }}
+                  layout={hasInitiallyLoaded}
+                  initial={hasInitiallyLoaded ? { opacity: 0, scale: 0.8 } : false}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{
-                    layout: {
+                    layout: hasInitiallyLoaded ? {
                       type: "spring",
                       stiffness: 100,
                       damping: 20,
                       mass: 1.5,
-                    },
+                    } : false,
                     opacity: { duration: 0.4 },
                     scale: { duration: 0.4 }
                   }}
@@ -361,9 +399,9 @@ export default function Home() {
                       "transform hover:scale-[1.02]",
                       "transition-all duration-150",
                       "cursor-pointer",
-                      "min-h-[240px]",
-                      "grid grid-rows-[1fr_auto_auto_auto_auto]",
-                      "gap-4"
+                      "h-[280px]",
+                      "grid grid-rows-[minmax(3rem,_1fr)_1.5rem_1.5rem_1.5rem_4rem]",
+                      "gap-3"
                     )}
                   >
                 {/* Status Indicator */}
@@ -403,8 +441,8 @@ export default function Home() {
                   })()}
                 </div>
 
-                {/* Message Carousel */}
-                <div className="min-h-[60px]">
+                {/* Message Carousel - fixed height to prevent layout shift */}
+                <div className="h-16">
                   <MessageCarousel 
                     sessionId={session.id} 
                     latestMessage={session.latestMessage}

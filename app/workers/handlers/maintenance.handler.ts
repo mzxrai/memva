@@ -15,7 +15,7 @@ export const maintenanceHandler: JobHandler = async (job: unknown, callback) => 
     const startedAt = new Date().toISOString()
     
     // Validate known operations
-    const validOperations = ['cleanup-old-jobs', 'vacuum-database', 'backup-database']
+    const validOperations = ['cleanup-old-jobs', 'vacuum-database', 'backup-database', 'cleanup-expired-permissions']
     if (!validOperations.includes(operation)) {
       callback(new Error(`Unknown maintenance operation: ${operation}`))
       return
@@ -40,6 +40,10 @@ export const maintenanceHandler: JobHandler = async (job: unknown, callback) => 
         
       case 'backup-database':
         result = await handleDatabaseBackup(jobData.data, result)
+        break
+        
+      case 'cleanup-expired-permissions':
+        result = await handlePermissionCleanup(jobData.data, result)
         break
         
       default:
@@ -119,5 +123,21 @@ async function handleDatabaseBackup(data: MaintenanceJobData, result: Record<str
     
   } catch (error) {
     throw new Error(`Backup failed: ${(error as Error).message}`)
+  }
+}
+
+async function handlePermissionCleanup(data: MaintenanceJobData, result: Record<string, unknown>) {
+  const { expireOldRequests } = await import('../../db/permissions.service')
+  
+  try {
+    // Expire permission requests older than 24 hours
+    const expiredCount = await expireOldRequests()
+    
+    return {
+      ...result,
+      expiredCount
+    }
+  } catch (error) {
+    throw new Error(`Permission cleanup failed: ${(error as Error).message}`)
   }
 }
