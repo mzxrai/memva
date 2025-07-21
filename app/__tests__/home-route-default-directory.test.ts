@@ -21,33 +21,33 @@ describe('Home Route Default Directory', () => {
     clearTestDatabase()
   })
 
-  it('should return defaultDirectory from settings in loader', async () => {
-    const testDirectory = '~/Documents/projects'
+  it('should return empty sessions array from loader', async () => {
+    // Call the loader
+    const result = await loader()
     
-    // Set default directory in settings
-    await updateSettings({ defaultDirectory: testDirectory })
+    // Verify the loader returns empty sessions array
+    expect(result.sessions).toEqual([])
+  })
+
+  it('should always return empty sessions array regardless of settings', async () => {
+    // Set some settings first
+    await updateSettings({ defaultDirectory: '~/Documents' })
     
     // Call the loader
     const result = await loader()
     
-    // Verify the loader returns the default directory
-    expect(result.defaultDirectory).toBe(testDirectory)
-  })
-
-  it('should return empty sessions array and undefined defaultDirectory when not set', async () => {
-    // Call the loader without setting defaultDirectory
-    const result = await loader()
-    
-    // Verify the response
+    // Verify the response is still just empty sessions
     expect(result.sessions).toEqual([])
-    expect(result.defaultDirectory).toBeUndefined()
+    expect(Object.keys(result)).toEqual(['sessions'])
   })
 
-  it('should return current working directory as fallback when defaultDirectory is not set', async () => {
-    // Call the loader without setting defaultDirectory
+  it('should not include any directory information in loader response', async () => {
+    // Call the loader
     const result = await loader()
     
-    // Verify it includes the current working directory as fallback
-    expect(result.currentDirectory).toBe(process.cwd())
+    // Verify it only includes sessions array
+    expect(result).toEqual({ sessions: [] })
+    expect('defaultDirectory' in result).toBe(false)
+    expect('currentDirectory' in result).toBe(false)
   })
 })

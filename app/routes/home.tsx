@@ -8,7 +8,7 @@ import RelativeTime from "../components/RelativeTime";
 import DirectorySelector from "../components/DirectorySelector";
 import SettingsModal from "../components/SettingsModal";
 import clsx from "clsx";
-import { useState, useEffect, useRef, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useHomepageData } from "../hooks/useHomepageData";
 import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
 import { useTextareaSubmit } from "../hooks/useTextareaSubmit";
