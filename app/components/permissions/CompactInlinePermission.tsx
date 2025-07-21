@@ -32,7 +32,7 @@ export default function CompactInlinePermission({
     >
       <div className={clsx(typography.size.sm, "text-amber-200")}>
         {isExitPlanMode ? (
-          <>Review the plan below and decide whether to proceed</>
+          <>Would you like to proceed with this plan?</>
         ) : (
           <>Permission required to execute this action</>
         )}
@@ -51,10 +51,10 @@ export default function CompactInlinePermission({
             "transition-all duration-150",
             "flex items-center gap-1.5"
           )}
-          aria-label={isExitPlanMode ? "Cancel" : "Deny permission"}
+          aria-label={isExitPlanMode ? "No, keep planning" : "Deny permission"}
         >
           <RiCloseLine className="w-3.5 h-3.5" />
-          {isExitPlanMode ? "Cancel" : "Deny"}
+          {isExitPlanMode ? "No, keep planning" : "Deny"}
         </button>
         <button
           onClick={() => onApprove(request.id)}
@@ -68,10 +68,10 @@ export default function CompactInlinePermission({
             "transition-all duration-150",
             "flex items-center gap-1.5"
           )}
-          aria-label={isExitPlanMode ? "Execute Plan" : "Approve permission"}
+          aria-label={isExitPlanMode ? "Looks great" : "Approve permission"}
         >
           <RiCheckLine className="w-3.5 h-3.5" />
-          {isExitPlanMode ? "Execute Plan" : "Approve"}
+          {isExitPlanMode ? "Looks great" : "Approve"}
         </button>
       </div>
     </div>

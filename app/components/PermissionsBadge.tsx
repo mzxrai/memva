@@ -10,7 +10,7 @@ interface PermissionsBadgeProps {
 const MODE_CONFIG = {
   default: {
     label: 'Default',
-    color: 'text-blue-400',
+    color: 'text-zinc-400',
     bgColor: 'bg-zinc-800/50',
     borderColor: 'border-zinc-700/50',
     description: 'Standard behavior - prompts for permissions'
@@ -24,7 +24,7 @@ const MODE_CONFIG = {
   },
   acceptEdits: {
     label: 'Accept Edits',
-    color: 'text-zinc-400',
+    color: 'text-blue-400',
     bgColor: 'bg-zinc-800/50',
     borderColor: 'border-zinc-700/50',
     description: 'Automatically accept file edits'

@@ -179,7 +179,7 @@ export default function SessionDetail() {
   
   // Cycle through permission modes
   const cyclePermissionMode = useCallback(async () => {
-    const modes: PermissionMode[] = ['plan', 'acceptEdits', 'bypassPermissions'];
+    const modes: PermissionMode[] = ['default', 'acceptEdits', 'bypassPermissions', 'plan'];
     const currentIndex = modes.indexOf(currentPermissionMode);
     const nextMode = modes[(currentIndex + 1) % modes.length];
     

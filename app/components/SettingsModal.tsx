@@ -315,6 +315,7 @@ export default function SettingsModal({
                         typography.weight.medium,
                         mode.value === 'plan' ? 'text-emerald-400' :
                         mode.value === 'bypassPermissions' ? 'text-amber-400' :
+                        mode.value === 'acceptEdits' ? 'text-blue-400' :
                         colors.text.primary
                       )}>
                         {mode.label}
