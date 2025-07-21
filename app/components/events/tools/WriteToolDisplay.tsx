@@ -64,18 +64,6 @@ export const WriteToolDisplay = memo(({ toolCall, hasResult, result }: WriteTool
     sdkResult = result as { content?: string, is_error?: boolean }
   }
 
-  // Debug logging
-  console.log('WriteToolDisplay debug:', {
-    toolCall: toolCall.name,
-    toolId: toolCall.id,
-    hasResult,
-    result,
-    toolResult,
-    sdkResult,
-    hasContent: sdkResult.content !== undefined,
-    isError: sdkResult.is_error
-  })
-
   if (sdkResult.content === undefined) {
     return null
   }

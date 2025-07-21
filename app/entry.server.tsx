@@ -5,6 +5,8 @@ import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
 import { ServerRouter } from "react-router";
 import { JobSystem } from "./workers/index";
+import { createJob } from "./db/jobs.service";
+import { createMaintenanceJob } from "./workers/job-types";
 
 // WARNING: This is a workaround for a memory leak in @anthropic-ai/claude-code SDK
 // The SDK adds exit listeners to the process without cleaning them up, causing
@@ -34,6 +36,16 @@ async function initializeJobSystem() {
       await jobSystem.start();
       console.log('✅ Job system started successfully');
       console.log('📋 Registered handlers:', jobSystem.getRegisteredHandlers());
+      
+      // Schedule initial maintenance job to clean up expired permissions
+      try {
+        await createJob(createMaintenanceJob({
+          operation: 'cleanup-expired-permissions'
+        }));
+        console.log('🧹 Scheduled initial permission cleanup job');
+      } catch (error) {
+        console.error('❌ Failed to schedule maintenance job:', error);
+      }
     } catch (error) {
       console.error('❌ Failed to start job system:', error);
     }

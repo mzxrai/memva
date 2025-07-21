@@ -5,7 +5,8 @@ import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
 
-import { getSettings, updateSettings, type SettingsConfig } from './settings.service'
+import { getSettings, updateSettings } from './settings.service'
+import { PERMISSION_MODES } from '../types/settings'
 
 describe('Settings Service', () => {
   let testDb: TestDatabase
@@ -108,7 +109,7 @@ describe('Settings Service', () => {
   it('should accept all valid permission modes', async () => {
     await getSettings()
     
-    const validModes: Array<SettingsConfig['permissionMode']> = ['acceptEdits', 'bypassPermissions', 'plan']
+    const validModes = PERMISSION_MODES
     
     for (const mode of validModes) {
       await updateSettings({ permissionMode: mode })

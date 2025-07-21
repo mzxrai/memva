@@ -57,6 +57,8 @@ export default function InlinePermissionRequest({
         return `Edit file: ${input.file_path || 'unknown'}`
       case 'MultiEdit':
         return `Edit multiple sections in: ${input.file_path || 'unknown'}`
+      case 'exit_plan_mode':
+        return `Execute the plan shown below`
       default:
         return `Use ${request.tool_name} tool`
     }
@@ -84,7 +86,7 @@ export default function InlinePermissionRequest({
             {getToolDescription()}
           </div>
           
-          {formatToolInput() && request.tool_name !== 'Bash' && request.tool_name !== 'Read' && (
+          {formatToolInput() && request.tool_name !== 'Bash' && request.tool_name !== 'Read' && request.tool_name !== 'exit_plan_mode' && (
             <pre className={clsx(
               "mt-2 p-2 rounded bg-black/30 overflow-x-auto",
               typography.size.xs,

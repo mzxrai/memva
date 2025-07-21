@@ -1,4 +1,4 @@
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 import { vi } from 'vitest'
 import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
@@ -29,8 +29,6 @@ describe('usePermissionPolling', () => {
     const session = testDb.createSession({ title: 'Test Session', project_path: '/test' })
     
     // Create permission requests directly in database
-    const now = new Date()
-    const expires = new Date(now.getTime() + 24 * 60 * 60 * 1000)
     
     await createPermissionRequest({
       session_id: session.id,

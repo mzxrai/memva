@@ -380,7 +380,7 @@ export default function Home() {
                       stiffness: 100,
                       damping: 20,
                       mass: 1.5,
-                    } : false,
+                    } : undefined,
                     opacity: { duration: 0.4 },
                     scale: { duration: 0.4 }
                   }}

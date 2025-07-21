@@ -14,6 +14,11 @@ interface SettingsModalProps {
 
 const PERMISSION_MODES: Array<{ value: PermissionMode; label: string; description: string }> = [
   { 
+    value: 'default', 
+    label: 'Default', 
+    description: 'Standard behavior - prompts for permission on first use of each tool' 
+  },
+  { 
     value: 'acceptEdits', 
     label: 'Accept Edits', 
     description: 'Automatically accept file edits without prompts' 

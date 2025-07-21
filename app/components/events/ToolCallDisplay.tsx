@@ -23,13 +23,19 @@ import { TodoWriteToolDisplay } from './tools/TodoWriteToolDisplay'
 import { WebSearchToolDisplay } from './tools/WebSearchToolDisplay'
 import { TaskToolDisplay } from './tools/TaskToolDisplay'
 import { ExitPlanModeDisplay } from './tools/ExitPlanModeDisplay'
+import CompactInlinePermission from '../permissions/CompactInlinePermission'
 import type { ToolUseContent } from '../../types/events'
+import type { PermissionRequest } from '../../db/schema'
 import clsx from 'clsx'
 
 interface ToolCallDisplayProps {
   toolCall: ToolUseContent
   hasResult?: boolean
   result?: unknown
+  permission?: PermissionRequest
+  onApprovePermission?: (id: string) => void
+  onDenyPermission?: (id: string) => void
+  isProcessingPermission?: boolean
   className?: string
   isStreaming?: boolean
   isError?: boolean
@@ -204,7 +210,18 @@ const TOOLS_WITH_CUSTOM_DISPLAY = new Set([
   'exit_plan_mode'
 ])
 
-export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, className, isStreaming = false, isError = false }: ToolCallDisplayProps) => {
+export const ToolCallDisplay = memo(({ 
+  toolCall, 
+  hasResult = false, 
+  result, 
+  permission, 
+  onApprovePermission, 
+  onDenyPermission, 
+  isProcessingPermission = false,
+  className, 
+  isStreaming = false, 
+  isError = false 
+}: ToolCallDisplayProps) => {
   const [showFullResult, setShowFullResult] = useState(false)
   const isEditTool = toolCall.name === 'Edit' || toolCall.name === 'MultiEdit'
   const hasCustomDisplay = TOOLS_WITH_CUSTOM_DISPLAY.has(toolCall.name)
@@ -236,23 +253,9 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
     }
     
     if (!resultContent) {
-      console.log('ToolCallDisplay lineInfo early return:', {
-        toolName: toolCall.name,
-        isEditTool,
-        hasResult: result !== null && result !== undefined,
-        resultType: typeof result,
-        resultValue: result,
-        resultContent
-      })
       return null
     }
     
-    console.log('ToolCallDisplay lineInfo calculation:', {
-      toolName: toolCall.name,
-      isEditTool,
-      resultLength: resultContent.length,
-      resultPreview: resultContent.substring(0, 200) + '...'
-    })
     
     // For Edit tools, intelligently find the line number by matching the actual edit content
     if (isEditTool && toolCall.input && typeof toolCall.input === 'object') {
@@ -292,11 +295,6 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
               
               // Compare normalized content
               if (lineContent === normalizedSearchLine) {
-                console.log('ToolCallDisplay lineInfo: Found matching line!', {
-                  lineNumber,
-                  lineContent,
-                  normalizedSearchLine
-                })
                 return {
                   startLine: lineNumber,
                   showLineNumbers: true
@@ -339,10 +337,6 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       }
     }
     
-    console.log('ToolCallDisplay lineInfo final result:', {
-      toolName: toolCall.name,
-      lineInfo: null
-    })
     
     return null
   }, [result, isEditTool, toolCall])
@@ -418,6 +412,19 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
           {toolCall.id}
         </span>
       </div>
+      
+      {/* Inline permission request */}
+      {permission && permission.status === 'pending' && onApprovePermission && onDenyPermission && (
+        <div className="mt-2 mb-2">
+          <CompactInlinePermission
+            request={permission}
+            onApprove={onApprovePermission}
+            onDeny={onDenyPermission}
+            isProcessing={isProcessingPermission}
+            isExitPlanMode={toolCall.name === 'exit_plan_mode'}
+          />
+        </div>
+      )}
       
       {/* Result section - minimal inline display */}
       {formattedResult && !hasCustomDisplay && (

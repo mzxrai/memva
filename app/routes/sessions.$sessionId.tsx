@@ -16,7 +16,7 @@ import SettingsModal from "../components/SettingsModal";
 import PermissionsBadge from "../components/PermissionsBadge";
 import type { PermissionMode } from "../types/settings";
 import usePermissionPolling from "../hooks/usePermissionPolling";
-import InlinePermissionRequest from "../components/permissions/InlinePermissionRequest";
+import type { PermissionRequest } from "../db/schema";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const sessionId = params.sessionId;
@@ -253,7 +253,9 @@ export default function SessionDetail() {
   const isSubmitting = navigation.state === "submitting";
   
   // Define visibility states
-  const showPending = processingStartTime !== null;
+  // Don't show pending if we're waiting for permission decisions
+  const hasPendingPermissions = permissions.some(p => p.status === 'pending');
+  const showPending = processingStartTime !== null && !hasPendingPermissions;
   
   // Use custom hooks for textarea functionality
   const { textareaRef: inputRef } = useAutoResizeTextarea(prompt, { maxRows: 5 });
@@ -271,6 +273,17 @@ export default function SessionDetail() {
     
     return undefined;
   };
+
+  // Create permissions map by tool_use_id
+  const permissionsByToolId = useMemo(() => {
+    const map = new Map<string, PermissionRequest>();
+    permissions.forEach(permission => {
+      if (permission.tool_use_id) {
+        map.set(permission.tool_use_id, permission);
+      }
+    });
+    return map;
+  }, [permissions]);
 
   // Combine events, permissions, and handle optimistic message
   const { displayEvents, toolResults } = useMemo(() => {
@@ -690,6 +703,10 @@ export default function SessionDetail() {
                 <EventRenderer
                   event={event}
                   toolResults={toolResults}
+                  permissions={permissionsByToolId}
+                  onApprovePermission={approve}
+                  onDenyPermission={deny}
+                  isProcessingPermission={isProcessingPermission}
                   isStreaming={false}
                 />
               </div>
@@ -710,20 +727,6 @@ export default function SessionDetail() {
       <div className="fixed bottom-0 left-0 right-0 pb-7 z-30">
         <div>
           <div className="container mx-auto max-w-7xl">
-            {/* Permission requests above input */}
-            {permissions.length > 0 && (
-              <div className="mb-3 space-y-2">
-                {permissions.map(permission => (
-                  <InlinePermissionRequest
-                    key={permission.id}
-                    request={permission}
-                    onApprove={approve}
-                    onDeny={deny}
-                    isProcessing={isProcessingPermission}
-                  />
-                ))}
-              </div>
-            )}
             <div className="relative">
               {/* Image preview and permissions badge above the input container */}
               <div className={`flex items-end mb-2 ${images.length > 0 ? 'justify-between' : 'justify-end'}`}>

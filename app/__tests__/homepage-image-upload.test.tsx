@@ -115,7 +115,10 @@ describe('Homepage Image Upload', () => {
     }
     
     // Drop on the container div, not the textarea
-    fireEvent.drop(dropContainer!, {
+    if (!dropContainer) {
+      throw new Error('Drop container not found')
+    }
+    fireEvent.drop(dropContainer, {
       dataTransfer: dataTransfer as any
     })
     
@@ -148,7 +151,10 @@ describe('Homepage Image Upload', () => {
     const preventDefaultSpy = vi.spyOn(dragOverEvent, 'preventDefault')
     
     // Simulate dragover event on container
-    fireEvent(dropContainer!, dragOverEvent)
+    if (!dropContainer) {
+      throw new Error('Drop container not found')
+    }
+    fireEvent(dropContainer, dragOverEvent)
     
     // Check that default drag behavior is prevented
     expect(preventDefaultSpy).toHaveBeenCalled()
@@ -168,11 +174,14 @@ describe('Homepage Image Upload', () => {
     const preventDefaultSpy = vi.spyOn(dragOverEvent, 'preventDefault')
     
     // Simulate dragover then dragleave on container
-    fireEvent(dropContainer!, dragOverEvent)
+    if (!dropContainer) {
+      throw new Error('Drop container not found')
+    }
+    fireEvent(dropContainer, dragOverEvent)
     expect(preventDefaultSpy).toHaveBeenCalled()
     
     // Drag leave should be handled (no specific behavior to test, just that it doesn't error)
-    fireEvent(dropContainer!, dragLeaveEvent)
+    fireEvent(dropContainer, dragLeaveEvent)
     
     // Ensure component still works after drag leave
     expect(textarea).toBeInTheDocument()
@@ -204,7 +213,10 @@ describe('Homepage Image Upload', () => {
       dropEffect: 'copy' as const
     }
     
-    fireEvent.drop(dropContainer!, {
+    if (!dropContainer) {
+      throw new Error('Drop container not found')
+    }
+    fireEvent.drop(dropContainer, {
       dataTransfer: dataTransfer as any
     })
     
@@ -275,8 +287,11 @@ describe('Homepage Image Upload', () => {
     const form = document.querySelector('form')
     expect(form).toBeInTheDocument()
     
-    const hiddenInputs = Array.from(form!.querySelectorAll('input[type="hidden"][name^="image-data-"]'))
-    const nameInputs = Array.from(form!.querySelectorAll('input[type="hidden"][name^="image-name-"]'))
+    if (!form) {
+      throw new Error('Form not found')
+    }
+    const hiddenInputs = Array.from(form.querySelectorAll('input[type="hidden"][name^="image-data-"]'))
+    const nameInputs = Array.from(form.querySelectorAll('input[type="hidden"][name^="image-name-"]'))
     
     // In StrictMode, there might be duplicates, so check for unique input names
     const dataInputNames = hiddenInputs.map(input => input.getAttribute('name'))
@@ -322,7 +337,10 @@ describe('Homepage Image Upload', () => {
       dropEffect: 'copy' as const
     }
     
-    fireEvent.drop(dropContainer!, {
+    if (!dropContainer) {
+      throw new Error('Drop container not found')
+    }
+    fireEvent.drop(dropContainer, {
       dataTransfer: dataTransfer as any
     })
     

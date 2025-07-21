@@ -1,7 +1,6 @@
 import { vi } from 'vitest'
 import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
-import { waitForCondition } from '../test-utils/async-testing'
 
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)

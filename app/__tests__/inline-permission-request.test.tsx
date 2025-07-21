@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { vi } from 'vitest'
 import InlinePermissionRequest from '../components/permissions/InlinePermissionRequest'
 import { createMockPermissionRequest } from '../test-utils/factories'
-import { expectSemanticMarkup, expectInteraction } from '../test-utils/component-testing'
+import { expectInteraction } from '../test-utils/component-testing'
 
 describe('InlinePermissionRequest Component', () => {
   const mockOnApprove = vi.fn()

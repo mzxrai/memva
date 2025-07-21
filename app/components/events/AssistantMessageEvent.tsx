@@ -9,26 +9,44 @@ import { MarkdownRenderer } from '../MarkdownRenderer'
 import { ThinkingDisplay } from './tools/ThinkingDisplay'
 import { colors, typography } from '../../constants/design'
 import type { AnyEvent, AssistantMessageContent } from '../../types/events'
+import type { PermissionRequest } from '../../db/schema'
 import clsx from 'clsx'
 
 interface AssistantMessageEventProps {
   event: AnyEvent
   toolResults?: Map<string, { result: unknown; isError?: boolean }>
+  permissions?: Map<string, PermissionRequest>
+  onApprovePermission?: (id: string) => void
+  onDenyPermission?: (id: string) => void
+  isProcessingPermission?: boolean
   isStreaming?: boolean
 }
 
-function renderContent(content: AssistantMessageContent, toolResults?: Map<string, { result: unknown; isError?: boolean }>, isStreaming?: boolean): ReactNode {
+function renderContent(
+  content: AssistantMessageContent, 
+  toolResults?: Map<string, { result: unknown; isError?: boolean }>, 
+  permissions?: Map<string, PermissionRequest>,
+  onApprovePermission?: (id: string) => void,
+  onDenyPermission?: (id: string) => void,
+  isProcessingPermission?: boolean,
+  isStreaming?: boolean
+): ReactNode {
   switch (content.type) {
     case 'text':
       return <MarkdownRenderer content={content.text || ''} />
     
     case 'tool_use': {
       const toolResult = toolResults?.get(content.id);
+      const permission = permissions?.get(content.id);
       return <ToolCallDisplay 
         toolCall={content} 
         result={toolResult?.result} 
         hasResult={!!toolResult}
         isError={toolResult?.isError}
+        permission={permission}
+        onApprovePermission={onApprovePermission}
+        onDenyPermission={onDenyPermission}
+        isProcessingPermission={isProcessingPermission}
         isStreaming={isStreaming} 
       />
     }
@@ -47,7 +65,15 @@ function renderContent(content: AssistantMessageContent, toolResults?: Map<strin
   }
 }
 
-export function AssistantMessageEvent({ event, toolResults, isStreaming = false }: AssistantMessageEventProps) {
+export function AssistantMessageEvent({ 
+  event, 
+  toolResults, 
+  permissions, 
+  onApprovePermission,
+  onDenyPermission,
+  isProcessingPermission = false,
+  isStreaming = false 
+}: AssistantMessageEventProps) {
   // Handle different event structures
   let messageContent: AssistantMessageContent[] = []
   
@@ -81,7 +107,7 @@ export function AssistantMessageEvent({ event, toolResults, isStreaming = false 
           <div className="space-y-2">
             {messageContent.map((content, index) => (
               <div key={index}>
-                {renderContent(content, toolResults, isStreaming)}
+                {renderContent(content, toolResults, permissions, onApprovePermission, onDenyPermission, isProcessingPermission, isStreaming)}
               </div>
             ))}
           </div>

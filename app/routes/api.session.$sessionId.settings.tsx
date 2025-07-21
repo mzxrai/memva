@@ -1,8 +1,7 @@
 import type { Route } from "./+types/api.session.$sessionId.settings"
 import { getSession, updateSessionSettings, getSessionSettings } from "../db/sessions.service"
 import type { SettingsConfig } from "../types/settings"
-
-const VALID_PERMISSION_MODES = ['acceptEdits', 'bypassPermissions', 'plan'] as const
+import { PERMISSION_MODES } from "../types/settings"
 
 // GET /api/session/:sessionId/settings
 export async function loader({ params }: Route.LoaderArgs) {
@@ -44,9 +43,9 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   if ('permissionMode' in body) {
-    const mode = body.permissionMode as typeof VALID_PERMISSION_MODES[number]
-    if (!VALID_PERMISSION_MODES.includes(mode)) {
-      errors.push(`permissionMode must be one of: ${VALID_PERMISSION_MODES.join(', ')}`)
+    const mode = body.permissionMode
+    if (!mode || !PERMISSION_MODES.includes(mode)) {
+      errors.push(`permissionMode must be one of: ${PERMISSION_MODES.join(', ')}`)
     }
   }
 

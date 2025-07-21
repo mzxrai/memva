@@ -28,6 +28,7 @@ vi.mock('node:os', () => ({
 describe('Filesystem API', () => {
   let loader: any
   let mockFsAccess: any
+  let mockFsRealpath: any
   
   beforeEach(async () => {
     vi.clearAllMocks()
@@ -35,6 +36,7 @@ describe('Filesystem API', () => {
     // Get mocked functions
     const fs = await import('node:fs/promises')
     mockFsAccess = vi.mocked(fs.access)
+    mockFsRealpath = vi.mocked(fs.realpath)
     
     // Import loader after mocks are set up
     const module = await import('../routes/api.filesystem')
@@ -48,19 +50,19 @@ describe('Filesystem API', () => {
   describe('validate endpoint', () => {
     it('should return true for valid directory', async () => {
       const testPath = '/Users/testuser/projects'
-      mockFsAccess.mockResolvedValue(undefined)
+      mockFsRealpath.mockResolvedValue(testPath)
 
       const request = new Request(`http://localhost/api/filesystem?action=validate&path=${encodeURIComponent(testPath)}`)
       const response = await loader({ request, params: {}, context: {} })
       const data = await response.json()
 
       expect(data).toEqual({ valid: true, resolvedPath: testPath })
-      expect(mockFsAccess).toHaveBeenCalled()
+      expect(mockFsRealpath).toHaveBeenCalled()
     })
 
     it('should return false for invalid directory', async () => {
       const testPath = '/nonexistent/path'
-      mockFsAccess.mockRejectedValue(new Error('ENOENT'))
+      mockFsRealpath.mockRejectedValue(new Error('ENOENT'))
 
       const request = new Request(`http://localhost/api/filesystem?action=validate&path=${encodeURIComponent(testPath)}`)
       const response = await loader({ request, params: {}, context: {} })
@@ -71,7 +73,7 @@ describe('Filesystem API', () => {
 
     it('should validate empty path as current directory', async () => {
       const cwd = process.cwd()
-      mockFsAccess.mockResolvedValue(undefined)
+      mockFsRealpath.mockResolvedValue(cwd)
 
       const request = new Request('http://localhost/api/filesystem?action=validate&path=')
       const response = await loader({ request, params: {}, context: {} })

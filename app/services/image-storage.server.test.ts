@@ -40,7 +40,7 @@ describe('Image Storage Service', () => {
     
     const filePath = await saveImageToDisk(testSessionId, fileName, imageBuffer)
     
-    expect(filePath).toMatch(/\.tmp\/sessions\/test-session-123\/image-\d+-test-image\.jpg$/)
+    expect(filePath).toMatch(/\.memva\/tmp\/sessions\/test-session-123\/image-\d+-test-image\.jpg$/)
     
     // Verify file exists
     const fileExists = await fs.access(filePath).then(() => true).catch(() => false)
@@ -112,7 +112,7 @@ describe('Image Storage Service', () => {
     
     const path = getImagePath(sessionId, fileName)
     
-    expect(path).toBe(join(process.cwd(), '.tmp', 'sessions', sessionId, fileName))
+    expect(path).toBe(join(homedir(), '.memva', 'tmp', 'sessions', sessionId, fileName))
   })
 
   it('should cleanup all images for a session', async () => {

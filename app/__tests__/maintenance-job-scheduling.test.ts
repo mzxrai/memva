@@ -59,7 +59,7 @@ describe('Maintenance Job Scheduling', () => {
     const jobs = await listJobs({ status: 'pending' })
     const cleanupJob = jobs.find(j => 
       j.type === 'maintenance' && 
-      j.data.operation === 'cleanup-expired-permissions'
+      (j.data as { operation: string }).operation === 'cleanup-expired-permissions'
     )
     
     expect(cleanupJob).toBeDefined()
@@ -87,6 +87,6 @@ describe('Maintenance Job Scheduling', () => {
     const maintenanceJobs = await listJobs({ type: 'maintenance' })
     
     expect(maintenanceJobs).toHaveLength(3)
-    expect(maintenanceJobs.map(j => j.data.operation)).toContain('cleanup-expired-permissions')
+    expect(maintenanceJobs.map(j => (j.data as { operation: string }).operation)).toContain('cleanup-expired-permissions')
   })
 })

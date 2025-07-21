@@ -8,6 +8,13 @@ interface PermissionsBadgeProps {
 }
 
 const MODE_CONFIG = {
+  default: {
+    label: 'Default',
+    color: 'text-blue-400',
+    bgColor: 'bg-zinc-800/50',
+    borderColor: 'border-zinc-700/50',
+    description: 'Standard behavior - prompts for permissions'
+  },
   plan: {
     label: 'Plan',
     color: 'text-emerald-400',
@@ -35,7 +42,8 @@ export default function PermissionsBadge({ mode, isUpdating = false }: Permissio
   const config = MODE_CONFIG[mode]
   
   const getAriaLabel = () => {
-    const modeText = mode === 'acceptEdits' ? 'Accept Edits' : 
+    const modeText = mode === 'default' ? 'Default' :
+                     mode === 'acceptEdits' ? 'Accept Edits' : 
                      mode === 'bypassPermissions' ? 'Bypass Permissions' : 
                      'Plan'
     return `Permissions mode: ${modeText}`

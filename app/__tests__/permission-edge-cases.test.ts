@@ -55,7 +55,7 @@ describe('Permission System Edge Cases', () => {
     })
 
     it('should handle clock skew gracefully', async () => {
-      const { createPermissionRequest, getPermissionRequests } = await import('../db/permissions.service')
+      const { createPermissionRequest } = await import('../db/permissions.service')
       
       const session = testDb.createSession({ title: 'Test Session', project_path: '/test' })
       
@@ -291,7 +291,7 @@ describe('Permission System Edge Cases', () => {
       
       const [retrieved] = await getPermissionRequests({ id: request.id })
       expect(retrieved.tool_name).toBe(longToolName)
-      expect(retrieved.input.command).toBe(longCommand)
+      expect((retrieved.input as { command: string }).command).toBe(longCommand)
     })
   })
 })

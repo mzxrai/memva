@@ -17,7 +17,7 @@ const log = (message: string) => {
   console.error(logMessage) // MCP uses stderr for logs
   try {
     appendFileSync(logFile, logMessage)
-  } catch (e) {
+  } catch {
     // Ignore file write errors
   }
 }

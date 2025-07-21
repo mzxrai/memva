@@ -42,7 +42,7 @@ describe('Permissions API Routes', () => {
       })
       
       const { updatePermissionDecision } = await import('../db/permissions.service')
-      await updatePermissionDecision(approvedRequest.id, 'allow')
+      await updatePermissionDecision(approvedRequest.id, { decision: 'allow' })
       
       // Test without filters
       const request = new Request('http://localhost/api/permissions')
@@ -50,7 +50,7 @@ describe('Permissions API Routes', () => {
       const data = await response.json()
       
       expect(response.status).toBe(200)
-      expect(data).toHaveLength(2)
+      expect(data.permissions).toHaveLength(2)
     })
 
     it('should filter by session_id when provided', async () => {
@@ -82,8 +82,8 @@ describe('Permissions API Routes', () => {
       const data = await response.json()
       
       expect(response.status).toBe(200)
-      expect(data).toHaveLength(1)
-      expect(data[0].session_id).toBe(session1.id)
+      expect(data.permissions).toHaveLength(1)
+      expect(data.permissions[0].session_id).toBe(session1.id)
     })
 
     it('should filter by status when provided', async () => {
@@ -108,7 +108,7 @@ describe('Permissions API Routes', () => {
       })
       
       const { updatePermissionDecision } = await import('../db/permissions.service')
-      await updatePermissionDecision(approvedRequest.id, 'allow')
+      await updatePermissionDecision(approvedRequest.id, { decision: 'allow' })
       
       // Test with status filter
       const request = new Request('http://localhost/api/permissions?status=pending')
@@ -116,8 +116,8 @@ describe('Permissions API Routes', () => {
       const data = await response.json()
       
       expect(response.status).toBe(200)
-      expect(data).toHaveLength(1)
-      expect(data[0].id).toBe(pendingRequest.id)
+      expect(data.permissions).toHaveLength(1)
+      expect(data.permissions[0].id).toBe(pendingRequest.id)
       expect(data[0].status).toBe('pending')
     })
 
@@ -129,7 +129,7 @@ describe('Permissions API Routes', () => {
       const data = await response.json()
       
       expect(response.status).toBe(200)
-      expect(data).toEqual([])
+      expect(data.permissions).toEqual([])
     })
   })
 })

@@ -119,6 +119,29 @@ export const handlers = [
     }
     
     return HttpResponse.json({ error: 'Unknown action' }, { status: 400 })
+  }),
+  
+  // Mock permissions API endpoint
+  http.get('/api/permissions', ({ request }) => {
+    const url = new URL(request.url)
+    const status = url.searchParams.get('status')
+    
+    // Return empty array by default or filtered by status
+    if (status === 'pending') {
+      return HttpResponse.json({ permissions: [] })
+    }
+    
+    return HttpResponse.json({ permissions: [] })
+  }),
+  
+  http.put('/api/permissions/:id', async ({ params, request }) => {
+    const body = await request.json()
+    return HttpResponse.json({
+      id: params.id,
+      status: body.decision === 'allow' ? 'approved' : 'denied',
+      decision: body.decision,
+      decided_at: new Date().toISOString()
+    })
   })
 ]
 

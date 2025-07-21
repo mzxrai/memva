@@ -20,7 +20,7 @@ describe('SettingsModal Component', () => {
   it('should render with proper accessibility when open', () => {
     render(<SettingsModal isOpen={true} onClose={() => {}} />)
     
-    expectSemanticMarkup.heading(2, 'New Sessions: Default Settings')
+    expectSemanticMarkup.heading(2, 'Default Settings for New Sessions')
     expect(screen.getByRole('spinbutton', { name: 'Max Turns' })).toBeInTheDocument()
     
     const dialog = screen.getByRole('dialog')
@@ -141,6 +141,7 @@ describe('SettingsModal Component', () => {
       expect(screen.getByText('Permission Mode')).toBeInTheDocument()
     })
 
+    expect(screen.getByText('Default')).toBeInTheDocument()
     expect(screen.getByText('Accept Edits')).toBeInTheDocument()
     expect(screen.getByText('Bypass Permissions')).toBeInTheDocument()
     expect(screen.getByText('Plan Mode')).toBeInTheDocument()
@@ -150,8 +151,8 @@ describe('SettingsModal Component', () => {
     it('should render global mode with correct title and helper text', () => {
       render(<SettingsModal isOpen={true} onClose={() => {}} mode="global" />)
       
-      expectSemanticMarkup.heading(2, 'New Sessions: Default Settings')
-      expect(screen.getByText('These settings will be used as defaults for all new sessions')).toBeInTheDocument()
+      expectSemanticMarkup.heading(2, 'Default Settings for New Sessions')
+      expect(screen.getByText('These are the defaults for new sessions, but can be overridden within each individual session.')).toBeInTheDocument()
     })
 
     it('should render session mode with correct title', () => {

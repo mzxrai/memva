@@ -3,6 +3,7 @@ import { settings } from './schema'
 import { eq } from 'drizzle-orm'
 
 import type { SettingsConfig, PermissionMode } from '../types/settings'
+import { PERMISSION_MODES } from '../types/settings'
 
 export { type SettingsConfig, type PermissionMode }
 
@@ -40,8 +41,7 @@ export async function updateSettings(config: Partial<SettingsConfig>): Promise<v
     throw new Error('maxTurns must be between 1 and 1000')
   }
   
-  const validPermissionModes: PermissionMode[] = ['acceptEdits', 'bypassPermissions', 'plan']
-  if (!validPermissionModes.includes(newConfig.permissionMode)) {
+  if (!PERMISSION_MODES.includes(newConfig.permissionMode)) {
     throw new Error(`Invalid permission mode: ${newConfig.permissionMode}`)
   }
   

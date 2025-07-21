@@ -32,7 +32,6 @@ describe('Maintenance Handler - Permission Cleanup', () => {
       // Create permission requests with different ages
       const now = new Date()
       const oldDate = new Date(now.getTime() - 25 * 60 * 60 * 1000) // 25 hours ago
-      const recentDate = new Date(now.getTime() - 23 * 60 * 60 * 1000) // 23 hours ago
       
       // Create old permission request
       const oldRequest = await createPermissionRequest({
