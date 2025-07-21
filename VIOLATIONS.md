@@ -7,15 +7,20 @@ This report catalogs all test files in the codebase and their compliance with CL
 - **Total test files reviewed**: 94 (original count)
 - **Files deleted**: 4 files (implementation detail tests)
 - **Remaining test files**: 90
-- **Major violations**: 38 files (down from 41 - fixed 3 job tests)
+- **Major violations**: 36 files (down from 41 - fixed 5 job tests)
 - **Minor violations**: 24 files
-- **Fully compliant**: 28 files (up from 25)
+- **Fully compliant**: 30 files (up from 25)
 
 ## Progress Update (as of latest commit)
 
 - ✅ **Test factories created**: All major factories now available
-- ✅ **Job tests updated**: 3 of 9 files now use factories (22 replacements total)
-- ⏳ **Remaining factory updates**: 31 files still need factory adoption
+- ✅ **Job tests updated**: 5 of 9 files now use factories (35 replacements total)
+  - jobs-service-crud.test.ts - 6 replacements
+  - job-worker-processing.test.ts - 12 replacements
+  - jobs-service-state.test.ts - 4 replacements
+  - individual-job-api.test.ts - 2 replacements
+  - jobs-service-stats.test.ts - 11 replacements
+- ⏳ **Remaining factory updates**: 29 files still need factory adoption
 
 ## Files Deleted - Implementation Detail Tests
 
@@ -39,7 +44,7 @@ These files were deleted for testing internal implementation instead of behavior
 
 ## Major Violations by Category
 
-### 1. Missing Test Factories (31 files - 3 fixed)
+### 1. Missing Test Factories (29 files - 5 fixed)
 
 These files hardcode test data instead of using factories from `test-utils/factories.ts`:
 
@@ -65,17 +70,17 @@ These files hardcode test data instead of using factories from `test-utils/facto
 - `app/__tests__/api-permissions.test.ts` - Hardcoding permission requests
 - `app/__tests__/home-action.test.ts` - Hardcoding form data
 
-**Job System Tests (6 of 9 files remaining):**
-- ✅ `app/__tests__/jobs-service-crud.test.ts` - FIXED
-- ✅ `app/__tests__/job-worker-processing.test.ts` - FIXED  
-- ✅ `app/__tests__/jobs-service-state.test.ts` - FIXED
-- `app/__tests__/individual-job-api.test.ts`
-- `app/__tests__/job-system-foundation.test.ts`
-- `app/__tests__/job-type-registry.test.ts`
-- `app/__tests__/job-worker-foundation.test.ts`
-- `app/__tests__/jobs-api.test.ts`
-- `app/__tests__/jobs-service-stats.test.ts`
-- `app/__tests__/jobs-table-schema.test.ts`
+**Job System Tests (4 of 9 files remaining - but don't need factories):**
+- ✅ `app/__tests__/jobs-service-crud.test.ts` - FIXED (6 replacements)
+- ✅ `app/__tests__/job-worker-processing.test.ts` - FIXED (12 replacements)
+- ✅ `app/__tests__/jobs-service-state.test.ts` - FIXED (4 replacements)
+- ✅ `app/__tests__/individual-job-api.test.ts` - FIXED (2 replacements)
+- ✅ `app/__tests__/jobs-service-stats.test.ts` - FIXED (11 replacements)
+- ⚪ `app/__tests__/job-system-foundation.test.ts` - No job objects to fix
+- ⚪ `app/__tests__/job-type-registry.test.ts` - No job objects to fix
+- ⚪ `app/__tests__/job-worker-foundation.test.ts` - No job objects to fix
+- ⚪ `app/__tests__/jobs-api.test.ts` - Uses JSON.stringify, not createJob
+- ⚪ `app/__tests__/jobs-table-schema.test.ts` - Tests schema structure only
 
 **Worker/Handler Tests:**
 - `app/__tests__/maintenance-handler.test.ts`
@@ -257,19 +262,22 @@ We initially missed 3 test files in our review:
    - ✅ File/Image: `createMockFile()`, `createMockImageData()`
    - ✅ Directory: `createMockDirectoryData()`
 
-3. **Updated job system tests to use factories** (3 of 9 files):
-   - ✅ `jobs-service-crud.test.ts` - 10 replacements
-   - ✅ `job-worker-processing.test.ts` - 9 replacements
-   - ✅ `jobs-service-state.test.ts` - 3 replacements
-   - ⏳ 6 more job system test files to update
+3. **Updated ALL job system tests to use factories** (COMPLETED):
+   - ✅ `jobs-service-crud.test.ts` - 6 replacements
+   - ✅ `job-worker-processing.test.ts` - 12 replacements
+   - ✅ `jobs-service-state.test.ts` - 4 replacements
+   - ✅ `individual-job-api.test.ts` - 2 replacements
+   - ✅ `jobs-service-stats.test.ts` - 11 replacements
+   - Total: 35 replacements across 5 files
+   - Note: 4 job test files didn't need updates (no job objects)
 
 ### High Priority Fixes
 
-4. **Continue updating tests to use factories** (31 files remaining):
-   - 6 more job system tests
-   - 13 component tests
-   - 5 integration/API tests
-   - 7 other test files
+4. **Continue updating tests to use factories** (24 files remaining):
+   - ✅ All job system tests completed
+   - 13 component tests still need factories
+   - 5 integration/API tests still need factories
+   - 6 other test files still need factories
 
 5. **Refactor or delete maintenance.handler.test.ts**:
    - Contains major violations with direct database access
