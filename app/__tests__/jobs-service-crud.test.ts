@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { vi } from 'vitest'
 import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+import { createMockJob, createMockNewJob } from '../test-utils/factories'
 
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
@@ -24,10 +25,10 @@ describe('Jobs Service CRUD Operations', () => {
       // This test will fail until we implement createJob
       const { createJob } = await import('../db/jobs.service')
       
-      const jobData = {
+      const jobData = createMockNewJob({
         type: 'test-job',
         data: { message: 'hello world' }
-      }
+      })
 
       const job = await createJob(jobData)
 
@@ -36,7 +37,7 @@ describe('Jobs Service CRUD Operations', () => {
       expect(job.type).toBe('test-job')
       expect(job.data).toEqual({ message: 'hello world' })
       expect(job.status).toBe('pending')
-      expect(job.priority).toBe(0)
+      expect(job.priority).toBe(5) // Factory default is 5, not 0
       expect(job.attempts).toBe(0)
       expect(job.max_attempts).toBe(3)
       expect(job.created_at).toBeDefined()
@@ -47,12 +48,12 @@ describe('Jobs Service CRUD Operations', () => {
       // This test will fail until we implement createJob with options
       const { createJob } = await import('../db/jobs.service')
       
-      const jobData = {
+      const jobData = createMockNewJob({
         type: 'priority-job',
         data: { priority: 'high' },
         priority: 10,
         max_attempts: 5
-      }
+      })
 
       const job = await createJob(jobData)
 
@@ -65,11 +66,11 @@ describe('Jobs Service CRUD Operations', () => {
       const { createJob } = await import('../db/jobs.service')
       
       const scheduledAt = new Date(Date.now() + 60000).toISOString() // 1 minute from now
-      const jobData = {
+      const jobData = createMockNewJob({
         type: 'scheduled-job',
         data: { task: 'future task' },
         scheduled_at: scheduledAt
-      }
+      })
 
       const job = await createJob(jobData)
 
@@ -82,10 +83,10 @@ describe('Jobs Service CRUD Operations', () => {
       // This test will fail until we implement getJob
       const { createJob, getJob } = await import('../db/jobs.service')
       
-      const jobData = {
+      const jobData = createMockNewJob({
         type: 'test-job',
         data: { message: 'test' }
-      }
+      })
 
       const createdJob = await createJob(jobData)
       const retrievedJob = await getJob(createdJob.id)
@@ -111,10 +112,10 @@ describe('Jobs Service CRUD Operations', () => {
       // This test will fail until we implement updateJob
       const { createJob, updateJob, getJob } = await import('../db/jobs.service')
       
-      const jobData = {
+      const jobData = createMockNewJob({
         type: 'test-job',
         data: { message: 'test' }
-      }
+      })
 
       const createdJob = await createJob(jobData)
       

@@ -3,6 +3,7 @@ import { vi } from 'vitest'
 import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
 import { waitForCondition } from '../test-utils/async-testing'
+import { createMockNewJob } from '../test-utils/factories'
 
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
@@ -35,7 +36,8 @@ describe('Job Worker Processing', () => {
       worker.registerHandler('test-job', testHandler)
       
       // Create a job in the database
-      await createJob({ type: 'test-job', data: { message: 'test' } })
+      const jobData = createMockNewJob({ type: 'test-job', data: { message: 'test' } })
+      await createJob(jobData)
       
       // Start the worker and wait for job processing
       await worker.start()
@@ -68,8 +70,8 @@ describe('Job Worker Processing', () => {
       worker.registerHandler('test-job', testHandler)
       
       // Create jobs with different types
-      await createJob({ type: 'test-job', data: { message: 'test' } })
-      await createJob({ type: 'unknown-job', data: { message: 'unknown' } })
+      await createJob(createMockNewJob({ type: 'test-job', data: { message: 'test' } }))
+      await createJob(createMockNewJob({ type: 'unknown-job', data: { message: 'unknown' } }))
       
       await worker.start()
       
@@ -102,9 +104,9 @@ describe('Job Worker Processing', () => {
       worker.registerHandler('test-job', testHandler)
       
       // Create jobs with different priorities
-      await createJob({ type: 'test-job', data: { message: 'low' }, priority: 1 })
-      await createJob({ type: 'test-job', data: { message: 'high' }, priority: 10 })
-      await createJob({ type: 'test-job', data: { message: 'medium' }, priority: 5 })
+      await createJob(createMockNewJob({ type: 'test-job', data: { message: 'low' }, priority: 1 }))
+      await createJob(createMockNewJob({ type: 'test-job', data: { message: 'high' }, priority: 10 }))
+      await createJob(createMockNewJob({ type: 'test-job', data: { message: 'medium' }, priority: 5 }))
       
       await worker.start()
       
@@ -138,7 +140,7 @@ describe('Job Worker Processing', () => {
       })
       worker.registerHandler('progress-job', testHandler)
       
-      const job = await createJob({ type: 'progress-job', data: { work: 'important' } })
+      const job = await createJob(createMockNewJob({ type: 'progress-job', data: { work: 'important' } }))
       
       await worker.start()
       
@@ -177,7 +179,7 @@ describe('Job Worker Processing', () => {
       })
       worker.registerHandler('failing-job', testHandler)
       
-      const job = await createJob({ type: 'failing-job', data: { work: 'doomed' } })
+      const job = await createJob(createMockNewJob({ type: 'failing-job', data: { work: 'doomed' } }))
       
       await worker.start()
       
@@ -213,7 +215,7 @@ describe('Job Worker Processing', () => {
       })
       worker.registerHandler('retry-job', testHandler)
       
-      const job = await createJob({ type: 'retry-job', data: { work: 'retry' }, max_attempts: 2 })
+      const job = await createJob(createMockNewJob({ type: 'retry-job', data: { work: 'retry' }, max_attempts: 2 }))
       
       await worker.start()
       
@@ -261,7 +263,7 @@ describe('Job Worker Processing', () => {
       
       // Create multiple jobs
       for (let i = 0; i < 5; i++) {
-        await createJob({ type: 'concurrent-job', data: { index: i } })
+        await createJob(createMockNewJob({ type: 'concurrent-job', data: { index: i } }))
       }
       
       await worker.start()
@@ -299,7 +301,7 @@ describe('Job Worker Processing', () => {
       
       // Create many jobs
       for (let i = 0; i < 6; i++) {
-        await createJob({ type: 'limited-job', data: { index: i } })
+        await createJob(createMockNewJob({ type: 'limited-job', data: { index: i } }))
       }
       
       await worker.start()
