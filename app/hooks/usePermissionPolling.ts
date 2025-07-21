@@ -39,7 +39,22 @@ export default function usePermissionPolling(options: UsePermissionPollingOption
       }
       
       const data = await response.json() as { permissions: PermissionRequest[] }
-      setPermissions(data.permissions || [])
+      const newPermissions = data.permissions || []
+      
+      // Only update state if permissions have actually changed
+      setPermissions(prev => {
+        // Quick length check first
+        if (prev.length !== newPermissions.length) {
+          return newPermissions
+        }
+        
+        // Deep comparison of permission IDs
+        const prevIds = prev.map(p => p.id).sort()
+        const newIds = newPermissions.map(p => p.id).sort()
+        const hasChanged = prevIds.some((id, index) => id !== newIds[index])
+        
+        return hasChanged ? newPermissions : prev
+      })
       setError(null)
     } catch (err) {
       console.error('Failed to fetch permissions:', err)

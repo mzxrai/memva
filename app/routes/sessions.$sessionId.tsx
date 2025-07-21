@@ -284,6 +284,13 @@ export default function SessionDetail() {
 
   // Combine events, permissions, and handle optimistic message
   const { displayEvents, toolResults } = useMemo(() => {
+    console.log('EXPENSIVE COMPUTATION RUNNING', {
+      time: new Date().toISOString(),
+      initialEventsCount: initialEvents.length,
+      newEventsCount: newEvents.length,
+      totalEvents: initialEvents.length + newEvents.length
+    });
+    
     let allEvents = [...initialEvents, ...newEvents];
     
     // Add optimistic message if present
@@ -309,22 +316,28 @@ export default function SessionDetail() {
     }
     
     
-    // Remove duplicates, including optimistic if real message arrived
-    const unique = allEvents.filter((event, index, arr) => {
+    // Remove duplicates using a Set for O(1) lookups instead of O(n²)
+    const seen = new Set<string>();
+    const unique = [];
+    
+    for (const event of allEvents) {
+      // Skip if we've seen this UUID
+      if (seen.has(event.uuid)) continue;
+      
       // For optimistic user message, check if replaced by real event
       if (event.uuid?.startsWith('optimistic-') && optimisticUserMessage) {
-        return !arr.some(e => 
+        const hasRealMessage = allEvents.some(e => 
           e.event_type === 'user' &&
           !e.uuid?.startsWith('optimistic-') &&
           getUserMessageText(e.data) === optimisticUserMessage.content &&
-          Math.abs(new Date(e.timestamp).getTime() - optimisticUserMessage.timestamp) < 10000 // 10s window
+          Math.abs(new Date(e.timestamp).getTime() - optimisticUserMessage.timestamp) < 10000
         );
+        if (hasRealMessage) continue;
       }
       
-      
-      // Regular deduplication
-      return arr.findIndex(e => e.uuid === event.uuid) === index;
-    });
+      seen.add(event.uuid);
+      unique.push(event);
+    }
     
     const sorted = unique.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
     
