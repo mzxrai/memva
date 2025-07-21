@@ -34,7 +34,7 @@ export default function CompactInlinePermission({
         {isExitPlanMode ? (
           <>Would you like to proceed with this plan?</>
         ) : (
-          <>Permission required to execute this action</>
+          <>Do you approve this action?</>
         )}
       </div>
       

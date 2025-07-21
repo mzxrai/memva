@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { vi } from 'vitest'
 import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+import { createMockNewJob } from '../test-utils/factories'
 
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
@@ -25,10 +26,10 @@ describe('Jobs Service Statistics & Cleanup', () => {
       const { createJob, updateJob, getJobStats } = await import('../db/jobs.service')
       
       // Create jobs with different statuses
-      const job1 = await createJob({ type: 'test-job-1', data: {} })
-      const job2 = await createJob({ type: 'test-job-2', data: {} })
-      const job3 = await createJob({ type: 'test-job-3', data: {} })
-      await createJob({ type: 'test-job-4', data: {} })
+      const job1 = await createJob(createMockNewJob({ type: 'test-job-1', data: {} }))
+      const job2 = await createJob(createMockNewJob({ type: 'test-job-2', data: {} }))
+      const job3 = await createJob(createMockNewJob({ type: 'test-job-3', data: {} }))
+      await createJob(createMockNewJob({ type: 'test-job-4', data: {} }))
 
       // Update some jobs to different statuses
       await updateJob(job1.id, { status: 'running' })
@@ -64,8 +65,8 @@ describe('Jobs Service Statistics & Cleanup', () => {
       // This test will fail until we implement getJobStats with cancelled support
       const { createJob, cancelJob, getJobStats } = await import('../db/jobs.service')
       
-      const job1 = await createJob({ type: 'test-job-1', data: {} })
-      await createJob({ type: 'test-job-2', data: {} })
+      const job1 = await createJob(createMockNewJob({ type: 'test-job-1', data: {} }))
+      await createJob(createMockNewJob({ type: 'test-job-2', data: {} }))
 
       await cancelJob(job1.id)
       // job2 remains pending
@@ -87,10 +88,10 @@ describe('Jobs Service Statistics & Cleanup', () => {
       const oldDate = new Date(Date.now() - (35 * 24 * 60 * 60 * 1000)) // 35 days ago
       const oldTimestamp = oldDate.toISOString()
 
-      const job1 = await createJob({ type: 'old-completed', data: {} })
-      const job2 = await createJob({ type: 'old-failed', data: {} })
-      const job3 = await createJob({ type: 'recent-completed', data: {} })
-      await createJob({ type: 'pending', data: {} })
+      const job1 = await createJob(createMockNewJob({ type: 'old-completed', data: {} }))
+      const job2 = await createJob(createMockNewJob({ type: 'old-failed', data: {} }))
+      const job3 = await createJob(createMockNewJob({ type: 'recent-completed', data: {} }))
+      await createJob(createMockNewJob({ type: 'pending', data: {} }))
 
       // Mark jobs as completed/failed with old timestamps
       await updateJob(job1.id, { 
