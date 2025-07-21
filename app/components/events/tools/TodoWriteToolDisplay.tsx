@@ -63,9 +63,22 @@ export const TodoWriteToolDisplay = memo(({ toolCall, hasResult, result }: TodoW
 
   const isError = sdkResult.is_error === true
 
-  // Don't show if there was an error
+  // Handle error display
   if (isError) {
-    return null
+    const errorContent = typeof sdkResult.content === 'string' ? sdkResult.content : 'TodoWrite operation failed'
+    
+    return (
+      <div className="py-2">
+        <div className={clsx(
+          typography.font.mono,
+          typography.size.sm,
+          colors.accent.red.text,
+          'whitespace-pre-wrap'
+        )}>
+          {errorContent}
+        </div>
+      </div>
+    )
   }
 
   const todos = extractTodoItems(toolCall.input)

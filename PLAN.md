@@ -1,474 +1,267 @@
-# Claude Status Management & Stop Functionality - Technical Implementation Plan
+# Permission Handling Implementation Plan
 
-## **CRITICAL BUG**: Text Input Disabled After First Message
+## Current Status 🚧
+- **Phase 1: Database Layer** ✅ COMPLETE
+- **Phase 2: MCP Permission Server** ✅ COMPLETE
+- **Phase 3: Update Claude Code Service** ✅ COMPLETE
+- **Phase 4: React UI Components** ✅ COMPLETE
+- **Phase 5: Polling and State Management** ✅ COMPLETE
+- **Phase 6: API Routes** ✅ COMPLETE
+- **Phase 7: Maintenance & Cleanup** ✅ COMPLETE
+- **Phase 8: Integration Testing** ✅ COMPLETE
+- **Phase 9: Frontend Integration** ⏳ IN PROGRESS
+- **Phase 10: End-to-End Testing & Polish** ⏳ NOT STARTED
 
-### Problem Statement
-The session detail page text input becomes permanently disabled after sending the first message, preventing users from continuing their conversation with Claude Code.
+**Overall Progress: ~80%** (adjusted for new Phase 9)
 
-### Root Cause Analysis
-1. **Status Set But Never Updated**: `sessions.$sessionId.tsx` sets `claude_status: 'processing'` when job starts (line 43)
-2. **Missing Completion Logic**: `session-runner.handler.ts` never updates `claude_status` when Claude Code interaction completes
-3. **Input Disabled Logic**: Text input is disabled when `isProcessing = session.claude_status === 'processing'` (line 159)
-4. **No User Control**: Users cannot stop long-running Claude Code interactions
+## Overview
+Implement a permission handling system for Claude Code sessions using MCP (Model Context Protocol) with SQLite polling for maximum resilience. Users will have up to 24 hours to respond to permission requests.
 
-### Solution Overview
-Implement comprehensive status management with proper transitions and user stop functionality to enable continuous messaging and user control.
+## Architecture Summary
+- **MCP Permission Server**: Standalone TypeScript server that implements the permission prompt tool
+- **SQLite Database**: Central storage for permission requests (polling-based, no WebSockets)
+- **React UI**: Permission notification system with queue management
+- **Polling Strategy**: UI polls every 500ms-1s, MCP server uses exponential backoff
 
----
+## Implementation Checklist
 
-## Phase 1: Research & Status Flow Analysis
+### Phase 1: Database Layer ✅
+- [x] Create database schema for `permission_requests` table
+  - [x] Add migration file `005_add_permission_requests.sql`
+  - [x] Update `app/db/schema.ts` with new table definition
+  - [x] Fields: id, session_id, tool_name, tool_use_id, input, status, decision, decided_at, created_at, expires_at
+- [x] Create permission service layer (`app/db/permissions.service.ts`)
+  - [x] `createPermissionRequest()` - Create new permission request
+  - [x] `getPermissionRequests()` - Get all requests with filters
+  - [x] `getPendingPermissionRequests()` - Get pending requests for UI
+  - [x] `updatePermissionDecision()` - Update request with approval/denial
+  - [x] `expireOldRequests()` - Mark 24h+ requests as timeout
+- [x] Write database tests for permission service
+  - [x] Test CRUD operations
+  - [x] Test expiration logic
+  - [x] Test concurrent request handling
+  - [x] All tests passing ✅
 
-### Phase 1.1: Current Architecture Documentation
-- [ ] **Research**: Document complete status flow from UI → job → handler → database
-- [ ] **Research**: Map all locations where `claude_status` is read/written in codebase
-- [ ] **Research**: Analyze current job management patterns and existing cancellation hooks
-- [ ] **Research**: Document dual architecture (job-based vs SSE-based) and their interaction
-- [ ] **Analysis**: Create visual status transition diagram showing current broken flow
-- [ ] **Documentation**: Write technical analysis document with findings
-- [ ] **Commit**: Research documentation and analysis
+### Phase 2: MCP Permission Server ✅
+- [x] Set up new TypeScript project in `mcp-permission-server/`
+  - [x] Initialize package.json with dependencies
+  - [x] Configure tsconfig.json for Node.js target with ES modules
+  - [x] Install @modelcontextprotocol/sdk and better-sqlite3
+- [x] Implement MCP server (`mcp-permission-server/src/index.ts`)
+  - [x] Create MCP server instance
+  - [x] Register `approval_prompt` tool
+  - [x] Implement permission request creation in SQLite (via PermissionPoller class)
+  - [x] Implement polling logic with exponential backoff (100ms → 5s cap)
+  - [x] Handle 24-hour timeout
+  - [x] Return proper JSON response format
+- [x] Create build script
+  - [x] TypeScript compilation to JavaScript
+  - [x] Build successful - outputs to build/ directory
+- [x] Write unit tests for MCP server
+  - [x] Test permission request creation
+  - [x] Test polling behavior
+  - [x] Test timeout handling
+  - [x] Test exponential backoff
+  - [x] All tests passing ✅
 
-### Phase 1.2: Test Environment Setup
-- [ ] **Test Setup**: Verify test database includes `claude_status` column functionality
-- [ ] **Test Setup**: Confirm job system test patterns work with status updates
-- [ ] **Test Setup**: Set up integration test environment for session workflows
-- [ ] **Test Utilities**: Create helper functions for testing status transitions
-- [ ] **Commit**: Test environment preparation
+### Phase 3: Update Claude Code Service ✅ COMPLETE
+- [x] Modify `app/services/claude-code.server.ts`
+  - [x] Create ~/.memva/tmp directory if not exists
+  - [x] Generate MCP config files at `~/.memva/tmp/mcp-config-{sessionId}.json`
+  - [x] Add `mcpConfig` option to Claude Code SDK options (camelCase version of --mcp-config)
+  - [x] Add `permissionPromptTool` option with mcp__memva-permissions__approval_prompt
+  - [x] Include correct MCP server path and environment variables
+  - [x] Clean up temp files on session end
+- [x] Write tests for MCP config generation
+  - [x] Test config file creation
+  - [x] Test cleanup on session end
+  - [x] Test SDK options with MCP config
+  - [x] Test permission tool is added to allowed tools
 
----
+**Note**: Claude Code TypeScript SDK accepts all CLI arguments but in camelCase format (e.g., `--mcp-config` becomes `mcpConfig`)
 
-## Phase 2: Core Status Management Fix
+### Phase 4: React UI Components ✅ COMPLETE
+- [x] Create permission components (`app/components/permissions/`)
+  - [x] `PermissionRequestNotification.tsx` - Persistent notification bar
+  - [ ] `PermissionRequestModal.tsx` - Detailed view with tool info (deferred)
+  - [x] `PermissionQueue.tsx` - List all pending requests
+  - [ ] `PermissionHistory.tsx` - Audit log of past decisions (deferred)
+  - [x] `PermissionBadge.tsx` - Show count of pending permissions
+- [x] Integrate with existing design system
+  - [x] Use Linear-inspired minimal design
+  - [x] Use Inter font for UI text
+  - [x] Use JetBrains Mono for code/tool info
+  - [x] Thoughtful use of color for approve/deny actions
+- [x] Write component tests
+  - [x] Test notification appearance
+  - [x] Test queue management
+  - [x] Test badge behavior
+  - [x] Use semantic testing utilities
 
-### Phase 2.1: Session-Runner Handler Status Updates
-- [ ] **Test**: Should update `claude_status` to `'completed'` when session-runner handler succeeds
-- [ ] **Test**: Should update `claude_status` to `'error'` when session-runner handler fails with unrecoverable error
-- [ ] **Test**: Should update `claude_status` to `'user_stopped'` when job receives abort signal
-- [ ] **Test**: Should maintain existing event storage patterns during status updates
-- [ ] **Test**: Should handle status update failures gracefully without breaking job completion
-- [ ] **Implementation**: Import `updateSessionClaudeStatus` in session-runner.handler.ts
-- [ ] **Implementation**: Add status update to `'completed'` in success callback (line 60)
-- [ ] **Implementation**: Add status update to `'error'` in error callback (lines 55, 68)
-- [ ] **Implementation**: Add status update to `'user_stopped'` when abort signal detected
-- [ ] **Implementation**: Add proper error handling for status update failures
-- [ ] **Verification**: Manual test that text input re-enables after Claude Code completes
-- [ ] **Commit**: Core status management in session-runner handler
+**Note**: Focused on core components needed for MVP. Modal and history components can be added later.
 
-### Phase 2.2: Status Update Error Handling
-- [ ] **Test**: Should log but not fail job when status update fails
-- [ ] **Test**: Should retry status updates on temporary database failures
-- [ ] **Test**: Should handle concurrent status updates gracefully
-- [ ] **Implementation**: Add try-catch around status updates with proper logging
-- [ ] **Implementation**: Add retry logic for failed status updates
-- [ ] **Implementation**: Prevent status update failures from breaking job completion
-- [ ] **Commit**: Robust status update error handling
+### Phase 5: Polling and State Management ✅ COMPLETE
+- [x] Create `usePermissionPolling` hook (`app/hooks/usePermissionPolling.ts`)
+  - [x] Poll database every 500ms for new requests (default)
+  - [x] Direct service layer polling (no React Query needed)
+  - [x] Return pending permissions list
+  - [x] Handle approve/deny actions
+  - [x] Support configurable polling interval and enable/disable
+- [ ] Add to main layout to ensure polling is always active (deferred to Phase 6)
+- [x] Write tests for polling behavior
+  - [x] Test new request detection
+  - [x] Test polling intervals
+  - [x] Test action handling
+  - [x] Test error handling
 
----
+**Note**: Simplified approach using direct service calls instead of React Query, following existing patterns in codebase.
 
-## Phase 3: Job Tracking & Management Enhancement
+### Phase 6: API Routes ✅ COMPLETE
+- [x] Create permission API routes
+  - [x] `app/routes/api.permissions.tsx` - GET permission history
+  - [x] `app/routes/api.permissions.$id.tsx` - POST decision update
+  - [x] Follow existing route patterns with loaders/actions
+- [x] Write integration tests for API routes
+  - [x] Test permission listing
+  - [x] Test decision updates
+  - [x] Test error cases
+  - [x] All tests passing ✅
 
-### Phase 3.1: Session-Job Linking
-- [ ] **Test**: Should find active session-runner jobs by sessionId
-- [ ] **Test**: Should handle multiple jobs per session gracefully (most recent wins)
-- [ ] **Test**: Should clean up job references when jobs complete
-- [ ] **Implementation**: Add `findActiveJobBySessionId()` function to jobs.service.ts
-- [ ] **Implementation**: Add job type filtering to find only session-runner jobs
-- [ ] **Implementation**: Handle edge cases (multiple active jobs, orphaned jobs)
-- [ ] **Commit**: Enhanced job tracking and lookup
+### Phase 7: Maintenance & Cleanup ✅ COMPLETE
+- [x] Update maintenance handler (`app/workers/handlers/maintenance.handler.ts`)
+  - [x] Add task to expire old permission requests (>24h)
+  - [x] Run alongside existing cleanup tasks
+- [x] Write tests for maintenance tasks
+  - [x] Test expiration logic
+  - [x] Test cleanup scheduling
+  - [x] Test job creation and queueing
+  - [x] All tests passing ✅
 
-### Phase 3.2: Job Metadata Enhancement
-- [ ] **Test**: Should store sessionId in job data for easy lookup
-- [ ] **Test**: Should include session metadata in job for cancellation context
-- [ ] **Implementation**: Ensure sessionId is properly stored in session-runner job data
-- [ ] **Implementation**: Add any additional metadata needed for job-session linking
-- [ ] **Commit**: Job metadata improvements
+### Phase 8: Integration Testing ✅ COMPLETE
+- [x] Create end-to-end test for full permission flow
+  - [x] Simulate MCP server creating permission requests
+  - [x] Test UI polling for pending permissions
+  - [x] Verify approve/deny flow updates database
+  - [x] Test MCP server polling for decisions
+  - [x] Verify complete request lifecycle
+- [x] Test edge cases
+  - [x] Multiple concurrent permission requests
+  - [x] 24-hour timeout behavior
+  - [x] Race condition handling
+  - [x] Database connection issues
+  - [x] Large scale operations
+  - [x] Invalid input handling
+- [x] UI Integration tests
+  - [x] Hook integration with components
+  - [x] Real-time update behavior
+  - [x] Component rendering with permissions
+- [x] All 53 tests passing ✅
 
----
+### Phase 9: Frontend Integration ⏳ IN PROGRESS
+- [ ] Wire up permission UI components to the app
+  - [ ] Add usePermissionPolling hook to session detail page
+  - [ ] Create inline permission request component
+  - [ ] Integrate permissions into message flow (between Claude messages)
+  - [ ] Connect approve/deny actions to the hook
+- [ ] Design implementation
+  - [ ] Inline permission requests in message flow
+  - [ ] Dark theme with subtle amber/orange accent (bg-amber-900/10)
+  - [ ] Minimal design: tool name, description, approve/deny buttons
+  - [ ] No expiry time shown (cleaner UI)
+  - [ ] Inter font for consistency
+- [ ] Test UI responsiveness
+  - [ ] Verify notifications appear within 1 second
+  - [ ] Test approve/deny actions update UI immediately
+  - [ ] Ensure smooth integration with message flow
+- [ ] Run the MCP permission server
+  - [ ] Build the MCP server: `npm run build` in mcp-permission-server/
+  - [ ] Ensure server is accessible at correct path
 
-## Phase 4: Stop Button UI Implementation
+### Phase 10: End-to-End Testing & Polish
+- [ ] Manual testing with real Claude Code sessions
+  - [ ] Start a Claude Code session
+  - [ ] Trigger tool use that requires permission
+  - [ ] Verify permission appears in UI
+  - [ ] Test approve flow - verify tool executes
+  - [ ] Test deny flow - verify tool is blocked
+- [ ] Test edge cases manually
+  - [ ] Multiple concurrent permissions
+  - [ ] Long-running Claude Code sessions
+  - [ ] Server restarts during active permissions
+- [ ] Update CLAUDE.md with any learnings
+- [ ] Add JSDoc comments to service functions
+- [ ] Ensure all tests pass
+- [ ] Run lint and typecheck
 
-### Phase 4.1: Stop Button Component
-- [ ] **Test**: Should show "Stop" button when `claude_status === 'processing'`
-- [ ] **Test**: Should hide "Stop" button when `claude_status !== 'processing'`
-- [ ] **Test**: Should display stop button with proper accessibility attributes
-- [ ] **Test**: Should show loading state when stop request is in progress
-- [ ] **Test**: Should disable stop button to prevent double-clicks
-- [ ] **Implementation**: Add stop button to session detail page form area
-- [ ] **Implementation**: Connect stop button visibility to `isProcessing` state
-- [ ] **Implementation**: Add loading state management for stop operations
-- [ ] **Styling**: Implement Linear-inspired stop button design (red accent, clean typography)
-- [ ] **Commit**: Stop button UI component
+## What's Complete ✅
+- ✅ Database schema and migrations
+- ✅ Permission service layer with full CRUD operations
+- ✅ MCP permission server with exponential backoff polling
+- ✅ Claude Code integration (generates MCP configs per session)
+- ✅ React components (Badge, Queue, Notification)
+- ✅ usePermissionPolling hook
+- ✅ API routes for permission operations
+- ✅ Maintenance job for cleaning expired permissions
+- ✅ Comprehensive test coverage (53 tests passing)
 
-### Phase 4.2: Stop Button Integration
-- [ ] **Test**: Should be positioned appropriately relative to send button
-- [ ] **Test**: Should work on mobile devices with proper touch targets
-- [ ] **Implementation**: Position stop button in session detail page layout
-- [ ] **Implementation**: Ensure responsive design works across screen sizes
-- [ ] **Implementation**: Add proper spacing and visual hierarchy
-- [ ] **Commit**: Stop button layout integration
-
----
-
-## Phase 5: Stop Functionality Implementation
-
-### Phase 5.1: Job Cancellation Enhancement
-- [ ] **Test**: Should cancel active session-runner job when stop button clicked
-- [ ] **Test**: Should update `claude_status` to `'user_stopped'` after successful cancellation
-- [ ] **Test**: Should handle cases where job has already completed
-- [ ] **Test**: Should return appropriate feedback to UI about cancellation status
-- [ ] **Implementation**: Create `cancelJobWithStatus()` function that combines job cancellation with status update
-- [ ] **Implementation**: Enhance existing `cancelJob()` to trigger status updates
-- [ ] **Implementation**: Add proper error handling for cancellation failures
-- [ ] **Commit**: Enhanced job cancellation with status updates
-
-### Phase 5.2: AbortController Integration
-- [ ] **Test**: Should trigger AbortController when job is cancelled
-- [ ] **Test**: Should store `user_cancelled` event when Claude Code is aborted
-- [ ] **Test**: Should handle graceful shutdown of Claude Code SDK
-- [ ] **Implementation**: Connect job cancellation to AbortController in session-runner handler
-- [ ] **Implementation**: Ensure abort signal propagates properly through claude-code.server.ts
-- [ ] **Implementation**: Verify cancellation event storage works correctly
-- [ ] **Commit**: AbortController integration for graceful stops
-
-### Phase 5.3: Stop Button Event Handling
-- [ ] **Test**: Should call job cancellation API when stop button clicked
-- [ ] **Test**: Should show immediate feedback while cancellation processes
-- [ ] **Test**: Should handle stop button clicks gracefully (prevent double-cancellation)
-- [ ] **Test**: Should update UI state after successful cancellation
-- [ ] **Implementation**: Add `handleStop` function to session detail page
-- [ ] **Implementation**: Connect stop button to job cancellation API call
-- [ ] **Implementation**: Add proper loading states and error handling
-- [ ] **Implementation**: Update UI state after cancellation completes
-- [ ] **Commit**: Complete stop button functionality
-
----
-
-## Phase 6: Status Reset & Transition Logic
-
-### Phase 6.1: New Message Status Reset
-- [ ] **Test**: Should reset `claude_status` to `'processing'` when user submits new message
-- [ ] **Test**: Should work from any previous status (`completed`/`error`/`user_stopped`)
-- [ ] **Test**: Should clear any error indicators when transitioning to processing
-- [ ] **Test**: Should handle rapid message submissions without race conditions
-- [ ] **Implementation**: Add status reset logic to `sessions.$sessionId.tsx` action function
-- [ ] **Implementation**: Reset to `'processing'` before creating new job
-- [ ] **Implementation**: Clear error states and UI indicators during transition
-- [ ] **Implementation**: Add concurrency protection for rapid submissions
-- [ ] **Commit**: Status reset logic for new messages
-
-### Phase 6.2: Status Transition Validation
-- [ ] **Test**: Should enforce valid status transitions only
-- [ ] **Test**: Should prevent invalid status changes
-- [ ] **Test**: Should log status transition events for debugging
-- [ ] **Implementation**: Add status transition validation to `updateSessionClaudeStatus`
-- [ ] **Implementation**: Add logging for all status changes
-- [ ] **Implementation**: Prevent invalid transitions (e.g., `completed` → `processing` without user action)
-- [ ] **Commit**: Status transition validation and logging
-
----
-
-## Phase 7: Enhanced Error Handling & Edge Cases
-
-### Phase 7.1: Concurrent Operation Handling
-- [ ] **Test**: Should handle stop requests during job completion
-- [ ] **Test**: Should prevent race conditions between stop and natural completion
-- [ ] **Test**: Should handle rapid start/stop/start sequences
-- [ ] **Test**: Should gracefully handle AbortController failures
-- [ ] **Implementation**: Add proper synchronization for concurrent status updates
-- [ ] **Implementation**: Handle timing edge cases (stop during job completion)
-- [ ] **Implementation**: Add defensive programming for race conditions
-- [ ] **Commit**: Concurrent operation handling
-
-### Phase 7.2: System Failure Recovery
-- [ ] **Test**: Should handle job system failures during stop requests
-- [ ] **Test**: Should recover gracefully when job worker restarts
-- [ ] **Test**: Should handle network disconnections during Claude Code interactions
-- [ ] **Test**: Should cleanup orphaned jobs and sessions
-- [ ] **Implementation**: Add robust error handling for all stop/cancel scenarios
-- [ ] **Implementation**: Add retry logic for failed status updates
-- [ ] **Implementation**: Add cleanup routines for orphaned states
-- [ ] **Implementation**: Add health check mechanisms for job system
-- [ ] **Commit**: System failure recovery mechanisms
-
----
-
-## Phase 8: Status Indicator Updates
-
-### Phase 8.1: StatusIndicator Component Enhancement
-- [ ] **Test**: Should display appropriate indicator for `'completed'` status
-- [ ] **Test**: Should display appropriate indicator for `'user_stopped'` status
-- [ ] **Test**: Should show proper badge text for new statuses
-- [ ] **Test**: Should use correct colors for new status values
-- [ ] **Implementation**: Update StatusIndicator component for new `claude_status` values
-- [ ] **Implementation**: Add proper colors and badges for `completed`/`user_stopped`
-- [ ] **Implementation**: Ensure consistent design language across all status indicators
-- [ ] **Commit**: StatusIndicator component updates
-
-### Phase 8.2: Real-time Status Updates
-- [ ] **Test**: Should update status indicators in real-time on homepage
-- [ ] **Test**: Should reflect status changes immediately after completion/stopping
-- [ ] **Test**: Should handle status polling efficiently
-- [ ] **Implementation**: Update homepage polling to reflect new statuses
-- [ ] **Implementation**: Ensure status changes propagate to homepage quickly
-- [ ] **Implementation**: Optimize polling frequency for responsiveness
-- [ ] **Commit**: Real-time status indicator updates
-
----
-
-## Phase 9: Comprehensive Testing & Validation
-
-### Phase 9.1: End-to-End Workflow Testing
-- [ ] **Test**: Complete messaging workflow: send → process → complete → send another
-- [ ] **Test**: Complete stop workflow: send → stop → verify cancelled → send new message
-- [ ] **Test**: Error recovery workflow: send → error → retry → success
-- [ ] **Test**: Mixed workflows: send → complete → send → stop → send
-- [ ] **Test**: Concurrent sessions: multiple sessions running/stopping simultaneously
-- [ ] **Verification**: Verify continuous messaging works without input getting stuck
-- [ ] **Verification**: Verify stop functionality provides immediate user control
-- [ ] **Verification**: Verify all status transitions work correctly across scenarios
-- [ ] **Commit**: End-to-end workflow testing
-
-### Phase 9.2: Browser Testing with Playwright
-- [ ] **Test**: Browser test for complete messaging workflow using Playwright MCP
-- [ ] **Test**: Browser test for stop button functionality and UI responsiveness
-- [ ] **Test**: Browser test for error scenarios and recovery
-- [ ] **Test**: Browser test for rapid user interactions (stress testing)
-- [ ] **Implementation**: Create Playwright test scenarios for critical user paths
-- [ ] **Implementation**: Add visual verification for UI state changes
-- [ ] **Implementation**: Test across different browser conditions (slow network, etc.)
-- [ ] **Commit**: Browser testing with Playwright
-
-### Phase 9.3: Performance & Load Testing
-- [ ] **Test**: Performance test with multiple concurrent sessions
-- [ ] **Test**: Load test for rapid message submissions and stops
-- [ ] **Test**: Memory usage verification during extended sessions
-- [ ] **Test**: Database performance under status update load
-- [ ] **Implementation**: Add performance monitoring and metrics
-- [ ] **Implementation**: Optimize any performance bottlenecks discovered
-- [ ] **Commit**: Performance optimization and validation
-
----
-
-## Technical Specifications
-
-### Claude Status State Machine
-```
-not_started ──submit──→ processing ──complete──→ completed ──submit──→ processing
-     │                      │            ├──error──→ error ──submit──→ processing
-     │                      │            └─stop─→ user_stopped ──submit──→ processing  
-     └──────submit──────────┘
-```
-
-### Status Values
-```typescript
-type ClaudeStatus = 
-  | 'not_started'    // No messages sent yet
-  | 'processing'     // Currently working with Claude Code
-  | 'completed'      // Finished successfully, ready for next message
-  | 'error'          // Failed due to error, can retry
-  | 'user_stopped'   // User clicked stop, can send new message
-```
-
-### API Enhancements
-
-#### Enhanced Job Cancellation Endpoint
-```typescript
-DELETE /api/jobs/:jobId 
-// Response: { 
-//   cancelled: true, 
-//   sessionId: string, 
-//   newStatus: 'user_stopped',
-//   timestamp: string
-// }
-```
-
-#### Session Status Response (Enhanced)
-```typescript
-GET /sessions/:sessionId
-// Response includes: { 
-//   claude_status: ClaudeStatus,
-//   last_status_update: string,
-//   active_job_id?: string
-// }
-```
-
-### Key Files Modified
-1. **`app/workers/handlers/session-runner.handler.ts`** - Add comprehensive status updates
-2. **`app/routes/sessions.$sessionId.tsx`** - Add stop button, status reset logic, UI enhancements
-3. **`app/db/jobs.service.ts`** - Enhance cancellation to trigger status updates
-4. **`app/components/StatusIndicator.tsx`** - Support all new status values with proper UI
-5. **`app/db/sessions.service.ts`** - Add any additional status management utilities
-6. **`app/__tests__/**` - Comprehensive test coverage for all scenarios
-
-### Implementation Code Examples
-
-#### Session-Runner Handler Status Updates
-```typescript
-// In session-runner.handler.ts
-import { updateSessionClaudeStatus } from '../../db/sessions.service'
-
-export const sessionRunnerHandler: JobHandler = async (job, callback) => {
-  try {
-    const { sessionId } = jobData.data
-    
-    // ... existing Claude Code execution ...
-    
-    if (hasError) {
-      await updateSessionClaudeStatus(sessionId, 'error')
-      callback(new Error(`Claude Code SDK error: ${errorMessage}`))
-      return
-    }
-    
-    // Check if job was aborted
-    if (abortController.signal.aborted) {
-      await updateSessionClaudeStatus(sessionId, 'user_stopped')
-      callback(null, { success: true, sessionId, status: 'user_stopped' })
-      return
-    }
-    
-    // Job completed successfully
-    await updateSessionClaudeStatus(sessionId, 'completed')
-    callback(null, { success: true, sessionId, messagesProcessed, userId })
-    
-  } catch (error) {
-    await updateSessionClaudeStatus(sessionId, 'error')
-    callback(new Error(`Session runner handler error: ${error.message}`))
-  }
-}
-```
-
-#### Stop Button Implementation
-```typescript
-// In sessions.$sessionId.tsx
-const [isStopLoading, setIsStopLoading] = useState(false)
-
-const handleStop = async () => {
-  setIsStopLoading(true)
-  try {
-    // Find active job for this session
-    const response = await fetch(`/api/jobs?sessionId=${sessionId}&status=running`)
-    const jobs = await response.json()
-    const activeJob = jobs.find(job => job.type === 'session-runner')
-    
-    if (activeJob) {
-      await fetch(`/api/jobs/${activeJob.id}`, { method: 'DELETE' })
-    }
-  } catch (error) {
-    console.error('Failed to stop:', error)
-  } finally {
-    setIsStopLoading(false)
-  }
-}
-
-// In JSX:
-{isProcessing && (
-  <button 
-    onClick={handleStop}
-    disabled={isStopLoading}
-    className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
-  >
-    {isStopLoading ? 'Stopping...' : 'Stop'}
-  </button>
-)}
-```
-
-#### Enhanced Job Cancellation
-```typescript
-// In jobs.service.ts
-export async function cancelJobWithStatus(jobId: string): Promise<{
-  job: Job | null
-  sessionId?: string
-  statusUpdated: boolean
-}> {
-  // Get job details to extract sessionId
-  const job = await getJob(jobId)
-  if (!job) return { job: null, statusUpdated: false }
-  
-  // Cancel the job
-  const cancelledJob = await cancelJob(jobId)
-  
-  // Update session status if this is a session-runner job
-  let statusUpdated = false
-  if (job.type === 'session-runner' && job.data && 'sessionId' in job.data) {
-    const sessionId = job.data.sessionId as string
-    try {
-      await updateSessionClaudeStatus(sessionId, 'user_stopped')
-      statusUpdated = true
-    } catch (error) {
-      console.error('Failed to update session status:', error)
-    }
-  }
-  
-  return {
-    job: cancelledJob,
-    sessionId: job.data?.sessionId as string,
-    statusUpdated
-  }
-}
-```
-
----
+## What Remains 🚧
+- ❌ Frontend integration - hook and components not wired to UI
+- ❌ MCP server needs to be built and running
+- ❌ Manual end-to-end testing with real Claude Code
+- ❌ Documentation updates
 
 ## Success Criteria
+- [ ] Permission requests appear in UI within 1 second
+- [ ] Users can approve/deny requests up to 24 hours later
+- [ ] System handles multiple concurrent sessions gracefully
+- [x] All tests pass with proper TDD approach
+- [x] Clean separation of concerns following service layer pattern
+- [x] Resilient to disconnections and restarts
 
-### Functional Requirements
-- ✅ **Continuous Messaging**: Text input never gets permanently disabled
-- ✅ **User Control**: Users can stop Claude Code interactions at any time
-- ✅ **Clear Feedback**: Visual indicators show current status (processing/completed/error/stopped)
-- ✅ **Robust Recovery**: System handles errors and edge cases gracefully
-- ✅ **Preserved Functionality**: All existing features continue to work
+## Technical Details
 
-### Technical Requirements
-- ✅ **100% Test Coverage**: All status management logic covered by tests
-- ✅ **Integration Testing**: End-to-end workflows tested with Playwright
-- ✅ **Performance**: No degradation in messaging or UI responsiveness
-- ✅ **Error Handling**: Graceful degradation for all failure scenarios
-- ✅ **Code Quality**: TypeScript strict mode, lint-free, well-documented
+### Database Schema
+```sql
+CREATE TABLE permission_requests (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  tool_name TEXT NOT NULL,
+  tool_use_id TEXT,
+  input TEXT NOT NULL, -- JSON
+  status TEXT NOT NULL DEFAULT 'pending', -- pending, approved, denied, timeout
+  decision TEXT, -- allow, deny
+  decided_at TEXT,
+  created_at TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  FOREIGN KEY (session_id) REFERENCES sessions(id)
+);
+```
 
-### User Experience Requirements
-- ✅ **Immediate Feedback**: Stop button provides instant response
-- ✅ **Consistent UI**: Status indicators work consistently across app
-- ✅ **Accessibility**: All interactive elements properly accessible
-- ✅ **Mobile Friendly**: Stop functionality works on mobile devices
+### MCP Server Tool Response Format
+```typescript
+// Success response
+{
+  "behavior": "allow",
+  "updatedInput": {...} // original or modified input
+}
 
----
+// Denial response
+{
+  "behavior": "deny",
+  "message": "Permission denied by user"
+}
+```
 
-## Implementation Timeline
+### Polling Strategy
+- **UI Polling**: Every 500ms-1s for responsiveness
+- **MCP Server Polling**: Exponential backoff
+  - Start: 100ms
+  - Double each iteration
+  - Cap: 5 seconds
+  - Total timeout: 24 hours
 
-### Week 1: Foundation (Phases 1-2)
-- Research and analysis
-- Core status management fix
-- Basic functionality working
-
-### Week 2: Core Features (Phases 3-5)
-- Job tracking and management
-- Stop button UI and functionality
-- Complete stop workflow
-
-### Week 3: Polish & Testing (Phases 6-8)
-- Status transitions and error handling
-- UI improvements and status indicators
-- Integration testing
-
-### Week 4: Validation & Deployment (Phase 9)
-- Comprehensive testing
-- Performance validation
-- Documentation and deployment
-
----
-
-## Risk Mitigation
-
-### High-Risk Areas
-1. **Race Conditions**: Careful synchronization between status updates and job lifecycle
-2. **AbortController Integration**: Ensure abort signals propagate correctly through Claude Code SDK
-3. **UI State Management**: Prevent inconsistent states between local and server state
-4. **Database Consistency**: Ensure status updates don't create orphaned states
-
-### Mitigation Strategies
-1. **Comprehensive Testing**: Extensive unit, integration, and browser testing
-2. **Defensive Programming**: Handle all edge cases and error scenarios
-3. **Gradual Rollout**: Implement and test each phase incrementally
-4. **Rollback Plan**: Maintain ability to revert changes if issues arise
-
----
-
-This plan provides a step-by-step roadmap for fixing the critical text input disable bug while adding robust stop functionality that gives users full control over their Claude Code interactions. Each phase builds on the previous one and includes comprehensive testing to ensure reliability.
+## Notes
+- All times in UTC for consistency
+- Permission requests are session-specific
+- Database remains source of truth for all state
+- MCP config assumes merge behavior (not override)

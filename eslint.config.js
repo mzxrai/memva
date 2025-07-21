@@ -42,6 +42,19 @@ export default [
   },
   {
     files: ['**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}'],
+    languageOptions: {
+      globals: {
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        vi: 'readonly',
+        test: 'readonly'
+      }
+    },
     rules: {
       // Relax some rules for test files
       '@typescript-eslint/no-explicit-any': 'off'
@@ -52,7 +65,8 @@ export default [
       'build/**',
       'node_modules/**',
       '.react-router/**',
-      'coverage/**'
+      'coverage/**',
+      'mcp-permission-server/build/**'
     ]
   }
 ]

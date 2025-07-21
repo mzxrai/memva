@@ -2,11 +2,21 @@ import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useParams, Form, useLoaderData, useNavigation } from "react-router";
 import { useSSEEvents } from "../hooks/useSSEEvents";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { RiFolder3Line } from "react-icons/ri";
+import { RiFolder3Line, RiSettings3Line } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
 import { PendingMessage } from "../components/PendingMessage";
-import { getSession } from "../db/sessions.service";
+import { getSession, getSessionSettings } from "../db/sessions.service";
 import { getEventsForSession } from "../db/event-session.service";
+import { useGreenLineIndicator } from "../hooks/useGreenLineIndicator";
+import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
+import { useTextareaSubmit } from "../hooks/useTextareaSubmit";
+import { useImageUpload } from "../hooks/useImageUpload";
+import { ImagePreview } from "../components/ImagePreview";
+import SettingsModal from "../components/SettingsModal";
+import PermissionsBadge from "../components/PermissionsBadge";
+import type { PermissionMode } from "../types/settings";
+import usePermissionPolling from "../hooks/usePermissionPolling";
+import type { PermissionRequest } from "../db/schema";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const sessionId = params.sessionId;
@@ -17,17 +27,14 @@ export async function loader({ params }: LoaderFunctionArgs) {
   
   const session = await getSession(sessionId);
   const events = await getEventsForSession(sessionId);
-  return { session, events };
+  const settings = session ? await getSessionSettings(sessionId) : null;
+  return { session, events, settings };
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
   const formData = await request.formData();
-  const prompt = formData.get('prompt') as string;
+  let prompt = formData.get('prompt') as string || '';
   
-  if (!prompt?.trim()) {
-    return { error: 'Prompt is required' };
-  }
-
   const sessionId = params.sessionId;
   
   if (!sessionId) {
@@ -40,6 +47,40 @@ export async function action({ request, params }: ActionFunctionArgs) {
   
   if (!session) {
     throw new Response("Session not found", { status: 404 });
+  }
+
+  // Handle image uploads
+  const imagePaths: string[] = [];
+  const imageDataEntries = [...formData.entries()].filter(([key]) => key.startsWith('image-data-'));
+  
+  // Require either prompt or images
+  if (!prompt?.trim() && imageDataEntries.length === 0) {
+    return { error: 'Please provide a prompt or upload images' };
+  }
+  
+  
+  if (imageDataEntries.length > 0) {
+    const { saveImageToDisk } = await import('../services/image-storage.server');
+    
+    for (const [key, value] of imageDataEntries) {
+      const index = key.replace('image-data-', '');
+      const dataUrl = value as string;
+      const fileName = formData.get(`image-name-${index}`) as string;
+      
+      if (dataUrl && fileName) {
+        // Extract base64 data from data URL
+        const base64Data = dataUrl.split(',')[1];
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        // Save image to disk
+        const filePath = await saveImageToDisk(sessionId, fileName, buffer);
+        imagePaths.push(filePath);
+      }
+    }
+    
+    // Format prompt with image paths
+    const { formatPromptWithImages } = await import('../utils/image-prompt-formatting');
+    prompt = formatPromptWithImages(prompt, imagePaths);
   }
 
   // Store user message as an event
@@ -87,10 +128,94 @@ export default function SessionDetail() {
   const params = useParams();
   const sessionId = params.sessionId as string;
   const navigation = useNavigation();
-  const { session: initialSession, events: initialEvents } = useLoaderData<typeof loader>();
+  const { session: initialSession, events: initialEvents, settings: initialSettings } = useLoaderData<typeof loader>();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isInitialMount = useRef(true);
   const [isVisible, setIsVisible] = useState(false);
+  const [currentPermissionMode, setCurrentPermissionMode] = useState<PermissionMode>(initialSettings?.permissionMode || 'acceptEdits');
+  const [isUpdatingPermissions, setIsUpdatingPermissions] = useState(false);
+  
+  // Poll for permission requests
+  const { 
+    permissions, 
+    approve, 
+    deny, 
+    isProcessing: isProcessingPermission 
+  } = usePermissionPolling({ 
+    enabled: true,
+    sessionId // Only poll for this session's permissions
+  });
+  
+  // Clear green indicators when visiting session detail
+  const { clearGreenForSession } = useGreenLineIndicator(sessionId);
+  useEffect(() => {
+    clearGreenForSession(sessionId);
+  }, [sessionId, clearGreenForSession]);
+  
+  // Track active session to prevent green lines while user is present
+  useEffect(() => {
+    // Mark this session as active
+    localStorage.setItem('activeSession', sessionId);
+    
+    // Handle page visibility changes
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // User switched away from this tab
+        localStorage.removeItem('activeSession');
+      } else {
+        // User came back to this tab
+        localStorage.setItem('activeSession', sessionId);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Cleanup on unmount
+    return () => {
+      localStorage.removeItem('activeSession');
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [sessionId]);
+  
+  // Cycle through permission modes
+  const cyclePermissionMode = useCallback(async () => {
+    const modes: PermissionMode[] = ['plan', 'acceptEdits', 'bypassPermissions'];
+    const currentIndex = modes.indexOf(currentPermissionMode);
+    const nextMode = modes[(currentIndex + 1) % modes.length];
+    
+    // Update UI optimistically
+    setCurrentPermissionMode(nextMode);
+    setIsUpdatingPermissions(true);
+    
+    try {
+      // Update session settings
+      const response = await fetch(`/api/session/${sessionId}/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(initialSettings || {}),
+          permissionMode: nextMode
+        })
+      });
+      
+      if (!response.ok) {
+        // Revert on error
+        setCurrentPermissionMode(currentPermissionMode);
+      }
+    } catch {
+      // Revert on error
+      setCurrentPermissionMode(currentPermissionMode);
+    } finally {
+      setIsUpdatingPermissions(false);
+    }
+  }, [currentPermissionMode, sessionId, initialSettings]);
+  
+  // Autofocus input on mount
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
   
   // Use SSE for real-time new events and session status
   const { newEvents, sessionStatus } = useSSEEvents(sessionId);
@@ -111,15 +236,30 @@ export default function SessionDetail() {
     content: string;
     timestamp: number;
   } | null>(null);
-  const [optimisticCancelMessage, setOptimisticCancelMessage] = useState<{
-    timestamp: number;
-  } | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // Use image upload hook
+  const {
+    images,
+    isDragging,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    removeImage,
+    clearImages,
+  } = useImageUpload();
   
   // Track form submission state
   const isSubmitting = navigation.state === "submitting";
   
   // Define visibility states
-  const showPending = processingStartTime !== null;
+  // Don't show pending if we're waiting for permission decisions
+  const hasPendingPermissions = permissions.some(p => p.status === 'pending');
+  const showPending = processingStartTime !== null && !hasPendingPermissions;
+  
+  // Use custom hooks for textarea functionality
+  const { textareaRef: inputRef } = useAutoResizeTextarea(prompt, { maxRows: 5 });
+  const handleTextareaKeyDown = useTextareaSubmit(prompt, undefined, images.length > 0);
   
   // Helper to extract user message text from event data
   const getUserMessageText = (data: unknown): string | undefined => {
@@ -134,7 +274,18 @@ export default function SessionDetail() {
     return undefined;
   };
 
-  // Combine events and handle optimistic message
+  // Create permissions map by tool_use_id
+  const permissionsByToolId = useMemo(() => {
+    const map = new Map<string, PermissionRequest>();
+    permissions.forEach(permission => {
+      if (permission.tool_use_id) {
+        map.set(permission.tool_use_id, permission);
+      }
+    });
+    return map;
+  }, [permissions]);
+
+  // Combine events, permissions, and handle optimistic message
   const { displayEvents, toolResults } = useMemo(() => {
     let allEvents = [...initialEvents, ...newEvents];
     
@@ -160,32 +311,11 @@ export default function SessionDetail() {
       allEvents = [...allEvents, optimisticEvent];
     }
     
-    // Add optimistic cancel message if present
-    if (optimisticCancelMessage) {
-      const optimisticCancelEvent = {
-        uuid: `optimistic-cancel-${optimisticCancelMessage.timestamp}`,
-        event_type: 'user_cancelled' as const,
-        timestamp: new Date(optimisticCancelMessage.timestamp).toISOString(),
-        data: {
-          type: 'user_cancelled',
-          content: 'Processing cancelled by user',
-          session_id: ''
-        },
-        // Required fields for EventRenderer
-        memva_session_id: sessionId,
-        session_id: '',
-        is_sidechain: false,
-        parent_uuid: null,
-        cwd: session?.project_path || '',
-        project_name: session?.project_path?.split('/').pop() || 'Unknown'
-      };
-      allEvents = [...allEvents, optimisticCancelEvent];
-    }
     
     // Remove duplicates, including optimistic if real message arrived
     const unique = allEvents.filter((event, index, arr) => {
       // For optimistic user message, check if replaced by real event
-      if (event.uuid?.startsWith('optimistic-') && !event.uuid?.startsWith('optimistic-cancel-') && optimisticUserMessage) {
+      if (event.uuid?.startsWith('optimistic-') && optimisticUserMessage) {
         return !arr.some(e => 
           e.event_type === 'user' &&
           !e.uuid?.startsWith('optimistic-') &&
@@ -194,14 +324,6 @@ export default function SessionDetail() {
         );
       }
       
-      // For optimistic cancel message, check if replaced by real cancel event
-      if (event.uuid?.startsWith('optimistic-cancel-') && optimisticCancelMessage) {
-        return !arr.some(e => 
-          e.event_type === 'user_cancelled' &&
-          !e.uuid?.startsWith('optimistic-') &&
-          Math.abs(new Date(e.timestamp).getTime() - optimisticCancelMessage.timestamp) < 15000 // 15s window (cancellation can take longer)
-        );
-      }
       
       // Regular deduplication
       return arr.findIndex(e => e.uuid === event.uuid) === index;
@@ -281,17 +403,23 @@ export default function SessionDetail() {
     });
     
     return { displayEvents, toolResults };
-  }, [initialEvents, newEvents, optimisticUserMessage, optimisticCancelMessage, sessionId, session?.project_path]);
+  }, [initialEvents, newEvents, optimisticUserMessage, sessionId, session?.project_path]);
   
   // Handle stop functionality (Escape key only)
   const handleStop = useCallback(async () => {
     // Set stop in progress
     setIsStopInProgress(true);
     
-    // Add optimistic cancel message immediately
-    setOptimisticCancelMessage({
-      timestamp: Date.now()
-    });
+    // Clear optimistic message and processing time immediately for better UX
+    setOptimisticUserMessage(null);
+    setProcessingStartTime(null);
+    
+    // Focus input immediately since we're enabling it
+    if (inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 50);
+    }
     
     // Simple retry logic
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -307,9 +435,6 @@ export default function SessionDetail() {
         await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
       }
     }
-    
-    // Note: processingStartTime will be cleared by the status polling
-    // when claude_status changes from 'processing' to 'completed'
   }, [sessionId]);
   
   // Initial positioning - ensure last message is visible WITHOUT visible scrolling
@@ -369,7 +494,7 @@ export default function SessionDetail() {
   
   // Initialize processing time when session is processing
   useEffect(() => {
-    if (session?.claude_status === 'processing' && !processingStartTime) {
+    if (session?.claude_status === 'processing' && !processingStartTime && !isStopInProgress) {
       // Find the most recent user message
       const allEvents = [...initialEvents, ...newEvents];
       const lastUserEvent = allEvents
@@ -380,7 +505,10 @@ export default function SessionDetail() {
         setProcessingStartTime(new Date(lastUserEvent.timestamp).getTime());
       }
     }
-  }, [session?.claude_status, processingStartTime, initialEvents, newEvents]);
+  }, [session?.claude_status, processingStartTime, initialEvents, newEvents, isStopInProgress]);
+  
+  // Track if we should auto-scroll (user is near bottom)
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   
   // Clear on result event OR when cancelled - but ensure messages are rendered first
   useEffect(() => {
@@ -412,19 +540,28 @@ export default function SessionDetail() {
           setProcessingStartTime(null);
           setOptimisticUserMessage(null);
           setIsStopInProgress(false);
+          
+          // Refocus input if user isn't actively reading/selecting
+          if (inputRef.current && shouldAutoScroll) {
+            // Check if user has selected text
+            const selection = window.getSelection();
+            const hasSelection = selection && selection.toString().length > 0;
+            
+            if (!hasSelection) {
+              // Small delay to ensure UI has updated
+              setTimeout(() => {
+                inputRef.current?.focus();
+              }, 100);
+            }
+          }
         }
         // If no assistant message yet, wait for it to arrive and render
       } else if (hasNewCancellation) {
-        // For cancellations, clear immediately since there won't be an assistant message
-        setProcessingStartTime(null);
-        setOptimisticUserMessage(null);
+        // For cancellations, only clear isStopInProgress since pending states were already cleared optimistically
         setIsStopInProgress(false);
       }
     }
-  }, [newEvents, displayEvents, processingStartTime]);
-  
-  // Track if we should auto-scroll (user is near bottom)
-  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  }, [newEvents, displayEvents, processingStartTime, shouldAutoScroll]);
   
   // Check if user is near bottom whenever they scroll
   useEffect(() => {
@@ -458,12 +595,25 @@ export default function SessionDetail() {
     }
   }, [displayEvents.length, showPending, shouldAutoScroll, newEvents.length]);
   
-  // Clear form when submission completes
+  // Clear prompt and images on successful submission
+  const wasSubmittingRef = useRef(false);
   useEffect(() => {
-    if (navigation.state === "idle" && prompt !== "") {
-      setPrompt("");
+    // Track if we were submitting
+    if (navigation.state === "submitting") {
+      wasSubmittingRef.current = true;
     }
-  }, [navigation.state]);
+    
+    // Only clear prompt and images if we just finished submitting
+    if (navigation.state === "idle" && wasSubmittingRef.current) {
+      if (prompt !== "") {
+        setPrompt("");
+      }
+      if (images.length > 0) {
+        clearImages();
+      }
+      wasSubmittingRef.current = false;
+    }
+  }, [navigation.state, prompt, images.length, clearImages]);
 
   if (!session) {
     return (
@@ -480,31 +630,53 @@ export default function SessionDetail() {
   const isProcessing = session.claude_status === 'processing';
   const hasError = session.claude_status === 'error';
   
-  // Handle Escape key to stop processing
+  // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape key to stop processing
       if (e.key === 'Escape' && processingStartTime && !isStopInProgress) {
         handleStop();
+      }
+      
+      // SHIFT+TAB to cycle permission modes
+      if (e.key === 'Tab' && e.shiftKey) {
+        e.preventDefault();
+        cyclePermissionMode();
       }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [processingStartTime, isStopInProgress, handleStop]);
+  }, [processingStartTime, isStopInProgress, handleStop, cyclePermissionMode]);
 
   return (
     <div className="h-screen bg-zinc-950 flex flex-col overflow-hidden">
       {/* Fixed header */}
       <div className="px-4 py-6 border-b border-zinc-800">
         <div className="container mx-auto max-w-7xl">
-          <h1 className="text-3xl font-semibold text-zinc-100 mb-2">{session.title || 'Untitled Session'}</h1>
-          <div className="text-sm text-zinc-400 flex items-center">
-            <span className="flex items-center gap-1.5">
-              <RiFolder3Line className="w-4 h-4 text-zinc-500" />
-              <span className="font-mono">{session.project_path}</span>
-            </span>
-            <span className="mx-2">•</span>
-            <span className="capitalize">{session.status}</span>
+          <h1 
+            className="text-3xl font-semibold text-zinc-100 mb-2 truncate"
+            title={session.title || 'Untitled Session'}
+          >
+            {session.title || 'Untitled Session'}
+          </h1>
+          <div className="text-sm text-zinc-400 flex items-center justify-between">
+            <div className="flex items-center">
+              <span className="flex items-center gap-1.5">
+                <RiFolder3Line className="w-4 h-4 text-zinc-500" />
+                <span className="font-mono">{session.project_path}</span>
+              </span>
+              <span className="mx-2">•</span>
+              <span className="capitalize">{session.status}</span>
+            </div>
+            <button
+              onClick={() => setIsSettingsOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/50 transition-all duration-200"
+              aria-label="Session Settings"
+            >
+              <RiSettings3Line className="w-4 h-4" />
+              <span>Session Settings</span>
+            </button>
           </div>
         </div>
       </div>
@@ -531,6 +703,10 @@ export default function SessionDetail() {
                 <EventRenderer
                   event={event}
                   toolResults={toolResults}
+                  permissions={permissionsByToolId}
+                  onApprovePermission={approve}
+                  onDenyPermission={deny}
+                  isProcessingPermission={isProcessingPermission}
                   isStreaming={false}
                 />
               </div>
@@ -552,42 +728,96 @@ export default function SessionDetail() {
         <div>
           <div className="container mx-auto max-w-7xl">
             <div className="relative">
-              <div className="bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-zinc-800/50 p-4 flex items-center gap-3">
+              {/* Image preview and permissions badge above the input container */}
+              <div className={`flex items-end mb-2 ${images.length > 0 ? 'justify-between' : 'justify-end'}`}>
+                {images.length > 0 && (
+                  <div className="flex-1 mr-4">
+                    <ImagePreview images={images} onRemove={removeImage} />
+                  </div>
+                )}
+                <PermissionsBadge 
+                  mode={currentPermissionMode}
+                  isUpdating={isUpdatingPermissions}
+                />
+              </div>
+              <div 
+                className={`bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border ${isDragging ? 'border-zinc-600' : 'border-zinc-800/50'} p-4 flex items-center gap-3 transition-colors duration-200`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
                 <Form 
                   method="post" 
                   className="flex-1"
                   onSubmit={() => {
                     const message = prompt.trim();
-                    if (message) {
+                    const hasImages = images.length > 0;
+                    
+                    // Set processing state for either text or image submissions
+                    if (message || hasImages) {
                       const now = Date.now();
                       setProcessingStartTime(now);
-                      setOptimisticUserMessage({ content: message, timestamp: now });
+                      
+                      // Only set optimistic message if there's actual text
+                      if (message) {
+                        setOptimisticUserMessage({ content: message, timestamp: now });
+                      }
                     }
                   }}
                 >
-                  <div className="flex items-center px-5 py-3.5 bg-zinc-800/60 border border-zinc-700/50 rounded-xl focus-within:border-zinc-600 focus-within:bg-zinc-800/80 transition-all duration-200">
+                  <div className="flex items-start px-5 py-3.5 bg-zinc-800/60 border border-zinc-700/50 rounded-xl focus-within:border-zinc-600 focus-within:bg-zinc-800/80 transition-all duration-200">
                     <span className="text-zinc-500 font-mono mr-4 select-none">{'>'}</span>
-                    <input
+                    <textarea
+                      ref={inputRef}
                       name="prompt"
-                      type="text"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      disabled={isProcessing || isSubmitting}
+                      onKeyDown={handleTextareaKeyDown}
+                      disabled={(isProcessing && !isStopInProgress) || isSubmitting}
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
                       spellCheck="false"
-                      className="flex-1 bg-transparent text-zinc-100 focus:outline-none disabled:opacity-50 font-mono text-[0.9375rem]"
+                      rows={1}
+                      className="flex-1 bg-transparent text-zinc-100 focus:outline-none disabled:opacity-50 font-mono text-[0.9375rem] resize-none leading-normal"
                       role="textbox"
-                      placeholder={isProcessing || isSubmitting ? "Processing... (Press Escape to stop)" : "Ask Claude Code anything..."}
+                      placeholder={isProcessing || isSubmitting ? "Processing... (ESC to stop)" : "Ask Claude Code anything..."}
+                      style={{ overflowY: 'hidden' }}
                     />
                   </div>
+                  
+                  {/* Hidden inputs for image data */}
+                  {images.map((image, index) => (
+                    <div key={image.id}>
+                      <input
+                        type="hidden"
+                        name={`image-data-${index}`}
+                        value={image.preview}
+                      />
+                      <input
+                        type="hidden"
+                        name={`image-name-${index}`}
+                        value={image.file.name}
+                      />
+                    </div>
+                  ))}
                 </Form>
               </div>
             </div>
           </div>
         </div>
       </div>
+      
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        mode="session"
+        sessionId={sessionId}
+        onSettingsChange={(newSettings) => {
+          setCurrentPermissionMode(newSettings.permissionMode)
+        }}
+      />
     </div>
   );
 }

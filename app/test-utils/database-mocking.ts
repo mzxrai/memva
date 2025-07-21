@@ -87,10 +87,7 @@ export function setupDatabaseMocks(vi: typeof import('vitest').vi) {
         if (!currentTestDb) return null
         return currentTestDb.getSession(sessionId)
       }),
-      createSession: vi.fn(async (sessionData: Record<string, unknown>) => {
-        if (!currentTestDb) return sessionData
-        return currentTestDb.createSession(sessionData as Parameters<typeof currentTestDb.createSession>[0])
-      }),
+      // Don't mock createSession - let it use the actual implementation
       updateSession: vi.fn(async (sessionId: string, updates: Record<string, unknown>) => {
         if (!currentTestDb) return sessionId
         // Use the actual implementation but with test database

@@ -23,14 +23,14 @@ export async function getEventsForClaudeSession(sessionId: string): Promise<Even
 
 export async function groupEventsBySession(events: Event[]): Promise<Record<string, Event[]>> {
   const grouped: Record<string, Event[]> = {}
-  
+
   for (const event of events) {
     if (!grouped[event.session_id]) {
       grouped[event.session_id] = []
     }
     grouped[event.session_id].push(event)
   }
-  
+
   return grouped
 }
 

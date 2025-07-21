@@ -25,7 +25,7 @@ describe('StatusIndicator Component', () => {
     
     // Should have a status indicator with accessible label
     const statusElement = expectSemanticMarkup.status('Session status')
-    expect(statusElement).toHaveTextContent('Processing')
+    expect(statusElement).toHaveTextContent('Working')
     
     // Should have a green pulsing dot
     const dot = statusElement.querySelector('[data-testid="status-dot"]')
@@ -34,38 +34,20 @@ describe('StatusIndicator Component', () => {
     expect(dot).toHaveAttribute('data-pulse', 'true')
   })
 
-  it('should display green dot with "Needs Input" badge for waiting_for_input sessions', () => {
+  it('should display nothing for waiting_for_input sessions', () => {
     const session = createMockSession({ claude_status: 'waiting_for_input' })
-    render(<StatusIndicator session={session} />)
+    const { container } = render(<StatusIndicator session={session} />)
     
-    // Should have a status indicator with accessible label
-    const statusElement = expectSemanticMarkup.status('Session status')
-    expect(statusElement).toHaveTextContent('Needs Input')
-    
-    // Should have a green dot
-    const dot = statusElement.querySelector('[data-testid="status-dot"]')
-    expect(dot).toBeInTheDocument()
-    expect(dot).toHaveAttribute('data-status', 'waiting_for_input')
-    
-    // Should have a "Needs Input" badge
-    expectContent.text('Needs Input')
+    // Should not render anything for waiting_for_input status
+    expect(container.firstChild).toBeNull()
   })
 
-  it('should display green dot with "Needs Input" badge for completed sessions', () => {
+  it('should display nothing for completed sessions', () => {
     const session = createMockSession({ claude_status: 'completed' })
-    render(<StatusIndicator session={session} />)
+    const { container } = render(<StatusIndicator session={session} />)
     
-    // Should have a status indicator with accessible label
-    const statusElement = expectSemanticMarkup.status('Session status')
-    expect(statusElement).toHaveTextContent('Needs Input')
-    
-    // Should have a green dot
-    const dot = statusElement.querySelector('[data-testid="status-dot"]')
-    expect(dot).toBeInTheDocument()
-    expect(dot).toHaveAttribute('data-status', 'completed')
-    
-    // Should have a "Needs Input" badge
-    expectContent.text('Needs Input')
+    // Should not render anything for completed status
+    expect(container.firstChild).toBeNull()
   })
 
   it('should display red dot for error sessions', () => {

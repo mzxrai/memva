@@ -119,6 +119,11 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
       }
     }, 100) // Poll every 100ms for near-instant response
     
+    // Get session-specific settings (with fallback to global)
+    const { getSessionSettings } = await import('../../db/sessions.service')
+    const settings = await getSessionSettings(sessionId)
+    console.log(`[SessionRunner] Using settings - maxTurns: ${settings.maxTurns}, permissionMode: ${settings.permissionMode}`)
+    
     // Execute Claude Code SDK interaction
     try {
       await streamClaudeCodeResponse({
@@ -128,6 +133,8 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
         resumeSessionId,
         initialParentUuid,
         abortController,
+        maxTurns: settings.maxTurns,
+        permissionMode: settings.permissionMode,
         onMessage: () => {
           messagesProcessed++
           // Messages are automatically stored by the service
@@ -171,23 +178,6 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
       
       if (isCancelled) {
         console.log(`[Job ${jobData.id}] Job cancelled by user`)
-        
-        // Store a user cancellation event
-        const { createEventFromMessage, storeEvent } = await import('../../db/events.service')
-        const cancelEvent = createEventFromMessage({
-          message: {
-            type: 'user',
-            content: 'User cancelled operation',
-            session_id: '' // Claude Code session ID - empty for user-initiated events
-          },
-          memvaSessionId: sessionId,
-          projectPath: session.project_path,
-          parentUuid: initialParentUuid || null,
-          timestamp: new Date().toISOString()
-        })
-        
-        await storeEvent(cancelEvent)
-        console.log('[SessionRunner] Stored user cancellation event')
         
         // Don't update status here - the stop endpoint already set it to 'completed'
         callback(new Error('Job cancelled by user'))

@@ -7,10 +7,12 @@ import { sessions, events } from '../db/schema'
 export type TestDatabase = {
   db: ReturnType<typeof drizzle>
   sqlite: Database.Database
+  schema: typeof schema
   createSession: (input: Partial<typeof sessions.$inferInsert> & { project_path: string }) => typeof sessions.$inferInsert & { id: string }
   getSession: (sessionId: string) => typeof sessions.$inferSelect | null
   insertEvent: (event: typeof events.$inferInsert) => void
   getEventsForSession: (sessionId: string) => Array<typeof events.$inferSelect>
+  getDb: () => ReturnType<typeof drizzle>
   cleanup: () => void
 }
 
@@ -28,7 +30,8 @@ export function setupInMemoryDb(): TestDatabase {
       status TEXT NOT NULL,
       project_path TEXT NOT NULL,
       metadata TEXT,
-      claude_status TEXT DEFAULT 'not_started'
+      claude_status TEXT DEFAULT 'not_started',
+      settings TEXT
     )
   `)
 
@@ -66,6 +69,31 @@ export function setupInMemoryDb(): TestDatabase {
     )
   `)
 
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS settings (
+      id TEXT PRIMARY KEY DEFAULT 'singleton',
+      config TEXT NOT NULL DEFAULT '{}',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `)
+
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS permission_requests (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      tool_name TEXT NOT NULL,
+      tool_use_id TEXT,
+      input TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      decision TEXT,
+      decided_at TEXT,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      FOREIGN KEY (session_id) REFERENCES sessions(id)
+    )
+  `)
+
   // Create indexes
   sqlite.exec(`
     CREATE INDEX IF NOT EXISTS idx_session_id ON events(session_id);
@@ -82,6 +110,16 @@ export function setupInMemoryDb(): TestDatabase {
     CREATE INDEX IF NOT EXISTS idx_jobs_priority_created ON jobs(priority DESC, created_at ASC);
     CREATE INDEX IF NOT EXISTS idx_jobs_scheduled_at ON jobs(scheduled_at);
     CREATE INDEX IF NOT EXISTS idx_jobs_status_priority ON jobs(status, priority DESC);
+    CREATE INDEX IF NOT EXISTS idx_permission_requests_session_id ON permission_requests(session_id);
+    CREATE INDEX IF NOT EXISTS idx_permission_requests_status ON permission_requests(status);
+    CREATE INDEX IF NOT EXISTS idx_permission_requests_expires_at ON permission_requests(expires_at);
+    CREATE INDEX IF NOT EXISTS idx_permission_requests_created_at ON permission_requests(created_at);
+  `)
+
+  // Insert default settings
+  sqlite.exec(`
+    INSERT INTO settings (id, config, created_at, updated_at)
+    VALUES ('singleton', '{"maxTurns": 200, "permissionMode": "acceptEdits"}', datetime('now'), datetime('now'))
   `)
 
   // Helper functions
@@ -91,10 +129,11 @@ export function setupInMemoryDb(): TestDatabase {
       title: input.title !== undefined ? input.title : null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      status: 'active',
+      status: input.status || 'active',
       project_path: input.project_path,
       metadata: input.metadata !== undefined ? input.metadata : null,
-      claude_status: input.claude_status || 'not_started'
+      claude_status: input.claude_status || 'not_started',
+      settings: input.settings !== undefined ? input.settings : null
     }
     db.insert(sessions).values(session).run()
     return session as typeof sessions.$inferSelect
@@ -112,6 +151,8 @@ export function setupInMemoryDb(): TestDatabase {
     return db.select().from(events).where(eq(events.memva_session_id, sessionId)).all()
   }
 
+  const getDb = () => db
+
   const cleanup = () => {
     sqlite.close()
   }
@@ -119,10 +160,12 @@ export function setupInMemoryDb(): TestDatabase {
   return {
     db,
     sqlite,
+    schema,
     createSession,
     getSession,
     insertEvent,
     getEventsForSession,
+    getDb,
     cleanup
   }
 }

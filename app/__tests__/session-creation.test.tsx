@@ -20,6 +20,24 @@ vi.mock('../db/event-session.service', () => ({
   getEventsForSession: vi.fn().mockResolvedValue([])
 }))
 
+// Mock the useHomepageData hook
+vi.mock('../hooks/useHomepageData', () => ({
+  useHomepageData: vi.fn(() => ({
+    sessions: [],
+    timestamp: new Date().toISOString(),
+    error: null,
+    isLoading: false
+  }))
+}))
+
+// Mock the useSSEEvents hook to avoid EventSource issues in tests
+vi.mock('../hooks/useSSEEvents', () => ({
+  useSSEEvents: vi.fn(() => ({
+    newEvents: [],
+    sessionStatus: null
+  }))
+}))
+
 describe('Session Creation', () => {
   let testDb: TestDatabase
 
@@ -133,10 +151,9 @@ describe('Session Creation', () => {
     await user.keyboard('{Enter}')
 
     // Should not redirect - stays on same page
-    await new Promise(resolve => setTimeout(resolve, 100))
-
+    // Verify we're still on the home page by checking for expected content
     expect(titleInput).toBeInTheDocument()
-    expect(screen.getByText('Sessions')).toBeInTheDocument()
+    expect(screen.getByText('No sessions yet')).toBeInTheDocument()
   })
 
   it('should allow typing in the input fields', async () => {

@@ -1,6 +1,8 @@
 import { db, sessions, events, type Session, type NewSession } from './index'
-import { eq, desc, and, ne } from 'drizzle-orm'
+import { eq, desc, and, ne, inArray } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
+import { getSettings } from './settings.service'
+import type { SettingsConfig } from '../types/settings'
 
 export type CreateSessionInput = {
   title?: string
@@ -8,6 +10,8 @@ export type CreateSessionInput = {
   status?: 'active' | 'archived'
   metadata?: Record<string, unknown> | null
 }
+
+export { type NewSession } from './index'
 
 export type UpdateSessionInput = {
   title?: string
@@ -24,10 +28,15 @@ export type SessionWithStats = Session & {
   event_count: number
   duration_minutes: number
   event_types: Record<string, number>
+  last_event_at?: string
 }
 
 export async function createSession(input: CreateSessionInput): Promise<Session> {
   const now = new Date().toISOString()
+  
+  // Get global settings to copy to the new session
+  const globalSettings = await getSettings()
+  
   const newSession: NewSession = {
     id: uuidv4(),
     title: input.title || null,
@@ -35,7 +44,8 @@ export async function createSession(input: CreateSessionInput): Promise<Session>
     updated_at: now,
     status: 'active',
     project_path: input.project_path,
-    metadata: input.metadata || null
+    metadata: input.metadata || null,
+    settings: globalSettings
   }
 
   await db.insert(sessions).values(newSession).execute()
@@ -114,12 +124,14 @@ export async function getSessionWithStats(id: string): Promise<SessionWithStats 
   // Calculate stats
   const event_count = sessionEvents.length
   let duration_minutes = 0
+  let last_event_at: string | undefined
   const event_types: Record<string, number> = {}
   
   if (sessionEvents.length > 0) {
     const firstTimestamp = new Date(sessionEvents[0].timestamp).getTime()
     const lastTimestamp = new Date(sessionEvents[sessionEvents.length - 1].timestamp).getTime()
     duration_minutes = Math.round((lastTimestamp - firstTimestamp) / (1000 * 60))
+    last_event_at = sessionEvents[sessionEvents.length - 1].timestamp
   }
   
   // Count event types
@@ -131,7 +143,8 @@ export async function getSessionWithStats(id: string): Promise<SessionWithStats 
     ...session,
     event_count,
     duration_minutes,
-    event_types
+    event_types,
+    last_event_at
   }
 }
 
@@ -196,4 +209,119 @@ export async function updateSessionClaudeStatus(sessionId: string, status: strin
   // Emit status change event for SSE
   const { sessionStatusEmitter } = await import('../services/session-status-emitter.server')
   sessionStatusEmitter.emitStatusChange(sessionId, status)
+}
+
+export async function getSessionsWithStatsBatch(sessionIds: string[]): Promise<Map<string, SessionWithStats>> {
+  if (sessionIds.length === 0) {
+    return new Map()
+  }
+
+  // Get all requested sessions in one query
+  const sessionsList = await db
+    .select()
+    .from(sessions)
+    .where(inArray(sessions.id, sessionIds))
+    .execute()
+  
+  // Create a map for quick lookup
+  const sessionMap = new Map<string, Session>()
+  sessionsList.forEach(session => {
+    sessionMap.set(session.id, session)
+  })
+
+  // Get all events for all sessions in one query
+  const allEvents = await db
+    .select()
+    .from(events)
+    .where(inArray(events.memva_session_id, sessionIds))
+    .orderBy(events.memva_session_id, events.timestamp)
+    .execute()
+
+  // Group events by session
+  const eventsBySession = new Map<string, typeof allEvents>()
+  allEvents.forEach(event => {
+    if (!event.memva_session_id) return
+    
+    if (!eventsBySession.has(event.memva_session_id)) {
+      eventsBySession.set(event.memva_session_id, [])
+    }
+    const sessionEvents = eventsBySession.get(event.memva_session_id)
+    if (sessionEvents) {
+      sessionEvents.push(event)
+    }
+  })
+
+  // Calculate stats for each session
+  const resultsMap = new Map<string, SessionWithStats>()
+  
+  sessionIds.forEach(sessionId => {
+    const session = sessionMap.get(sessionId)
+    if (!session) return
+    
+    const sessionEvents = eventsBySession.get(sessionId) || []
+    const event_count = sessionEvents.length
+    let duration_minutes = 0
+    let last_event_at: string | undefined
+    const event_types: Record<string, number> = {}
+    
+    if (sessionEvents.length > 0) {
+      const firstTimestamp = new Date(sessionEvents[0].timestamp).getTime()
+      const lastTimestamp = new Date(sessionEvents[sessionEvents.length - 1].timestamp).getTime()
+      duration_minutes = Math.round((lastTimestamp - firstTimestamp) / (1000 * 60))
+      last_event_at = sessionEvents[sessionEvents.length - 1].timestamp
+    }
+    
+    // Count event types
+    for (const event of sessionEvents) {
+      event_types[event.event_type] = (event_types[event.event_type] || 0) + 1
+    }
+    
+    resultsMap.set(sessionId, {
+      ...session,
+      event_count,
+      duration_minutes,
+      event_types,
+      last_event_at
+    })
+  })
+  
+  return resultsMap
+}
+
+export async function updateSessionSettings(sessionId: string, settings: Partial<SettingsConfig>): Promise<void> {
+  // First get the existing session to ensure it exists
+  const existingSession = await getSession(sessionId)
+  if (!existingSession) {
+    throw new Error('Session not found')
+  }
+  
+  // Merge the new settings with existing settings
+  const currentSettings = existingSession.settings || {}
+  const updatedSettings = {
+    ...currentSettings,
+    ...settings
+  }
+  
+  await db
+    .update(sessions)
+    .set({ 
+      settings: updatedSettings,
+      updated_at: new Date().toISOString()
+    })
+    .where(eq(sessions.id, sessionId))
+    .execute()
+}
+
+export async function getSessionSettings(sessionId: string): Promise<SettingsConfig> {
+  const session = await getSession(sessionId)
+  if (!session) {
+    throw new Error('Session not found')
+  }
+  
+  // Return session settings if available, otherwise fall back to global settings
+  if (session.settings && typeof session.settings === 'object' && Object.keys(session.settings).length > 0) {
+    return session.settings as SettingsConfig
+  }
+  
+  return await getSettings()
 }

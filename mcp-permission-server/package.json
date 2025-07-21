@@ -1,0 +1,27 @@
+{
+  "name": "memva-permission-server",
+  "version": "1.0.0",
+  "description": "MCP permission server for Memva app",
+  "main": "build/index.js",
+  "type": "module",
+  "bin": {
+    "memva-permission-server": "./build/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "better-sqlite3": "^12.2.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^20.17.15",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.4"
+  }
+}

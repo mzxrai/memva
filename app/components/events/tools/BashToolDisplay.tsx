@@ -40,7 +40,7 @@ const formatBashResult = (result: unknown): { status: 'success' | 'error', brief
     } else if (errorLines.length === 1 && errorLines[0].length > 100) {
       // Handle long single line errors
       const line = errorLines[0]
-      const brief = line.substring(0, 100) + '…\n(show full output)'
+      const brief = line.substring(0, 300) + '…\n(show full output)'
       return { status: 'error', brief, full: content }
     } else if (errorLines.length <= 3) {
       // Show all lines if 3 or fewer

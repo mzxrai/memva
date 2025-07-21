@@ -76,6 +76,72 @@ export const handlers = [
       },
       events: []
     })
+  }),
+  
+  // Mock the settings API endpoints
+  http.get('/api/settings', () => {
+    return HttpResponse.json({
+      maxTurns: 200,
+      permissionMode: 'acceptEdits'
+    })
+  }),
+  
+  http.post('/api/settings', async ({ request }) => {
+    const body = await request.json()
+    return HttpResponse.json(body)
+  }),
+  
+  http.put('/api/settings', async ({ request }) => {
+    const body = await request.json()
+    return HttpResponse.json(body)
+  }),
+  
+  // Mock session-specific settings endpoints
+  http.get('/api/session/:sessionId/settings', () => {
+    return HttpResponse.json({
+      maxTurns: 200,
+      permissionMode: 'acceptEdits'
+    })
+  }),
+  
+  http.put('/api/session/:sessionId/settings', async ({ request }) => {
+    const body = await request.json()
+    return HttpResponse.json(body)
+  }),
+  
+  // Mock filesystem API endpoint
+  http.get('/api/filesystem', ({ request }) => {
+    const url = new URL(request.url)
+    const action = url.searchParams.get('action')
+    
+    if (action === 'current') {
+      return HttpResponse.json({ currentDirectory: '/' })
+    }
+    
+    return HttpResponse.json({ error: 'Unknown action' }, { status: 400 })
+  }),
+  
+  // Mock permissions API endpoint
+  http.get('/api/permissions', ({ request }) => {
+    const url = new URL(request.url)
+    const status = url.searchParams.get('status')
+    
+    // Return empty array by default or filtered by status
+    if (status === 'pending') {
+      return HttpResponse.json({ permissions: [] })
+    }
+    
+    return HttpResponse.json({ permissions: [] })
+  }),
+  
+  http.put('/api/permissions/:id', async ({ params, request }) => {
+    const body = await request.json()
+    return HttpResponse.json({
+      id: params.id,
+      status: body.decision === 'allow' ? 'approved' : 'denied',
+      decision: body.decision,
+      decided_at: new Date().toISOString()
+    })
   })
 ]
 

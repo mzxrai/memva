@@ -85,7 +85,7 @@ describe('Session Status Polling Integration', () => {
 
     const promptInput = screen.getByRole('textbox')
     expect(promptInput).toBeDisabled()
-    expect(promptInput).toHaveAttribute('placeholder', 'Processing... (Press Escape to stop)')
+    expect(promptInput).toHaveAttribute('placeholder', 'Processing... (ESC to stop)')
   })
 
   it('should show error message when status is error', async () => {

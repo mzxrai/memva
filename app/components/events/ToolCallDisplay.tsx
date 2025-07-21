@@ -22,13 +22,20 @@ import { ReadToolDisplay } from './tools/ReadToolDisplay'
 import { TodoWriteToolDisplay } from './tools/TodoWriteToolDisplay'
 import { WebSearchToolDisplay } from './tools/WebSearchToolDisplay'
 import { TaskToolDisplay } from './tools/TaskToolDisplay'
+import { ExitPlanModeDisplay } from './tools/ExitPlanModeDisplay'
+import CompactInlinePermission from '../permissions/CompactInlinePermission'
 import type { ToolUseContent } from '../../types/events'
+import type { PermissionRequest } from '../../db/schema'
 import clsx from 'clsx'
 
 interface ToolCallDisplayProps {
   toolCall: ToolUseContent
   hasResult?: boolean
   result?: unknown
+  permission?: PermissionRequest
+  onApprovePermission?: (id: string) => void
+  onDenyPermission?: (id: string) => void
+  isProcessingPermission?: boolean
   className?: string
   isStreaming?: boolean
   isError?: boolean
@@ -49,6 +56,7 @@ const toolIcons: Record<string, ComponentType<{ className?: string; 'data-testid
   Grep: RiSearchLine,
   Glob: RiSearchLine,
   TodoWrite: RiTaskLine,
+  exit_plan_mode: RiFileTextLine,
 }
 
 // Get icon test ID based on tool name
@@ -72,6 +80,7 @@ const getIconTestId = (toolName: string): string => {
 const getToolDisplayName = (toolName: string): string => {
   const displayNames: Record<string, string> = {
     TodoWrite: 'Update Todos',
+    exit_plan_mode: 'Proposed Plan',
   }
   return displayNames[toolName] || toolName
 }
@@ -102,6 +111,8 @@ const getPrimaryParam = (toolName: string, input: unknown): string => {
       return (params.url as string) || (params.query as string) || ''
     case 'Task':
       return (params.description as string) || ''
+    case 'exit_plan_mode':
+      return '' // Don't show the markdown content in the header
     default: {
       // Return first string value found
       const firstValue = Object.values(params).find(v => typeof v === 'string')
@@ -131,7 +142,7 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
         if (lines.length > 3) {
           return { status: 'error', brief: `${lines.slice(0, 3).join('\n')}\n(+${lines.length - 3} more lines)`, full: errorContent }
         }
-        return { status: 'error', brief: errorContent.substring(0, 200) + (errorContent.length > 200 ? '...' : ''), full: errorContent.length > 200 ? errorContent : undefined }
+        return { status: 'error', brief: errorContent.substring(0, 500) + (errorContent.length > 500 ? '...' : ''), full: errorContent.length > 500 ? errorContent : undefined }
       } else {
         // Handle successful tool_result content
         if (typeof content === 'string') {
@@ -139,9 +150,9 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
           if (lines.length > 3) {
             return { status: 'success', brief: `${lines.length} lines`, full: content }
           }
-          return { status: 'success', brief: content.substring(0, 150) + (content.length > 150 ? '...' : ''), full: content }
+          return { status: 'success', brief: content.substring(0, 300) + (content.length > 300 ? '...' : ''), full: content }
         }
-        return { status: 'success', brief: JSON.stringify(content).substring(0, 150) + '...', full: JSON.stringify(content, null, 2) }
+        return { status: 'success', brief: JSON.stringify(content).substring(0, 300) + '...', full: JSON.stringify(content, null, 2) }
       }
     }
     
@@ -157,7 +168,7 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
         if (lines.length > 3) {
           return { status: 'error', brief: `${lines.slice(0, 3).join('\n')}\n(+${lines.length - 3} more lines)`, full: content }
         }
-        return { status: 'error', brief: content.substring(0, 200) + (content.length > 200 ? '...' : ''), full: content.length > 200 ? content : undefined }
+        return { status: 'error', brief: content.substring(0, 500) + (content.length > 500 ? '...' : ''), full: content.length > 500 ? content : undefined }
       }
     }
     
@@ -170,7 +181,7 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
     // Handle legacy error format
     const errorResult = result as { error?: string }
     if (errorResult.error) {
-      return { status: 'error', brief: errorResult.error, full: errorResult.error.length > 150 ? errorResult.error : undefined }
+      return { status: 'error', brief: errorResult.error, full: errorResult.error.length > 300 ? errorResult.error : undefined }
     }
   }
   
@@ -180,10 +191,10 @@ const formatResult = (toolName: string, result: unknown): { status: 'success' | 
     if (lines.length > 3) {
       return { status: 'success', brief: `${lines.length} lines`, full: result }
     }
-    return { status: 'success', brief: result.substring(0, 150) + (result.length > 150 ? '...' : ''), full: result }
+    return { status: 'success', brief: result.substring(0, 300) + (result.length > 300 ? '...' : ''), full: result }
   }
   
-  return { status: 'success', brief: JSON.stringify(result).substring(0, 150) + '...', full: JSON.stringify(result, null, 2) }
+  return { status: 'success', brief: JSON.stringify(result).substring(0, 300) + '...', full: JSON.stringify(result, null, 2) }
 }
 
 // Tools that have custom display components
@@ -195,10 +206,22 @@ const TOOLS_WITH_CUSTOM_DISPLAY = new Set([
   'WebSearch',
   'Edit',
   'MultiEdit',
-  'Task'
+  'Task',
+  'exit_plan_mode'
 ])
 
-export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, className, isStreaming = false, isError = false }: ToolCallDisplayProps) => {
+export const ToolCallDisplay = memo(({ 
+  toolCall, 
+  hasResult = false, 
+  result, 
+  permission, 
+  onApprovePermission, 
+  onDenyPermission, 
+  isProcessingPermission = false,
+  className, 
+  isStreaming = false, 
+  isError = false 
+}: ToolCallDisplayProps) => {
   const [showFullResult, setShowFullResult] = useState(false)
   const isEditTool = toolCall.name === 'Edit' || toolCall.name === 'MultiEdit'
   const hasCustomDisplay = TOOLS_WITH_CUSTOM_DISPLAY.has(toolCall.name)
@@ -230,23 +253,9 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
     }
     
     if (!resultContent) {
-      console.log('ToolCallDisplay lineInfo early return:', {
-        toolName: toolCall.name,
-        isEditTool,
-        hasResult: result !== null && result !== undefined,
-        resultType: typeof result,
-        resultValue: result,
-        resultContent
-      })
       return null
     }
     
-    console.log('ToolCallDisplay lineInfo calculation:', {
-      toolName: toolCall.name,
-      isEditTool,
-      resultLength: resultContent.length,
-      resultPreview: resultContent.substring(0, 200) + '...'
-    })
     
     // For Edit tools, intelligently find the line number by matching the actual edit content
     if (isEditTool && toolCall.input && typeof toolCall.input === 'object') {
@@ -286,11 +295,6 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
               
               // Compare normalized content
               if (lineContent === normalizedSearchLine) {
-                console.log('ToolCallDisplay lineInfo: Found matching line!', {
-                  lineNumber,
-                  lineContent,
-                  normalizedSearchLine
-                })
                 return {
                   startLine: lineNumber,
                   showLineNumbers: true
@@ -333,10 +337,6 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       }
     }
     
-    console.log('ToolCallDisplay lineInfo final result:', {
-      toolName: toolCall.name,
-      lineInfo: null
-    })
     
     return null
   }, [result, isEditTool, toolCall])
@@ -390,7 +390,7 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
             typography.font.mono,
             typography.size.sm,
             colors.text.secondary,
-            'truncate max-w-3xl'
+            'truncate flex-1 min-w-0'
           )}>
             {primaryParam}
           </span>
@@ -411,10 +411,20 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
         )}>
           {toolCall.id}
         </span>
-        
-        {/* Spacer to push expand icon to the right */}
-        <div className="flex-1" />
       </div>
+      
+      {/* Inline permission request */}
+      {permission && permission.status === 'pending' && onApprovePermission && onDenyPermission && (
+        <div className="mt-2 mb-2">
+          <CompactInlinePermission
+            request={permission}
+            onApprove={onApprovePermission}
+            onDeny={onDenyPermission}
+            isProcessing={isProcessingPermission}
+            isExitPlanMode={toolCall.name === 'exit_plan_mode'}
+          />
+        </div>
+      )}
       
       {/* Result section - minimal inline display */}
       {formattedResult && !hasCustomDisplay && (
@@ -527,6 +537,15 @@ export const ToolCallDisplay = memo(({ toolCall, hasResult = false, result, clas
       {/* Task tool result section */}
       {toolCall.name === 'Task' && (
         <TaskToolDisplay 
+          toolCall={toolCall}
+          hasResult={hasResult}
+          result={result}
+        />
+      )}
+      
+      {/* Exit plan mode display */}
+      {toolCall.name === 'exit_plan_mode' && (
+        <ExitPlanModeDisplay 
           toolCall={toolCall}
           hasResult={hasResult}
           result={result}

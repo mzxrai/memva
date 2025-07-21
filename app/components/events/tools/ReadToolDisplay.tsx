@@ -27,14 +27,16 @@ const formatReadResult = (result: unknown): { status: 'success' | 'error', brief
   const isError = sdkResult.is_error === true
 
   if (isError) {
-    return { status: 'error', brief: 'Error reading file', full: content }
+    return { status: 'error', brief: 'Error reading file', full: String(content) }
   }
 
-  const lines = content.split('\n')
-  const lineCount = content === '' ? 0 : lines.length
+  // Ensure content is a string
+  const contentStr = typeof content === 'string' ? content : String(content)
+  const lines = contentStr.split('\n')
+  const lineCount = contentStr === '' ? 0 : lines.length
   const brief = `${lineCount} line${lineCount !== 1 ? 's' : ''} loaded`
 
-  return { status: 'success', brief, full: content }
+  return { status: 'success', brief, full: contentStr }
 }
 
 export const ReadToolDisplay = memo(({ toolCall, hasResult, result }: ReadToolDisplayProps) => {

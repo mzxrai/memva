@@ -17,6 +17,8 @@ export type SessionRunnerJobData = {
   sessionId: string
   prompt: string
   userId?: string
+  maxTurns?: number
+  permissionMode?: string
 }
 
 export type MaintenanceJobData = {
