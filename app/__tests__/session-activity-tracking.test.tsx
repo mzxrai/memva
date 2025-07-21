@@ -42,7 +42,6 @@ describe('Session Activity Tracking', () => {
     // Mock the loader response
     vi.mocked(loader).mockResolvedValue({
       session: mockSession,
-      events: mockEvents,
       settings: mockSettings
     })
   })

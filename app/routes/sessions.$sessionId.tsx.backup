@@ -1,12 +1,12 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useParams, Form, useLoaderData, useNavigation } from "react-router";
-import { useSessionEvents } from "../hooks/useSessionEvents";
-import { useEventStore } from "../stores/event-store";
+import { useSSEEvents } from "../hooks/useSSEEvents";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { RiFolder3Line, RiSettings3Line } from "react-icons/ri";
 import { EventRenderer } from "../components/events/EventRenderer";
 import { PendingMessage } from "../components/PendingMessage";
 import { getSession, getSessionSettings } from "../db/sessions.service";
+import { getEventsForSession } from "../db/event-session.service";
 import { useSessionActivity } from "../hooks/useMessageTracking";
 import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
 import { useTextareaSubmit } from "../hooks/useTextareaSubmit";
@@ -26,9 +26,9 @@ export async function loader({ params }: LoaderFunctionArgs) {
   }
   
   const session = await getSession(sessionId);
+  const events = await getEventsForSession(sessionId);
   const settings = session ? await getSessionSettings(sessionId) : null;
-  // Events are now loaded via React Query, not in the loader
-  return { session, settings };
+  return { session, events, settings };
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -128,7 +128,7 @@ export default function SessionDetail() {
   const params = useParams();
   const sessionId = params.sessionId as string;
   const navigation = useNavigation();
-  const { session: initialSession, settings: initialSettings } = useLoaderData<typeof loader>();
+  const { session: initialSession, events: initialEvents, settings: initialSettings } = useLoaderData<typeof loader>();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isInitialMount = useRef(true);
   const [isVisible, setIsVisible] = useState(false);
@@ -214,13 +214,8 @@ export default function SessionDetail() {
     }
   }, []);
   
-  // Use React Query for polling events and Zustand for state management
-  const { isLoading: eventsLoading, sessionStatus } = useSessionEvents(sessionId);
-  
-  // Get events from Zustand store
-  const displayEvents = useEventStore(state => state.getDisplayEvents());
-  const toolResults = useEventStore(state => state.toolResults);
-  const setOptimisticMessage = useEventStore(state => state.setOptimisticMessage);
+  // Use SSE for real-time new events and session status
+  const { newEvents, sessionStatus } = useSSEEvents(sessionId);
   
   // Use SSE status if available, otherwise fall back to initial session
   const session = useMemo(() => {
@@ -234,7 +229,10 @@ export default function SessionDetail() {
   const [prompt, setPrompt] = useState("");
   const [processingStartTime, setProcessingStartTime] = useState<number | null>(null);
   const [isStopInProgress, setIsStopInProgress] = useState(false);
-  // Optimistic message is now managed in Zustand store
+  const [optimisticUserMessage, setOptimisticUserMessage] = useState<{
+    content: string;
+    timestamp: number;
+  } | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   // Use image upload hook
@@ -260,6 +258,18 @@ export default function SessionDetail() {
   const { textareaRef: inputRef } = useAutoResizeTextarea(prompt, { maxRows: 5 });
   const handleTextareaKeyDown = useTextareaSubmit(prompt, undefined, images.length > 0);
   
+  // Helper to extract user message text from event data
+  const getUserMessageText = (data: unknown): string | undefined => {
+    if (!data || typeof data !== 'object') return undefined;
+    const obj = data as Record<string, unknown>;
+    
+    // For user events, content is directly on data
+    if (obj.type === 'user' && typeof obj.content === 'string') {
+      return obj.content;
+    }
+    
+    return undefined;
+  };
 
   // Create permissions map by tool_use_id
   const permissionsByToolId = useMemo(() => {
@@ -272,7 +282,138 @@ export default function SessionDetail() {
     return map;
   }, [permissions]);
 
-  // All event processing is now handled by Zustand store selectors
+  // Combine events, permissions, and handle optimistic message
+  const { displayEvents, toolResults } = useMemo(() => {
+    console.log('EXPENSIVE COMPUTATION RUNNING', {
+      time: new Date().toISOString(),
+      initialEventsCount: initialEvents.length,
+      newEventsCount: newEvents.length,
+      totalEvents: initialEvents.length + newEvents.length
+    });
+    
+    let allEvents = [...initialEvents, ...newEvents];
+    
+    // Add optimistic message if present
+    if (optimisticUserMessage) {
+      const optimisticEvent = {
+        uuid: `optimistic-${optimisticUserMessage.timestamp}`,
+        event_type: 'user' as const,
+        timestamp: new Date(optimisticUserMessage.timestamp).toISOString(),
+        data: {
+          type: 'user',
+          content: optimisticUserMessage.content,
+          session_id: ''
+        },
+        // Required fields for EventRenderer
+        memva_session_id: sessionId,
+        session_id: '',
+        is_sidechain: false,
+        parent_uuid: null,
+        cwd: session?.project_path || '',
+        project_name: session?.project_path?.split('/').pop() || 'Unknown'
+      };
+      allEvents = [...allEvents, optimisticEvent];
+    }
+    
+    
+    // Remove duplicates using a Set for O(1) lookups instead of O(n²)
+    const seen = new Set<string>();
+    const unique = [];
+    
+    for (const event of allEvents) {
+      // Skip if we've seen this UUID
+      if (seen.has(event.uuid)) continue;
+      
+      // For optimistic user message, check if replaced by real event
+      if (event.uuid?.startsWith('optimistic-') && optimisticUserMessage) {
+        const hasRealMessage = allEvents.some(e => 
+          e.event_type === 'user' &&
+          !e.uuid?.startsWith('optimistic-') &&
+          getUserMessageText(e.data) === optimisticUserMessage.content &&
+          Math.abs(new Date(e.timestamp).getTime() - optimisticUserMessage.timestamp) < 10000
+        );
+        if (hasRealMessage) continue;
+      }
+      
+      seen.add(event.uuid);
+      unique.push(event);
+    }
+    
+    const sorted = unique.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    
+    // Filter out system, result events, and user events that contain only tool results from display
+    const displayEvents = sorted.filter(event => {
+      // Always exclude system and result events
+      if (event.event_type === 'system' || event.event_type === 'result') {
+        return false;
+      }
+      
+      // For user events, exclude if they contain only tool_result content (not actual user messages)
+      if (event.event_type === 'user' && event.data && typeof event.data === 'object') {
+        const data = event.data as Record<string, unknown>;
+        if ('message' in data && typeof data.message === 'object' && data.message) {
+          const message = data.message as Record<string, unknown>;
+          if ('content' in message && Array.isArray(message.content)) {
+            // Check if this user event contains only tool_result items (no text content)
+            const hasNonToolResultContent = message.content.some((item: unknown) => 
+              item && typeof item === 'object' && 'type' in item && item.type !== 'tool_result'
+            );
+            // Exclude if it only has tool_result content
+            if (!hasNonToolResultContent) {
+              return false;
+            }
+          }
+        }
+      }
+      
+      return true;
+    });
+    
+    // Build tool results map by linking tool calls to their results
+    const toolResults = new Map<string, { result: unknown; isError?: boolean }>();
+    
+    // Extract tool results from user events that contain tool_result content
+    sorted.forEach(event => {
+      if (event.event_type === 'user' && event.data && typeof event.data === 'object') {
+        const data = event.data as Record<string, unknown>;
+        
+        // Check if this user event has a message with content array containing tool results
+        if ('message' in data && typeof data.message === 'object' && data.message) {
+          const message = data.message as Record<string, unknown>;
+          if ('content' in message && Array.isArray(message.content)) {
+            // Look for tool_result content items
+            message.content.forEach((item: unknown) => {
+              if (item && typeof item === 'object' && 'type' in item && item.type === 'tool_result') {
+                const toolResult = item as unknown as { tool_use_id: string; content: unknown; is_error?: boolean };
+                if (toolResult.tool_use_id) {
+                  // Detect if this is an error result
+                  let isError = false;
+                  
+                  // Check if the tool result itself has an is_error field
+                  if ('is_error' in toolResult && typeof toolResult.is_error === 'boolean') {
+                    isError = toolResult.is_error;
+                  }
+                  // Also check if the content has is_error (for standardized format)
+                  else if (toolResult.content && typeof toolResult.content === 'object' && 
+                           'is_error' in toolResult.content) {
+                    const content = toolResult.content as { is_error?: boolean };
+                    isError = content.is_error === true;
+                  }
+                  
+                  toolResults.set(toolResult.tool_use_id, {
+                    result: toolResult,
+                    isError
+                  });
+                }
+              }
+            });
+          }
+        }
+      }
+    });
+    
+    return { displayEvents, toolResults };
+  }, [initialEvents, newEvents, optimisticUserMessage, sessionId, session?.project_path]);
   
   // Handle stop functionality (Escape key only)
   const handleStop = useCallback(async () => {
@@ -280,7 +421,7 @@ export default function SessionDetail() {
     setIsStopInProgress(true);
     
     // Clear optimistic message and processing time immediately for better UX
-    setOptimisticMessage(null);
+    setOptimisticUserMessage(null);
     setProcessingStartTime(null);
     
     // Focus input immediately since we're enabling it
@@ -364,15 +505,17 @@ export default function SessionDetail() {
   // Initialize processing time when session is processing
   useEffect(() => {
     if (session?.claude_status === 'processing' && !processingStartTime && !isStopInProgress) {
-      // Find the most recent user message from Zustand store
-      const userEvents = useEventStore.getState().getEventsByType('user');
-      const lastUserEvent = userEvents[userEvents.length - 1];
+      // Find the most recent user message
+      const allEvents = [...initialEvents, ...newEvents];
+      const lastUserEvent = allEvents
+        .filter(e => e.event_type === 'user')
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
       
       if (lastUserEvent) {
         setProcessingStartTime(new Date(lastUserEvent.timestamp).getTime());
       }
     }
-  }, [session?.claude_status, processingStartTime, isStopInProgress]);
+  }, [session?.claude_status, processingStartTime, initialEvents, newEvents, isStopInProgress]);
   
   // Track if we should auto-scroll (user is near bottom)
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
@@ -380,22 +523,22 @@ export default function SessionDetail() {
   // Clear on result event OR when cancelled - but ensure messages are rendered first
   useEffect(() => {
     if (processingStartTime) {
-      // Check for result or cancellation events from the store
-      const events = useEventStore.getState().events;
-      const eventsArray = Array.from(events.values());
-      
-      const resultEvent = eventsArray.find(e => 
+      // Check for result event
+      const resultEvent = newEvents.find(e => 
         e.event_type === 'result' && 
         new Date(e.timestamp).getTime() > processingStartTime
       );
       
-      const hasNewCancellation = eventsArray.some(e => 
+      // Check for cancellation event
+      const hasNewCancellation = newEvents.some(e => 
         e.event_type === 'user_cancelled' && 
         new Date(e.timestamp).getTime() > processingStartTime
       );
       
       if (resultEvent) {
-        // For result events, ensure we have a corresponding assistant message
+        // For result events, ensure we have a corresponding assistant message in displayEvents
+        // The result event comes after the assistant message, so we check if there's an assistant
+        // message that came after our processing start time
         const hasAssistantMessage = displayEvents.some(e => 
           e.event_type === 'assistant' && 
           new Date(e.timestamp).getTime() > processingStartTime &&
@@ -405,26 +548,30 @@ export default function SessionDetail() {
         if (hasAssistantMessage) {
           // Assistant message is rendered, safe to clear
           setProcessingStartTime(null);
-          setOptimisticMessage(null);
+          setOptimisticUserMessage(null);
           setIsStopInProgress(false);
           
           // Refocus input if user isn't actively reading/selecting
           if (inputRef.current && shouldAutoScroll) {
+            // Check if user has selected text
             const selection = window.getSelection();
             const hasSelection = selection && selection.toString().length > 0;
             
             if (!hasSelection) {
+              // Small delay to ensure UI has updated
               setTimeout(() => {
                 inputRef.current?.focus();
               }, 100);
             }
           }
         }
+        // If no assistant message yet, wait for it to arrive and render
       } else if (hasNewCancellation) {
+        // For cancellations, only clear isStopInProgress since pending states were already cleared optimistically
         setIsStopInProgress(false);
       }
     }
-  }, [displayEvents, processingStartTime, shouldAutoScroll, setOptimisticMessage]);
+  }, [newEvents, displayEvents, processingStartTime, shouldAutoScroll]);
   
   // Check if user is near bottom whenever they scroll
   useEffect(() => {
@@ -456,7 +603,7 @@ export default function SessionDetail() {
         }
       });
     }
-  }, [displayEvents.length, showPending, shouldAutoScroll]);
+  }, [displayEvents.length, showPending, shouldAutoScroll, newEvents.length]);
   
   // Clear prompt and images on successful submission
   const wasSubmittingRef = useRef(false);
@@ -555,7 +702,7 @@ export default function SessionDetail() {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-32" ref={scrollContainerRef} style={{ opacity: isVisible ? 1 : 0 }}>
-        {displayEvents.length === 0 && !isProcessing && !isSubmitting && !showPending && !eventsLoading ? (
+        {displayEvents.length === 0 && !isProcessing && !isSubmitting && !showPending ? (
           <div className="h-full flex items-center justify-center">
             <p className="text-zinc-500">No messages yet. Start by asking Claude Code something!</p>
           </div>
@@ -623,7 +770,7 @@ export default function SessionDetail() {
                       
                       // Only set optimistic message if there's actual text
                       if (message) {
-                        setOptimisticMessage({ content: message, timestamp: now });
+                        setOptimisticUserMessage({ content: message, timestamp: now });
                       }
                     }
                   }}

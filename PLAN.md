@@ -40,35 +40,35 @@ After completing each phase:
 ## Phase 2: Update API for Incremental Polling
 
 ### 2.1 Modify Events API Endpoint
-- [ ] Add query parameter support to existing endpoint:
+- [x] Add query parameter support to existing endpoint:
   - `?since_timestamp=` for incremental updates
   - `?since_event_id=` as alternative
   - `?include_all=true` for initial load
-- [ ] Return events in correct order (oldest first)
-- [ ] Include session status in response
+- [x] Return events in correct order (oldest first)
+- [x] Include session status in response
 
 ### 2.2 Create Response Structure
-- [ ] Define TypeScript types for API response
-- [ ] Include metadata (hasMore, latestEventId, sessionStatus)
-- [ ] Ensure backward compatibility
+- [x] Define TypeScript types for API response
+- [x] Include metadata (hasMore, latestEventId, sessionStatus)
+- [x] Ensure backward compatibility
 
 ## Phase 3: Create React Query Hook
 
 ### 3.1 Implement useSessionEvents Hook
-- [ ] Create `/app/hooks/useSessionEvents.ts`
-- [ ] Setup React Query with:
+- [x] Create `/app/hooks/useSessionEvents.ts`
+- [x] Setup React Query with:
   - Initial fetch of all events
   - Incremental polling for new events only
   - 1 second refetch interval
   - Stale time configuration
-- [ ] Track last event ID/timestamp for incremental fetches
-- [ ] Handle error states gracefully
+- [x] Track last event ID/timestamp for incremental fetches
+- [x] Handle error states gracefully
 
 ### 3.2 Connect to Zustand Store
-- [ ] Update store on successful fetch
-- [ ] Only add truly new events
-- [ ] Update session status from response
-- [ ] Handle connection/disconnection states
+- [x] Update store on successful fetch
+- [x] Only add truly new events
+- [x] Update session status from response
+- [x] Handle connection/disconnection states
 
 ## Phase 4: Refactor SessionDetail Component
 
