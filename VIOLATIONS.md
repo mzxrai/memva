@@ -7,9 +7,15 @@ This report catalogs all test files in the codebase and their compliance with CL
 - **Total test files reviewed**: 94 (original count)
 - **Files deleted**: 4 files (implementation detail tests)
 - **Remaining test files**: 90
-- **Major violations**: 41 files  
+- **Major violations**: 38 files (down from 41 - fixed 3 job tests)
 - **Minor violations**: 24 files
-- **Fully compliant**: 25 files
+- **Fully compliant**: 28 files (up from 25)
+
+## Progress Update (as of latest commit)
+
+- ✅ **Test factories created**: All major factories now available
+- ✅ **Job tests updated**: 3 of 9 files now use factories (22 replacements total)
+- ⏳ **Remaining factory updates**: 31 files still need factory adoption
 
 ## Files Deleted - Implementation Detail Tests
 
@@ -33,7 +39,7 @@ These files were deleted for testing internal implementation instead of behavior
 
 ## Major Violations by Category
 
-### 1. Missing Test Factories (34 files)
+### 1. Missing Test Factories (31 files - 3 fixed)
 
 These files hardcode test data instead of using factories from `test-utils/factories.ts`:
 
@@ -59,19 +65,19 @@ These files hardcode test data instead of using factories from `test-utils/facto
 - `app/__tests__/api-permissions.test.ts` - Hardcoding permission requests
 - `app/__tests__/home-action.test.ts` - Hardcoding form data
 
-**Job System Tests (9 files):**
+**Job System Tests (6 of 9 files remaining):**
+- ✅ `app/__tests__/jobs-service-crud.test.ts` - FIXED
+- ✅ `app/__tests__/job-worker-processing.test.ts` - FIXED  
+- ✅ `app/__tests__/jobs-service-state.test.ts` - FIXED
 - `app/__tests__/individual-job-api.test.ts`
 - `app/__tests__/job-system-foundation.test.ts`
 - `app/__tests__/job-type-registry.test.ts`
 - `app/__tests__/job-worker-foundation.test.ts`
 - `app/__tests__/jobs-api.test.ts`
-- `app/__tests__/jobs-service-crud.test.ts`
-- `app/__tests__/jobs-service-state.test.ts`
 - `app/__tests__/jobs-service-stats.test.ts`
 - `app/__tests__/jobs-table-schema.test.ts`
 
 **Worker/Handler Tests:**
-- `app/__tests__/job-worker-processing.test.ts`
 - `app/__tests__/maintenance-handler.test.ts`
 - `app/__tests__/session-runner-handler.test.ts`
 - `app/__tests__/homepage-job-dispatch.test.ts`
@@ -241,30 +247,46 @@ We initially missed 3 test files in our review:
    - `app/db/sessions.test.ts` - Tested CRUD operations directly
    - `app/__tests__/better-queue-dependencies.test.ts` - Tested package.json
 
+### ✅ Recent Progress
+
+2. **Created comprehensive test factories** (COMPLETED):
+   - ✅ Job objects: `createMockJob()`, `createMockNewJob()`
+   - ✅ Permission requests: `createMockPermissionRequest()` (already existed)
+   - ✅ Settings: `createMockSettings()`, `createMockSettingsConfig()`
+   - ✅ Form data: `createMockFormData()`
+   - ✅ File/Image: `createMockFile()`, `createMockImageData()`
+   - ✅ Directory: `createMockDirectoryData()`
+
+3. **Updated job system tests to use factories** (3 of 9 files):
+   - ✅ `jobs-service-crud.test.ts` - 10 replacements
+   - ✅ `job-worker-processing.test.ts` - 9 replacements
+   - ✅ `jobs-service-state.test.ts` - 3 replacements
+   - ⏳ 6 more job system test files to update
+
 ### High Priority Fixes
 
-2. **Refactor or delete maintenance.handler.test.ts**:
+4. **Continue updating tests to use factories** (31 files remaining):
+   - 6 more job system tests
+   - 13 component tests
+   - 5 integration/API tests
+   - 7 other test files
+
+5. **Refactor or delete maintenance.handler.test.ts**:
    - Contains major violations with direct database access
    - Should test through service functions or HTTP endpoints
    - Currently manipulates database directly with `db.update()` and `db.select()`
 
-3. **Create test factories** for:
-   - Job objects: `createMockJob()`
-   - Permission requests: `createMockPermissionRequest()`
-   - Settings: `createMockSettings()`
-   - Form data: `createMockFormData()`
+6. **Replace CSS class testing** with behavioral tests in 8 files
 
-4. **Replace CSS class testing** with behavioral tests in 8 files
+7. **Update component tests** to use semantic utilities from `test-utils/component-testing.ts`
 
-5. **Update component tests** to use semantic utilities from `test-utils/component-testing.ts`
+8. **Replace direct database access** with service function calls
 
-6. **Replace direct database access** with service function calls
+9. **Remove internal service mocks** - only mock external dependencies
 
-7. **Remove internal service mocks** - only mock external dependencies
+10. **Replace setTimeout** with `waitForCondition()` and other smart waiting utilities in 5 files
 
-8. **Replace setTimeout** with `waitForCondition()` and other smart waiting utilities in 5 files
-
-9. **Fix DOM manipulation** - Replace `querySelector` with semantic queries in 4 files
+11. **Fix DOM manipulation** - Replace `querySelector` with semantic queries in 4 files
 
 ### Code Example - Fixing Test Factory Usage
 
