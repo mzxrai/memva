@@ -1,267 +1,348 @@
-# Permission Handling Implementation Plan
+# Test Suite Remediation Plan
 
-## Current Status 🚧
-- **Phase 1: Database Layer** ✅ COMPLETE
-- **Phase 2: MCP Permission Server** ✅ COMPLETE
-- **Phase 3: Update Claude Code Service** ✅ COMPLETE
-- **Phase 4: React UI Components** ✅ COMPLETE
-- **Phase 5: Polling and State Management** ✅ COMPLETE
-- **Phase 6: API Routes** ✅ COMPLETE
-- **Phase 7: Maintenance & Cleanup** ✅ COMPLETE
-- **Phase 8: Integration Testing** ✅ COMPLETE
-- **Phase 9: Frontend Integration** ⏳ IN PROGRESS
-- **Phase 10: End-to-End Testing & Polish** ⏳ NOT STARTED
+This plan provides specific actions to fix all CLAUDE.md violations in the test suite.
 
-**Overall Progress: ~80%** (adjusted for new Phase 9)
+## Immediate Actions - Delete These Files
 
-## Overview
-Implement a permission handling system for Claude Code sessions using MCP (Model Context Protocol) with SQLite polling for maximum resilience. Users will have up to 24 hours to respond to permission requests.
+These files violate the fundamental principle "test behavior, not implementation":
 
-## Architecture Summary
-- **MCP Permission Server**: Standalone TypeScript server that implements the permission prompt tool
-- **SQLite Database**: Central storage for permission requests (polling-based, no WebSockets)
-- **React UI**: Permission notification system with queue management
-- **Polling Strategy**: UI polls every 500ms-1s, MCP server uses exponential backoff
+### Files to Delete (5 total)
 
-## Implementation Checklist
+1. **`app/db/database.test.ts`**
+   - **Violation**: Tests database initialization, table creation, indexes
+   - **Why**: These are implementation details, not behavior
+   - **Action**: DELETE - functionality is tested through service functions elsewhere
 
-### Phase 1: Database Layer ✅
-- [x] Create database schema for `permission_requests` table
-  - [x] Add migration file `005_add_permission_requests.sql`
-  - [x] Update `app/db/schema.ts` with new table definition
-  - [x] Fields: id, session_id, tool_name, tool_use_id, input, status, decision, decided_at, created_at, expires_at
-- [x] Create permission service layer (`app/db/permissions.service.ts`)
-  - [x] `createPermissionRequest()` - Create new permission request
-  - [x] `getPermissionRequests()` - Get all requests with filters
-  - [x] `getPendingPermissionRequests()` - Get pending requests for UI
-  - [x] `updatePermissionDecision()` - Update request with approval/denial
-  - [x] `expireOldRequests()` - Mark 24h+ requests as timeout
-- [x] Write database tests for permission service
-  - [x] Test CRUD operations
-  - [x] Test expiration logic
-  - [x] Test concurrent request handling
-  - [x] All tests passing ✅
+2. **`app/db/schema.test.ts`**
+   - **Violation**: Tests schema structure using `PRAGMA table_info`
+   - **Why**: Schema is an implementation detail
+   - **Action**: DELETE - data integrity is tested through service functions
 
-### Phase 2: MCP Permission Server ✅
-- [x] Set up new TypeScript project in `mcp-permission-server/`
-  - [x] Initialize package.json with dependencies
-  - [x] Configure tsconfig.json for Node.js target with ES modules
-  - [x] Install @modelcontextprotocol/sdk and better-sqlite3
-- [x] Implement MCP server (`mcp-permission-server/src/index.ts`)
-  - [x] Create MCP server instance
-  - [x] Register `approval_prompt` tool
-  - [x] Implement permission request creation in SQLite (via PermissionPoller class)
-  - [x] Implement polling logic with exponential backoff (100ms → 5s cap)
-  - [x] Handle 24-hour timeout
-  - [x] Return proper JSON response format
-- [x] Create build script
-  - [x] TypeScript compilation to JavaScript
-  - [x] Build successful - outputs to build/ directory
-- [x] Write unit tests for MCP server
-  - [x] Test permission request creation
-  - [x] Test polling behavior
-  - [x] Test timeout handling
-  - [x] Test exponential backoff
-  - [x] All tests passing ✅
+3. **`app/db/sessions.test.ts`**
+   - **Violation**: Tests CRUD operations directly on database
+   - **Why**: Direct database access bypasses the service layer (public API)
+   - **Action**: DELETE - use `sessions.service.test.ts` instead
 
-### Phase 3: Update Claude Code Service ✅ COMPLETE
-- [x] Modify `app/services/claude-code.server.ts`
-  - [x] Create ~/.memva/tmp directory if not exists
-  - [x] Generate MCP config files at `~/.memva/tmp/mcp-config-{sessionId}.json`
-  - [x] Add `mcpConfig` option to Claude Code SDK options (camelCase version of --mcp-config)
-  - [x] Add `permissionPromptTool` option with mcp__memva-permissions__approval_prompt
-  - [x] Include correct MCP server path and environment variables
-  - [x] Clean up temp files on session end
-- [x] Write tests for MCP config generation
-  - [x] Test config file creation
-  - [x] Test cleanup on session end
-  - [x] Test SDK options with MCP config
-  - [x] Test permission tool is added to allowed tools
+4. **`app/__tests__/better-queue-dependencies.test.ts`**
+   - **Violation**: Tests that packages exist in package.json
+   - **Why**: Build system responsibility, not application behavior
+   - **Action**: DELETE - if dependency missing, app won't run
 
-**Note**: Claude Code TypeScript SDK accepts all CLI arguments but in camelCase format (e.g., `--mcp-config` becomes `mcpConfig`)
+5. **`app/__tests__/jobs-table-schema.test.ts`**
+   - **Violation**: Tests schema with direct SQL queries
+   - **Why**: Schema structure is implementation, not behavior
+   - **Action**: DELETE - job behavior tested through service functions
 
-### Phase 4: React UI Components ✅ COMPLETE
-- [x] Create permission components (`app/components/permissions/`)
-  - [x] `PermissionRequestNotification.tsx` - Persistent notification bar
-  - [ ] `PermissionRequestModal.tsx` - Detailed view with tool info (deferred)
-  - [x] `PermissionQueue.tsx` - List all pending requests
-  - [ ] `PermissionHistory.tsx` - Audit log of past decisions (deferred)
-  - [x] `PermissionBadge.tsx` - Show count of pending permissions
-- [x] Integrate with existing design system
-  - [x] Use Linear-inspired minimal design
-  - [x] Use Inter font for UI text
-  - [x] Use JetBrains Mono for code/tool info
-  - [x] Thoughtful use of color for approve/deny actions
-- [x] Write component tests
-  - [x] Test notification appearance
-  - [x] Test queue management
-  - [x] Test badge behavior
-  - [x] Use semantic testing utilities
+## High Priority Fixes
 
-**Note**: Focused on core components needed for MVP. Modal and history components can be added later.
+### 1. Create Missing Test Factories
 
-### Phase 5: Polling and State Management ✅ COMPLETE
-- [x] Create `usePermissionPolling` hook (`app/hooks/usePermissionPolling.ts`)
-  - [x] Poll database every 500ms for new requests (default)
-  - [x] Direct service layer polling (no React Query needed)
-  - [x] Return pending permissions list
-  - [x] Handle approve/deny actions
-  - [x] Support configurable polling interval and enable/disable
-- [ ] Add to main layout to ensure polling is always active (deferred to Phase 6)
-- [x] Write tests for polling behavior
-  - [x] Test new request detection
-  - [x] Test polling intervals
-  - [x] Test action handling
-  - [x] Test error handling
+**Violation**: 38 files hardcode test data instead of using factories
+**CLAUDE.md principle**: "ALWAYS use test factories, never hardcode test data"
 
-**Note**: Simplified approach using direct service calls instead of React Query, following existing patterns in codebase.
+**Action**: Add these factories to `app/test-utils/factories.ts`:
 
-### Phase 6: API Routes ✅ COMPLETE
-- [x] Create permission API routes
-  - [x] `app/routes/api.permissions.tsx` - GET permission history
-  - [x] `app/routes/api.permissions.$id.tsx` - POST decision update
-  - [x] Follow existing route patterns with loaders/actions
-- [x] Write integration tests for API routes
-  - [x] Test permission listing
-  - [x] Test decision updates
-  - [x] Test error cases
-  - [x] All tests passing ✅
-
-### Phase 7: Maintenance & Cleanup ✅ COMPLETE
-- [x] Update maintenance handler (`app/workers/handlers/maintenance.handler.ts`)
-  - [x] Add task to expire old permission requests (>24h)
-  - [x] Run alongside existing cleanup tasks
-- [x] Write tests for maintenance tasks
-  - [x] Test expiration logic
-  - [x] Test cleanup scheduling
-  - [x] Test job creation and queueing
-  - [x] All tests passing ✅
-
-### Phase 8: Integration Testing ✅ COMPLETE
-- [x] Create end-to-end test for full permission flow
-  - [x] Simulate MCP server creating permission requests
-  - [x] Test UI polling for pending permissions
-  - [x] Verify approve/deny flow updates database
-  - [x] Test MCP server polling for decisions
-  - [x] Verify complete request lifecycle
-- [x] Test edge cases
-  - [x] Multiple concurrent permission requests
-  - [x] 24-hour timeout behavior
-  - [x] Race condition handling
-  - [x] Database connection issues
-  - [x] Large scale operations
-  - [x] Invalid input handling
-- [x] UI Integration tests
-  - [x] Hook integration with components
-  - [x] Real-time update behavior
-  - [x] Component rendering with permissions
-- [x] All 53 tests passing ✅
-
-### Phase 9: Frontend Integration ⏳ IN PROGRESS
-- [ ] Wire up permission UI components to the app
-  - [ ] Add usePermissionPolling hook to session detail page
-  - [ ] Create inline permission request component
-  - [ ] Integrate permissions into message flow (between Claude messages)
-  - [ ] Connect approve/deny actions to the hook
-- [ ] Design implementation
-  - [ ] Inline permission requests in message flow
-  - [ ] Dark theme with subtle amber/orange accent (bg-amber-900/10)
-  - [ ] Minimal design: tool name, description, approve/deny buttons
-  - [ ] No expiry time shown (cleaner UI)
-  - [ ] Inter font for consistency
-- [ ] Test UI responsiveness
-  - [ ] Verify notifications appear within 1 second
-  - [ ] Test approve/deny actions update UI immediately
-  - [ ] Ensure smooth integration with message flow
-- [ ] Run the MCP permission server
-  - [ ] Build the MCP server: `npm run build` in mcp-permission-server/
-  - [ ] Ensure server is accessible at correct path
-
-### Phase 10: End-to-End Testing & Polish
-- [ ] Manual testing with real Claude Code sessions
-  - [ ] Start a Claude Code session
-  - [ ] Trigger tool use that requires permission
-  - [ ] Verify permission appears in UI
-  - [ ] Test approve flow - verify tool executes
-  - [ ] Test deny flow - verify tool is blocked
-- [ ] Test edge cases manually
-  - [ ] Multiple concurrent permissions
-  - [ ] Long-running Claude Code sessions
-  - [ ] Server restarts during active permissions
-- [ ] Update CLAUDE.md with any learnings
-- [ ] Add JSDoc comments to service functions
-- [ ] Ensure all tests pass
-- [ ] Run lint and typecheck
-
-## What's Complete ✅
-- ✅ Database schema and migrations
-- ✅ Permission service layer with full CRUD operations
-- ✅ MCP permission server with exponential backoff polling
-- ✅ Claude Code integration (generates MCP configs per session)
-- ✅ React components (Badge, Queue, Notification)
-- ✅ usePermissionPolling hook
-- ✅ API routes for permission operations
-- ✅ Maintenance job for cleaning expired permissions
-- ✅ Comprehensive test coverage (53 tests passing)
-
-## What Remains 🚧
-- ❌ Frontend integration - hook and components not wired to UI
-- ❌ MCP server needs to be built and running
-- ❌ Manual end-to-end testing with real Claude Code
-- ❌ Documentation updates
-
-## Success Criteria
-- [ ] Permission requests appear in UI within 1 second
-- [ ] Users can approve/deny requests up to 24 hours later
-- [ ] System handles multiple concurrent sessions gracefully
-- [x] All tests pass with proper TDD approach
-- [x] Clean separation of concerns following service layer pattern
-- [x] Resilient to disconnections and restarts
-
-## Technical Details
-
-### Database Schema
-```sql
-CREATE TABLE permission_requests (
-  id TEXT PRIMARY KEY,
-  session_id TEXT NOT NULL,
-  tool_name TEXT NOT NULL,
-  tool_use_id TEXT,
-  input TEXT NOT NULL, -- JSON
-  status TEXT NOT NULL DEFAULT 'pending', -- pending, approved, denied, timeout
-  decision TEXT, -- allow, deny
-  decided_at TEXT,
-  created_at TEXT NOT NULL,
-  expires_at TEXT NOT NULL,
-  FOREIGN KEY (session_id) REFERENCES sessions(id)
-);
-```
-
-### MCP Server Tool Response Format
 ```typescript
-// Success response
-{
-  "behavior": "allow",
-  "updatedInput": {...} // original or modified input
+// Job factory
+export function createMockJob(overrides?: Partial<Job>): Job {
+  return {
+    id: `job-${crypto.randomUUID()}`,
+    type: 'session-runner',
+    status: 'pending',
+    data: {},
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    ...overrides
+  }
 }
 
-// Denial response
-{
-  "behavior": "deny",
-  "message": "Permission denied by user"
+// Permission request factory  
+export function createMockPermissionRequest(overrides?: Partial<PermissionRequest>): PermissionRequest {
+  return {
+    id: `perm-${crypto.randomUUID()}`,
+    session_id: 'session-123',
+    tool_name: 'Bash',
+    tool_use_id: null,
+    input: { command: 'ls' },
+    status: 'pending',
+    created_at: new Date().toISOString(),
+    ...overrides
+  }
+}
+
+// Settings factory
+export function createMockSettings(overrides?: Partial<Settings>): Settings {
+  return {
+    id: 1,
+    max_turns: 200,
+    permission_mode: 'auto',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    ...overrides
+  }
+}
+
+// Form data factory
+export function createMockFormData(data: Record<string, string>): FormData {
+  const formData = new FormData()
+  Object.entries(data).forEach(([key, value]) => {
+    formData.append(key, value)
+  })
+  return formData
 }
 ```
 
-### Polling Strategy
-- **UI Polling**: Every 500ms-1s for responsiveness
-- **MCP Server Polling**: Exponential backoff
-  - Start: 100ms
-  - Double each iteration
-  - Cap: 5 seconds
-  - Total timeout: 24 hours
+**Files to fix**: All 38 files listed in VIOLATIONS.md under "Missing Test Factories"
 
-## Notes
-- All times in UTC for consistency
-- Permission requests are session-specific
-- Database remains source of truth for all state
-- MCP config assumes merge behavior (not override)
+### 2. Replace CSS Class Testing
+
+**Violation**: 9 files test CSS classes
+**CLAUDE.md principle**: "Test behavior/accessibility, never CSS classes"
+
+**Specific fixes**:
+
+```typescript
+// ❌ WRONG - Testing implementation
+expect(element).toHaveClass('text-red-500')
+expect(element).toHaveClass('font-mono')
+expect(element).toHaveClass('opacity-100')
+
+// ✅ CORRECT - Testing behavior
+expect(element).toHaveAttribute('aria-invalid', 'true')
+expect(element).toHaveAttribute('data-status', 'error')
+expectContent.text('Error message')
+expectSemanticMarkup.region('Error details')
+```
+
+**Files to fix**:
+- `message-header.test.tsx` - Remove `.toHaveClass('custom-test-class')`
+- `code-block.test.tsx` - Remove `.toHaveClass('border-transparent')`
+- `session-detail-component.test.tsx` - Remove all `.toHaveClass()` checks
+- `todo-write-tool-display.test.tsx` - Remove `.toHaveClass('font-mono')`
+- `tool-call-display.test.tsx` - Remove `.toHaveClass('custom-class')`
+- `message-carousel.test.tsx` - Remove `.toHaveClass('overflow-hidden')`
+- `green-line-indicator.test.tsx` - Remove `.toHaveClass('opacity-100')`
+- `permission-badge.test.tsx` - Remove `.toHaveClass('custom-class')`
+- `edit-tool-error-display.test.tsx` - Remove `.toHaveClass('text-red-400')`
+
+### 3. Fix Direct Database Access
+
+**Violation**: 6 files use direct database operations
+**CLAUDE.md principle**: "Service layer functions ARE public APIs - test service functions"
+
+**Specific fixes**:
+
+```typescript
+// ❌ WRONG - Direct database access
+testDb.db.insert(events).values([...])
+testDb.db.select().from(permissionRequests)
+testDb.sqlite.prepare('UPDATE...').run()
+
+// ✅ CORRECT - Use service functions
+import { createEvent, getEvents } from '../db/events.service'
+import { createPermissionRequest, updatePermissionDecision } from '../db/permissions.service'
+
+await createEvent(eventData)
+const events = await getEvents(sessionId)
+await updatePermissionDecision(requestId, 'allow')
+```
+
+**Files to fix**:
+- `use-event-polling.test.tsx` - Replace `testDb.insertEvent()` with service function
+- `use-permission-polling.test.tsx` - Replace `testDb.db` access in MSW handlers
+- `sessions-claude-status.test.ts` - Test through routes, not direct DB
+- `maintenance.handler.test.ts` - Replace all `db.update()` and `db.select()`
+
+### 4. Replace setTimeout with Smart Waiting
+
+**Violation**: 5 files use `setTimeout`
+**CLAUDE.md principle**: "ALWAYS use smart waiting, NEVER use arbitrary timeouts"
+
+**Specific fixes**:
+
+```typescript
+// ❌ WRONG - Arbitrary timeout
+await new Promise(resolve => setTimeout(resolve, 100))
+
+// ✅ CORRECT - Wait for condition
+import { waitForCondition } from '../test-utils/async-testing'
+
+await waitForCondition(() => 
+  testDb.getEventsForSession(sessionId).length > 0
+)
+
+// ✅ CORRECT - Wait for specific events
+import { waitForEvents } from '../test-utils/async-testing'
+
+await waitForEvents(
+  () => testDb.getEventsForSession(sessionId),
+  ['user', 'assistant']
+)
+```
+
+**Files to fix**:
+- `claude-code-events.test.ts` - Replace 6 setTimeout calls
+- `stop-functionality.test.tsx` - Replace setTimeout(50)
+- `session-permissions-cycle.test.tsx` - Replace setTimeout in Promise
+- `sessions.service.test.ts` - Replace setTimeout(1)
+- `settings.service.test.ts` - Replace setTimeout(50)
+
+### 5. Fix HTTP Mocking
+
+**Violation**: 2 files use `global.fetch = vi.fn()`
+**CLAUDE.md principle**: "Use MSW for HTTP mocking"
+
+**Specific fixes**:
+
+```typescript
+// ❌ WRONG - Direct fetch mocking
+global.fetch = vi.fn((url) => {
+  if (url === '/api/filesystem?action=current') {
+    return Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ currentDirectory: '/' })
+    })
+  }
+})
+
+// ✅ CORRECT - MSW handlers
+import { server } from '../test-utils/msw-server'
+import { http, HttpResponse } from 'msw'
+
+beforeEach(() => {
+  server.use(
+    http.get('/api/filesystem', ({ request }) => {
+      const url = new URL(request.url)
+      if (url.searchParams.get('action') === 'current') {
+        return HttpResponse.json({ currentDirectory: '/' })
+      }
+    })
+  )
+})
+```
+
+**Files to fix**:
+- `homepage-image-upload.test.tsx` - Line 20
+- `session-permissions-cycle.test.tsx` - Lines 96, 186
+
+### 6. Fix DOM Manipulation
+
+**Violation**: 4 files use `querySelector`
+**CLAUDE.md principle**: "Use semantic queries, not DOM structure"
+
+**Specific fixes**:
+
+```typescript
+// ❌ WRONG - DOM structure queries
+const greenLine = element.querySelector('.bg-emerald-500')
+const form = document.querySelector('form')
+const svg = container.querySelector('svg')
+
+// ✅ CORRECT - Semantic queries
+const greenLine = screen.getByRole('progressbar')
+const form = screen.getByRole('form', { name: 'Session creation' })
+const icon = screen.getByRole('img', { name: 'Bash icon' })
+
+// ✅ OR use data-testid for non-semantic elements
+const greenLine = screen.getByTestId('green-line-indicator')
+```
+
+**Files to fix**:
+- `green-line-indicator.test.tsx` - 6 querySelector calls
+- `homepage-image-upload.test.tsx` - querySelector('form')
+- `status-indicator.test.tsx` - querySelector('[data-testid]')
+- `bash-tool-display.test.tsx` - querySelector('svg')
+
+### 7. Stop Mocking Internal Services
+
+**Violation**: 3 files mock internal services
+**CLAUDE.md principle**: "Only mock external dependencies"
+
+**Specific fixes**:
+
+```typescript
+// ❌ WRONG - Mocking internal services
+vi.mock('../db/event-session.service')
+vi.mock('../services/jobs.service')
+import { handler } from '../workers/handlers/maintenance'
+
+// ✅ CORRECT - Test through public APIs
+// For routes: test through loader/action
+const response = await loader({ request, params })
+
+// For workers: test through job execution
+await processJob(job)
+```
+
+**Files to fix**:
+- `session-detail-loader.test.ts` - Remove mock of event-session.service
+- `home-action.test.ts` - Remove mocks of jobs.service and job-types
+- Handler tests - Test through job system, not direct imports
+
+### 8. Use Semantic Testing Utilities
+
+**Violation**: 16 files use basic queries
+**CLAUDE.md principle**: "ALWAYS test behavior/accessibility"
+
+**Specific fixes**:
+
+```typescript
+// ❌ WRONG - Basic queries
+expect(screen.getByText('Submit')).toBeInTheDocument()
+expect(screen.getByRole('button')).toBeDisabled()
+
+// ✅ CORRECT - Semantic utilities
+import { expectSemanticMarkup, expectContent, expectInteraction } from '../test-utils/component-testing'
+
+expectSemanticMarkup.button('Submit')
+expectInteraction.clickable(submitButton)
+expectContent.text('Form submitted successfully')
+```
+
+**Files to fix**: All 16 files listed under "Missing Semantic Testing Utilities"
+
+## Testing Philosophy Reminders
+
+### What to Test
+- User-visible behavior
+- Public API contracts (routes, service functions)
+- Error states and edge cases
+- Accessibility requirements
+
+### What NOT to Test
+- Database schema structure
+- Internal implementation details
+- CSS classes or styling
+- Private functions
+- Framework behavior
+
+### How to Test
+- Use test factories for all test data
+- Use semantic queries for DOM testing
+- Use MSW for HTTP mocking
+- Use service functions as the database API
+- Wait for actual conditions, not arbitrary time
+
+## Success Metrics
+
+After implementing this plan:
+- 0 critical violations (down from 3)
+- 0 files testing implementation details (down from 5)
+- 100% of tests using factories where applicable
+- 0 tests checking CSS classes
+- 0 tests using setTimeout
+- 0 tests using global.fetch mocking
+- 0 tests using querySelector
+- 100% of component tests using semantic utilities
+
+## Execution Order
+
+1. **Day 1**: Delete the 5 files (immediate win)
+2. **Day 2**: Create all missing test factories
+3. **Day 3**: Fix HTTP mocking and setTimeout usage
+4. **Day 4**: Fix CSS class testing and DOM queries
+5. **Day 5**: Fix direct database access
+6. **Day 6**: Add semantic testing utilities
+7. **Day 7**: Remove internal service mocks
+
+This plan will bring the test suite into full compliance with CLAUDE.md principles.
