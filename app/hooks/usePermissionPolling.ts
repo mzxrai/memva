@@ -39,7 +39,7 @@ export default function usePermissionPolling(options: UsePermissionPollingOption
       }
       
       const data = await response.json() as { permissions: PermissionRequest[] }
-      setPermissions(data.permissions)
+      setPermissions(data.permissions || [])
       setError(null)
     } catch (err) {
       console.error('Failed to fetch permissions:', err)
@@ -107,7 +107,7 @@ export default function usePermissionPolling(options: UsePermissionPollingOption
     }
   }, [enabled, pollingInterval, fetchPermissions])
 
-  const pendingCount = permissions.length
+  const pendingCount = permissions?.length || 0
 
   return {
     permissions,

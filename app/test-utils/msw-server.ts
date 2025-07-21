@@ -135,7 +135,18 @@ export const handlers = [
   }),
   
   http.put('/api/permissions/:id', async ({ params, request }) => {
-    const body = await request.json()
+    const body = await request.json() as { decision: string }
+    return HttpResponse.json({
+      id: params.id,
+      status: body.decision === 'allow' ? 'approved' : 'denied',
+      decision: body.decision,
+      decided_at: new Date().toISOString()
+    })
+  }),
+  
+  // Also handle POST for permissions (same as PUT)
+  http.post('/api/permissions/:id', async ({ params, request }) => {
+    const body = await request.json() as { decision: string }
     return HttpResponse.json({
       id: params.id,
       status: body.decision === 'allow' ? 'approved' : 'denied',

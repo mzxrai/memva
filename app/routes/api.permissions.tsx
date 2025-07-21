@@ -3,7 +3,7 @@ import { getPermissionRequests } from "../db/permissions.service"
 
 export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url)
-  const session_id = url.searchParams.get('sessionId') || undefined
+  const session_id = url.searchParams.get('session_id') || url.searchParams.get('sessionId') || undefined
   const status = url.searchParams.get('status') || undefined
   
   const permissions = await getPermissionRequests({ session_id, status })

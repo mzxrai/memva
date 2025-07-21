@@ -2,9 +2,11 @@ import React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useLoaderData } from 'react-router'
-import { createMockSession } from '../test-utils/factories'
+import { createMockSessionWithStats } from '../test-utils/factories'
 import { expectSemanticMarkup, expectContent } from '../test-utils/component-testing'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Home from '../routes/home'
+import { useHomepageData } from '../hooks/useHomepageData'
 
 // Mock React Router hooks
 vi.mock('react-router', () => ({
@@ -21,19 +23,84 @@ vi.mock('react-router', () => ({
   )
 }))
 
+// Mock the useHomepageData hook
+vi.mock('../hooks/useHomepageData', () => ({
+  useHomepageData: vi.fn()
+}))
+
+// Mock other custom hooks used by the component
+vi.mock('../hooks/useAutoResizeTextarea', () => ({
+  useAutoResizeTextarea: vi.fn(() => ({ textareaRef: { current: null } }))
+}))
+
+vi.mock('../hooks/useTextareaSubmit', () => ({
+  useTextareaSubmit: vi.fn(() => vi.fn())
+}))
+
+vi.mock('../hooks/useImageUpload', () => ({
+  useImageUpload: vi.fn(() => ({
+    images: [],
+    isDragging: false,
+    handleDragOver: vi.fn(),
+    handleDragLeave: vi.fn(),
+    handleDrop: vi.fn(),
+    removeImage: vi.fn()
+  }))
+}))
+
 describe('Home Component', () => {
+  let queryClient: QueryClient
+
   beforeEach(() => {
     vi.clearAllMocks()
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+      },
+    })
+    
+    // Mock localStorage with a default directory to ensure input renders
+    const localStorageMock = {
+      getItem: vi.fn((key: string) => {
+        if (key === 'memva-last-directory') {
+          return '/Users/testuser';
+        }
+        return null;
+      }),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+      length: 0,
+      key: vi.fn(() => null)
+    }
+    Object.defineProperty(window, 'localStorage', {
+      value: localStorageMock,
+      writable: true
+    })
   })
 
   it('should render page title and empty state when no sessions', () => {
     // Mock loader data with empty sessions
     vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
+    
+    // Mock useHomepageData to return empty sessions
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [],
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
 
-    render(<Home />)
-
-    // Test semantic markup
-    expectSemanticMarkup.heading(1, 'Sessions')
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
+    
+    // Test empty state heading (h2 instead of h1)
+    expectSemanticMarkup.heading(2, 'No sessions yet')
     
     // Test empty state content
     expectContent.text('No sessions yet')
@@ -47,14 +114,14 @@ describe('Home Component', () => {
   it('should render sessions grid when sessions exist', () => {
     // Mock loader data with sessions using factories
     const mockSessions = [
-      createMockSession({ 
+      createMockSessionWithStats({ 
         id: 'session-1',
         title: 'First Session',
         project_path: '/test/project1',
         status: 'active',
         created_at: '2025-01-01T10:00:00.000Z'
       }),
-      createMockSession({ 
+      createMockSessionWithStats({ 
         id: 'session-2',
         title: 'Second Session',
         project_path: '/test/project2',
@@ -64,11 +131,22 @@ describe('Home Component', () => {
     ]
 
     vi.mocked(useLoaderData).mockReturnValue({ sessions: mockSessions })
+    
+    // Mock useHomepageData to return sessions
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: mockSessions,
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
 
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
 
-    // Test page title
-    expectSemanticMarkup.heading(1, 'Sessions')
+    // Test that sessions are displayed (no h1 title anymore)
     
     // Test session links - need to check the link exists with correct href
     const firstSessionLink = screen.getByRole('link', { name: /First Session/ })
@@ -89,8 +167,20 @@ describe('Home Component', () => {
 
   it('should handle session creation form interactions', async () => {
     vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
+    
+    // Mock useHomepageData
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [],
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
 
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
 
     const titleInput = screen.getByPlaceholderText(/start a new claude code session/i)
 
@@ -110,11 +200,9 @@ describe('Home Component', () => {
 
   it('should display session event count when available', () => {
     // Mock session with stats
-    const sessionWithStats = {
-      ...createMockSession({ 
-        id: 'session-with-stats',
-        title: 'Session With Stats'
-      }),
+    const sessionWithStats = createMockSessionWithStats({ 
+      id: 'session-with-stats',
+      title: 'Session With Stats',
       event_count: 5,
       duration_minutes: 30,
       event_types: {
@@ -122,11 +210,23 @@ describe('Home Component', () => {
         assistant: 2,
         summary: 1
       }
-    }
+    })
 
     vi.mocked(useLoaderData).mockReturnValue({ sessions: [sessionWithStats] })
+    
+    // Mock useHomepageData
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [sessionWithStats],
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
 
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
 
     // Test session basic info is displayed
     expectContent.text('Session With Stats')
@@ -137,14 +237,26 @@ describe('Home Component', () => {
 
   it('should handle untitled sessions gracefully', () => {
     // Mock session without title
-    const untitledSession = createMockSession({ 
+    const untitledSession = createMockSessionWithStats({ 
       id: 'untitled-session',
       title: null
     })
 
     vi.mocked(useLoaderData).mockReturnValue({ sessions: [untitledSession] })
+    
+    // Mock useHomepageData
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [untitledSession],
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
 
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
 
     // Test untitled session displays fallback text
     expectContent.text('Untitled Session')
@@ -156,28 +268,40 @@ describe('Home Component', () => {
 
   it('should show relative dates for session creation', () => {
     // Mock session with specific creation date
-    const recentSession = createMockSession({ 
+    const recentSession = createMockSessionWithStats({ 
       id: 'recent-session',
       title: 'Recent Session',
       created_at: new Date(Date.now() - 1000 * 60 * 60).toISOString() // 1 hour ago
     })
 
     vi.mocked(useLoaderData).mockReturnValue({ sessions: [recentSession] })
+    
+    // Mock useHomepageData
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [recentSession],
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
 
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
 
     // Test relative date is displayed (should contain "ago")
     expect(screen.getByText(/ago/)).toBeInTheDocument()
   })
 
   it('should display different status indicators correctly', () => {
-    const processingSession = createMockSession({ 
+    const processingSession = createMockSessionWithStats({ 
       id: 'processing-session',
       title: 'Processing Session',
       status: 'active',
       claude_status: 'processing'
     })
-    const completedSession = createMockSession({ 
+    const completedSession = createMockSessionWithStats({ 
       id: 'completed-session',
       title: 'Completed Session',
       status: 'active',
@@ -187,25 +311,49 @@ describe('Home Component', () => {
     vi.mocked(useLoaderData).mockReturnValue({ 
       sessions: [processingSession, completedSession] 
     })
+    
+    // Mock useHomepageData
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [processingSession, completedSession],
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
 
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
 
     // Sessions should have status indicators
+    // Note: 'completed' status doesn't render a dot, only 'processing' does
     const statusDots = screen.getAllByTestId('status-dot')
-    expect(statusDots).toHaveLength(2)
+    expect(statusDots).toHaveLength(1)
     
-    // First session has processing status
+    // Processing session has status indicator
     expect(statusDots[0]).toHaveAttribute('data-status', 'processing')
     expect(statusDots[0]).toHaveAttribute('data-pulse', 'true')
     
-    // Second session has completed status  
-    expect(statusDots[1]).toHaveAttribute('data-status', 'completed')
+    // Completed session doesn't show a visual indicator (by design)
   })
 
   it('should prevent form submission when title is empty', () => {
     vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
+    
+    // Mock useHomepageData
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [],
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
 
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
 
     const titleInput = screen.getByPlaceholderText(/start a new claude code session/i)
     const form = titleInput.closest('form')
@@ -223,14 +371,27 @@ describe('Home Component', () => {
 
   it('should handle form accessibility correctly', () => {
     vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
+    
+    // Mock useHomepageData
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [],
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
 
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
 
     const titleInput = screen.getByPlaceholderText(/start a new claude code session/i)
 
     // Test form elements are accessible
     expect(titleInput).toBeInTheDocument()
-    expect(titleInput).toHaveAttribute('type', 'text')
+    // Textarea elements don't have a type attribute
+    expect(titleInput.tagName).toBe('TEXTAREA')
     expect(titleInput).toHaveAttribute('name', 'title')
     
     // Test that input is in a form

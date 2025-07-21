@@ -27,7 +27,6 @@ vi.mock('node:os', () => ({
 
 describe('Filesystem API', () => {
   let loader: any
-  let mockFsAccess: any
   let mockFsRealpath: any
   
   beforeEach(async () => {
@@ -35,7 +34,7 @@ describe('Filesystem API', () => {
     
     // Get mocked functions
     const fs = await import('node:fs/promises')
-    mockFsAccess = vi.mocked(fs.access)
+    vi.mocked(fs.access)
     mockFsRealpath = vi.mocked(fs.realpath)
     
     // Import loader after mocks are set up

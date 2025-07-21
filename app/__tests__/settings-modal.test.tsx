@@ -17,11 +17,16 @@ describe('SettingsModal Component', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('should render with proper accessibility when open', () => {
+  it('should render with proper accessibility when open', async () => {
     render(<SettingsModal isOpen={true} onClose={() => {}} />)
     
+    // Wait for the component to load
+    await waitFor(() => {
+      expect(screen.getByLabelText(/max turns/i)).toBeInTheDocument()
+    })
+    
     expectSemanticMarkup.heading(2, 'Default Settings for New Sessions')
-    expect(screen.getByRole('spinbutton', { name: 'Max Turns' })).toBeInTheDocument()
+    expect(screen.getByRole('spinbutton', { name: /max turns/i })).toBeInTheDocument()
     
     const dialog = screen.getByRole('dialog')
     expect(dialog).toHaveAttribute('aria-modal', 'true')
@@ -148,8 +153,13 @@ describe('SettingsModal Component', () => {
   })
 
   describe('Modal Modes', () => {
-    it('should render global mode with correct title and helper text', () => {
+    it('should render global mode with correct title and helper text', async () => {
       render(<SettingsModal isOpen={true} onClose={() => {}} mode="global" />)
+      
+      // Wait for content to load
+      await waitFor(() => {
+        expect(screen.getByLabelText(/max turns/i)).toBeInTheDocument()
+      })
       
       expectSemanticMarkup.heading(2, 'Default Settings for New Sessions')
       expect(screen.getByText('These are the defaults for new sessions, but can be overridden within each individual session.')).toBeInTheDocument()

@@ -118,7 +118,7 @@ describe('Permissions API Routes', () => {
       expect(response.status).toBe(200)
       expect(data.permissions).toHaveLength(1)
       expect(data.permissions[0].id).toBe(pendingRequest.id)
-      expect(data[0].status).toBe('pending')
+      expect(data.permissions[0].status).toBe('pending')
     })
 
     it('should handle empty results gracefully', async () => {

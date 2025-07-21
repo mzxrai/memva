@@ -27,6 +27,7 @@ describe('Homepage Job Dispatch', () => {
     const formData = new FormData()
     formData.append('title', 'New Session')
     formData.append('prompt', 'Help me build a React component')
+    formData.append('project_path', '/test/project')
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
@@ -49,7 +50,7 @@ describe('Homepage Job Dispatch', () => {
       claude_status: 'processing' // Updated to processing immediately after creation
     })
 
-    // Verify job was created
+    // Verify job was created in the database
     const jobsInDb = testDb.db.select().from(jobs).all()
     expect(jobsInDb).toHaveLength(1)
     expect(jobsInDb[0]).toMatchObject({
@@ -57,11 +58,10 @@ describe('Homepage Job Dispatch', () => {
       status: 'pending'
     })
     
-    // Verify job data (stored as JSON object)
-    expect(jobsInDb[0].data).toMatchObject({
-      sessionId: sessionsInDb[0].id,
-      prompt: 'Help me build a React component'
-    })
+    // Verify job data contains sessionId and prompt
+    const jobData = jobsInDb[0].data as any
+    expect(jobData.sessionId).toBe(sessionsInDb[0].id)
+    expect(jobData.prompt).toBe('Help me build a React component')
   })
 
   it('should set status to processing after creation', async () => {
@@ -70,6 +70,7 @@ describe('Homepage Job Dispatch', () => {
     const formData = new FormData()
     formData.append('title', 'Status Test Session')
     formData.append('prompt', 'Test prompt')
+    formData.append('project_path', '/test/project')
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
@@ -88,6 +89,7 @@ describe('Homepage Job Dispatch', () => {
     const formData = new FormData()
     formData.append('title', 'Redirect Test Session')
     formData.append('prompt', 'Test prompt')
+    formData.append('project_path', '/test/project')
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
@@ -107,6 +109,7 @@ describe('Homepage Job Dispatch', () => {
     const formData = new FormData()
     formData.append('title', 'Job Dispatch Test')
     formData.append('prompt', 'Create a TypeScript interface')
+    formData.append('project_path', '/test/project')
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
@@ -128,6 +131,7 @@ describe('Homepage Job Dispatch', () => {
     const formData = new FormData()
     formData.append('title', 'Error Test Session')
     formData.append('prompt', 'Test prompt')
+    formData.append('project_path', '/test/project')
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
@@ -156,6 +160,7 @@ describe('Homepage Job Dispatch', () => {
     const formData = new FormData()
     formData.append('title', 'Valid Title')
     formData.append('prompt', '')
+    formData.append('project_path', '/test/project')
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
@@ -178,6 +183,7 @@ describe('Homepage Job Dispatch', () => {
     const formData = new FormData()
     formData.append('title', 'Valid Title')
     formData.append('prompt', '   ')
+    formData.append('project_path', '/test/project')
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)

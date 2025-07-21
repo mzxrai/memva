@@ -42,16 +42,47 @@ vi.mock('../hooks/useHomepageData', () => ({
   useHomepageData: () => ({ sessions: [] })
 }))
 
+// Import React Query
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
 // Now import the component
 import Home from '../routes/home'
 
 describe('Homepage Image Upload', () => {
   let testDb: TestDatabase
+  let queryClient: QueryClient
 
   beforeEach(() => {
     testDb = setupInMemoryDb()
     setTestDatabase(testDb)
     vi.clearAllMocks()
+    
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+      },
+    })
+    
+    // Mock localStorage with a default directory to ensure input renders
+    const localStorageMock = {
+      getItem: vi.fn((key: string) => {
+        if (key === 'memva-last-directory') {
+          return '/Users/testuser';
+        }
+        return null;
+      }),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+      length: 0,
+      key: vi.fn(() => null)
+    }
+    Object.defineProperty(window, 'localStorage', {
+      value: localStorageMock,
+      writable: true
+    })
     
     // Mock FileReader for image preview generation
     global.FileReader = vi.fn(() => ({
@@ -79,9 +110,13 @@ describe('Homepage Image Upload', () => {
   })
 
   it('should show image previews when images are dropped on form container', async () => {
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
     
-    const textarea = screen.getByPlaceholderText(/Start a new Claude Code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new claude code session/i)
     expect(textarea).toBeInTheDocument()
     
     // Find the container div that has the drop handlers
@@ -141,9 +176,13 @@ describe('Homepage Image Upload', () => {
   })
 
   it('should handle drag over events on form container', () => {
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
     
-    const textarea = screen.getByPlaceholderText(/Start a new Claude Code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new claude code session/i)
     const dropContainer = textarea.parentElement
     
     // Create mock dragover event with preventDefault spy
@@ -161,9 +200,13 @@ describe('Homepage Image Upload', () => {
   })
 
   it('should handle drag leave events on form container', () => {
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
     
-    const textarea = screen.getByPlaceholderText(/Start a new Claude Code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new claude code session/i)
     const dropContainer = textarea.parentElement
     
     // Create mock drag events
@@ -189,9 +232,13 @@ describe('Homepage Image Upload', () => {
   })
 
   it('should remove image when X button is clicked', async () => {
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
     
-    const textarea = screen.getByPlaceholderText(/Start a new Claude Code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new claude code session/i)
     const dropContainer = textarea.parentElement
     
     // Drop an image
@@ -244,9 +291,13 @@ describe('Homepage Image Upload', () => {
   })
 
   it('should include hidden image paths in form submission', async () => {
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
     
-    const textarea = screen.getByPlaceholderText(/Start a new Claude Code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new claude code session/i)
     
     // Create mock image files
     const mockImages = [
@@ -306,9 +357,13 @@ describe('Homepage Image Upload', () => {
   })
 
   it('should only accept image files', async () => {
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
     
-    const textarea = screen.getByPlaceholderText(/Start a new Claude Code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new claude code session/i)
     const dropContainer = textarea.parentElement
     
     // Drop mixed file types

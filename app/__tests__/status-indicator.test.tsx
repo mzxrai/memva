@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
-import { expectContent, expectSemanticMarkup } from '../test-utils/component-testing'
+import { expectSemanticMarkup } from '../test-utils/component-testing'
 import { createMockSession } from '../test-utils/factories'
 import StatusIndicator from '../components/StatusIndicator'
 

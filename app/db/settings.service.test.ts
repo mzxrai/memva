@@ -124,16 +124,25 @@ describe('Settings Service', () => {
     // Get initial timestamps
     const initial = testDb.db.select().from(testDb.schema.settings).get()
     const initialUpdatedAt = initial?.updated_at
+    expect(initialUpdatedAt).toBeTruthy()
     
     // Wait a bit to ensure timestamp difference
-    await new Promise(resolve => setTimeout(resolve, 10))
+    await new Promise(resolve => setTimeout(resolve, 50))
     
     // Update settings
     await updateSettings({ maxTurns: 500 })
     
     // Check updated timestamp
     const updated = testDb.db.select().from(testDb.schema.settings).get()
+    expect(updated).toBeTruthy()
+    expect(updated?.updated_at).toBeTruthy()
     expect(updated?.updated_at).not.toBe(initialUpdatedAt)
-    expect(new Date(updated?.updated_at || '').getTime()).toBeGreaterThan(new Date(initialUpdatedAt || '').getTime())
+    
+    // Verify the timestamp actually changed (string comparison is sufficient)
+    if (updated?.updated_at && initialUpdatedAt) {
+      expect(updated.updated_at > initialUpdatedAt).toBe(true)
+    } else {
+      throw new Error('Timestamps should not be null')
+    }
   })
 })

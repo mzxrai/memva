@@ -1,4 +1,5 @@
 import type { Session, Event, NewSession, NewEvent } from '../db/schema'
+import type { SessionWithStats } from '../db/sessions.service'
 
 /**
  * Test data factories for creating consistent mock data across tests.
@@ -32,6 +33,18 @@ export function createMockNewSession(overrides?: Partial<NewSession>): NewSessio
     metadata: null,
     claude_status: 'not_started',
     settings: null,
+    ...overrides
+  }
+}
+
+export function createMockSessionWithStats(overrides?: Partial<SessionWithStats>): SessionWithStats {
+  const base = createMockSession(overrides)
+  return {
+    ...base,
+    event_count: 0,
+    duration_minutes: 0,
+    event_types: {},
+    last_event_at: undefined,
     ...overrides
   }
 }

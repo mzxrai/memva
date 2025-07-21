@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Home from '../routes/home'
 import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
@@ -8,46 +9,33 @@ import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
 
-// Mock external dependencies only
-vi.mock('../services/claude-code.service', () => ({
-  sendPromptToClaudeCode: vi.fn()
+// Mock the useHomepageData hook
+vi.mock('../hooks/useHomepageData', () => ({
+  useHomepageData: () => ({ 
+    sessions: [],
+    timestamp: new Date().toISOString(),
+    error: null,
+    isLoading: false
+  })
 }))
 
-// Mock job creation
-vi.mock('../db/jobs.service', () => ({
-  createJob: vi.fn().mockResolvedValue({ id: 'test-job-id' })
+// Mock other custom hooks used by the component
+vi.mock('../hooks/useAutoResizeTextarea', () => ({
+  useAutoResizeTextarea: vi.fn(() => ({ textareaRef: { current: null } }))
 }))
 
-vi.mock('../workers/job-types', () => ({
-  createSessionRunnerJob: vi.fn((data) => ({
-    type: 'session-runner',
-    data,
-    priority: 8
-  }))
+vi.mock('../hooks/useTextareaSubmit', () => ({
+  useTextareaSubmit: vi.fn(() => vi.fn())
 }))
 
-// Mock the hooks used by SessionDetail
-vi.mock('../hooks/useSessionStatus', () => ({
-  useSessionStatus: vi.fn(() => ({ 
-    session: null, 
-    error: null, 
-    isLoading: false 
-  }))
-}))
-
-vi.mock('../hooks/useEventPolling', () => ({
-  useEventPolling: vi.fn(() => ({ 
-    events: [], 
-    error: null, 
-    isPolling: false 
-  }))
-}))
-
-vi.mock('../hooks/useSSEEvents', () => ({
-  useSSEEvents: vi.fn(() => ({ 
-    newEvents: [], 
-    error: null, 
-    connectionState: 'connected' 
+vi.mock('../hooks/useImageUpload', () => ({
+  useImageUpload: vi.fn(() => ({
+    images: [],
+    isDragging: false,
+    handleDragOver: vi.fn(),
+    handleDragLeave: vi.fn(),
+    handleDrop: vi.fn(),
+    removeImage: vi.fn()
   }))
 }))
 
@@ -69,11 +57,39 @@ vi.mock('react-router', () => ({
 
 describe('Homepage Initial Prompt Behavior', () => {
   let testDb: TestDatabase
+  let queryClient: QueryClient
 
   beforeEach(() => {
     testDb = setupInMemoryDb()
     setTestDatabase(testDb)
     vi.clearAllMocks()
+    
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+      },
+    })
+    
+    // Mock localStorage with a default directory to ensure input renders
+    const localStorageMock = {
+      getItem: vi.fn((key: string) => {
+        if (key === 'memva-last-directory') {
+          return '/Users/testuser';
+        }
+        return null;
+      }),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+      length: 0,
+      key: vi.fn(() => null)
+    }
+    Object.defineProperty(window, 'localStorage', {
+      value: localStorageMock,
+      writable: true
+    })
   })
 
   afterEach(() => {
@@ -84,7 +100,11 @@ describe('Homepage Initial Prompt Behavior', () => {
   it('should accept user input for creating new sessions', async () => {
     const user = userEvent.setup()
     
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
 
     // User should see the input field
     const input = screen.getByPlaceholderText(/start a new claude code session/i)
@@ -96,7 +116,11 @@ describe('Homepage Initial Prompt Behavior', () => {
   })
 
   it('should show empty state when no sessions exist', () => {
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
     
     // User should see empty state messaging
     expect(screen.getByText('No sessions yet')).toBeInTheDocument()
@@ -106,15 +130,24 @@ describe('Homepage Initial Prompt Behavior', () => {
   it('should require input before submitting', async () => {
     const user = userEvent.setup()
     
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
 
     const input = screen.getByPlaceholderText(/start a new claude code session/i)
+    
+    // Initial value should be empty
+    expect(input).toHaveValue('')
     
     // Try to submit empty form
     await user.type(input, '{Enter}')
     
     // Form should not submit when empty (input remains visible)
     expect(input).toBeInTheDocument()
-    expect(input).toHaveValue('')
+    // After Enter, textarea might have a newline character
+    const currentValue = (input as HTMLTextAreaElement).value
+    expect(currentValue.trim()).toBe('')
   })
 })

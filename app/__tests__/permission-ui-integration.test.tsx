@@ -8,6 +8,10 @@ import { expectSemanticMarkup, expectContent } from '../test-utils/component-tes
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
 
+// Import MSW server for HTTP mocking
+import { server } from '../test-utils/msw-server'
+import { http, HttpResponse } from 'msw'
+
 describe('Permission UI Integration', () => {
   let testDb: TestDatabase
 
@@ -15,6 +19,47 @@ describe('Permission UI Integration', () => {
     vi.useFakeTimers()
     testDb = setupInMemoryDb()
     setTestDatabase(testDb)
+    
+    // Override MSW handler to return permissions from test database
+    server.use(
+      http.get('/api/permissions', ({ request }) => {
+        const url = new URL(request.url)
+        const status = url.searchParams.get('status')
+        
+        // Get permissions from test database
+        const { eq } = require('drizzle-orm')
+        
+        const permissions = status === 'pending' 
+          ? testDb.db.select().from(testDb.schema.permissionRequests)
+              .where(eq(testDb.schema.permissionRequests.status, 'pending'))
+              .all()
+          : testDb.db.select().from(testDb.schema.permissionRequests).all()
+        return HttpResponse.json({ permissions })
+      }),
+      
+      // Handle POST for permissions
+      http.post('/api/permissions/:id', async ({ params, request }) => {
+        const body = await request.json() as { decision: string }
+        const { eq } = require('drizzle-orm')
+        
+        // Update permission in test database
+        testDb.db.update(testDb.schema.permissionRequests)
+          .set({ 
+            status: body.decision === 'allow' ? 'approved' : 'denied',
+            decision: body.decision,
+            decided_at: new Date().toISOString()
+          })
+          .where(eq(testDb.schema.permissionRequests.id, params.id))
+          .run()
+          
+        return HttpResponse.json({
+          id: params.id,
+          status: body.decision === 'allow' ? 'approved' : 'denied',
+          decision: body.decision,
+          decided_at: new Date().toISOString()
+        })
+      })
+    )
   })
 
   afterEach(() => {

@@ -282,11 +282,11 @@ describe('Permission Flow Integration Tests', () => {
       const permissions = await listResponse.json()
       
       expect(listResponse.status).toBe(200)
-      expect(permissions).toHaveLength(2)
+      expect(permissions.permissions).toHaveLength(2)
       
       // Test POST /api/permissions/:id
       const { action: updatePermission } = await import('../routes/api.permissions.$id')
-      const permissionId = permissions[0].id
+      const permissionId = permissions.permissions[0].id
       const updateRequest = new Request(`http://localhost/api/permissions/${permissionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
