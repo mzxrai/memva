@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { AssistantEvent } from '../types/events'
 import clsx from 'clsx'
-import { useGreenLineIndicator } from '../hooks/useGreenLineIndicator'
+import { useMessageTracking } from '../hooks/useMessageTracking'
 
 interface MessageCarouselProps {
   sessionId: string
@@ -19,85 +19,25 @@ export default function MessageCarousel({ sessionId, latestMessage }: MessageCar
   // Track the previous message ID to detect changes
   const previousMessageId = useRef<string | undefined>(undefined)
   
-  // Track which messages we've seen for this session
-  const seenMessagesKey = `seenMessages-${sessionId}`
+  // Use the new unified message tracking hook
+  const { isGreen } = useMessageTracking(sessionId, latestMessage?.uuid, latestMessage?.timestamp)
   
-  // Use the new green line indicator hook
-  const { isGreen, markAsGreen } = useGreenLineIndicator(sessionId, latestMessage?.uuid)
-  
-  // Handle new messages
+  // Handle new messages for animation
   useEffect(() => {
     if (!latestMessage?.uuid) return
     
     // Check if this is a different message than before
     if (latestMessage.uuid !== previousMessageId.current) {
-      // Get our list of seen messages with timestamps
-      const storedData = localStorage.getItem(seenMessagesKey)
-      const seenMessagesData: Array<{ uuid: string; timestamp: number }> = storedData 
-        ? JSON.parse(storedData) 
-        : []
-      const seenMessages = new Set(seenMessagesData.map(item => item.uuid))
-      
-      // If we haven't seen this message before, handle it appropriately
-      if (!seenMessages.has(latestMessage.uuid)) {
-        console.log(`[MessageCarousel] New message detected: ${latestMessage.uuid}`)
-        
-        // Check if user is currently viewing this session
-        const activeSession = localStorage.getItem('activeSession');
-        const isUserViewingSession = activeSession === sessionId;
-        
-        // Only mark as green if user is NOT currently viewing this session
-        if (!isUserViewingSession) {
-          markAsGreen(latestMessage.uuid)
-        }
-        
+      // Only animate if the message is marked as green (new)
+      if (isGreen) {
         setShouldAnimate(true)
         setTimeout(() => setShouldAnimate(false), 300)
-        
-        // Add to seen messages with timestamp
-        const updatedSeenMessages = [
-          ...seenMessagesData.filter(item => item.uuid !== latestMessage.uuid),
-          { uuid: latestMessage.uuid, timestamp: Date.now() }
-        ]
-        localStorage.setItem(seenMessagesKey, JSON.stringify(updatedSeenMessages))
       }
       
       previousMessageId.current = latestMessage.uuid
     }
-  }, [latestMessage?.uuid, sessionId, markAsGreen, seenMessagesKey])
+  }, [latestMessage?.uuid, isGreen])
   
-  // Cleanup old seen messages (older than 7 days)
-  useEffect(() => {
-    const cleanup = () => {
-      try {
-        const stored = localStorage.getItem(seenMessagesKey)
-        if (!stored) return
-        
-        const seenMessagesData: Array<{ uuid: string; timestamp: number }> = JSON.parse(stored)
-        const now = Date.now()
-        const ONE_DAY = 24 * 60 * 60 * 1000
-        
-        // Filter out messages older than 24 hours
-        const filtered = seenMessagesData.filter(item => 
-          (now - item.timestamp) < ONE_DAY
-        )
-        
-        // Only update localStorage if something was removed
-        if (filtered.length !== seenMessagesData.length) {
-          localStorage.setItem(seenMessagesKey, JSON.stringify(filtered))
-          console.log(`[MessageCarousel] Cleaned up ${seenMessagesData.length - filtered.length} old messages`)
-        }
-      } catch (error) {
-        console.error('[MessageCarousel] Error during cleanup:', error)
-      }
-    }
-    
-    // Run cleanup on mount and every minute
-    cleanup()
-    const interval = setInterval(cleanup, 60 * 1000)
-    
-    return () => clearInterval(interval)
-  }, [seenMessagesKey])
   
   // Extract and format text content
   const extractTextContent = (data: unknown): string => {

@@ -232,10 +232,11 @@ export function createMockPermissionRequest(overrides: Partial<{
 // Job Factory
 export function createMockJob(overrides?: Partial<Job>): Job {
   const now = new Date().toISOString()
+  const defaultData: Record<string, unknown> = { sessionId: 'test-session-123', prompt: 'Test prompt' }
   return {
     id: `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     type: 'session-runner',
-    data: { sessionId: 'test-session-123', prompt: 'Test prompt' },
+    data: defaultData,
     status: 'pending',
     priority: 5,
     attempts: 0,
@@ -253,10 +254,11 @@ export function createMockJob(overrides?: Partial<Job>): Job {
 
 export function createMockNewJob(overrides?: Partial<NewJob>): NewJob {
   const now = new Date().toISOString()
+  const defaultData: Record<string, unknown> = { sessionId: 'test-session-123', prompt: 'Test prompt' }
   return {
     id: `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     type: 'session-runner',
-    data: { sessionId: 'test-session-123', prompt: 'Test prompt' },
+    data: defaultData,
     status: 'pending',
     priority: 5,
     attempts: 0,
@@ -314,7 +316,6 @@ export function createMockFile(options: {
   const {
     name = 'test-image.png',
     type = 'image/png',
-    size = 1024,
     content = 'fake-image-content'
   } = options
   

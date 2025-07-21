@@ -75,7 +75,7 @@ describe('Homepage Initial Prompt Behavior', () => {
     // Mock localStorage with a default directory to ensure input renders
     const localStorageMock = {
       getItem: vi.fn((key: string) => {
-        if (key === 'memva-last-directory') {
+        if (key === 'memvaLastDirectory') {
           return '/Users/testuser';
         }
         return null;

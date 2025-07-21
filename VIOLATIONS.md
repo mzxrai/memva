@@ -7,9 +7,9 @@ This report catalogs all test files in the codebase and their compliance with CL
 - **Total test files reviewed**: 94 (original count)
 - **Files deleted**: 4 files (implementation detail tests)
 - **Remaining test files**: 90
-- **Major violations**: 36 files (down from 41 - fixed 5 job tests)
+- **Major violations**: 32 files (down from 41 - fixed 9 files)
 - **Minor violations**: 24 files
-- **Fully compliant**: 30 files (up from 25)
+- **Fully compliant**: 34 files (up from 25)
 
 ## Progress Update (as of latest commit)
 
@@ -20,7 +20,14 @@ This report catalogs all test files in the codebase and their compliance with CL
   - jobs-service-state.test.ts - 4 replacements
   - individual-job-api.test.ts - 2 replacements
   - jobs-service-stats.test.ts - 11 replacements
+- ✅ **CSS class tests fixed**: 4 of 9 files fixed
+  - green-line-indicator.test.tsx - Removed opacity class tests and querySelector usage
+  - edit-tool-error-display.test.tsx - Replaced text-red-400 class test with visibility check
+  - todo-write-tool-display.test.tsx - Replaced font-mono test with structured format test
+  - message-carousel.test.tsx - Removed overflow-hidden and font-mono tests
+- ⏳ **In Progress**: code-block.test.tsx (failing test needs fix)
 - ⏳ **Remaining factory updates**: 29 files still need factory adoption
+- ⏳ **Remaining CSS class fixes**: 4 files (excluding in-progress file)
 
 ## Files Deleted - Implementation Detail Tests
 
@@ -94,38 +101,39 @@ These files hardcode test data instead of using factories from `test-utils/facto
 - `app/services/image-storage.server.test.ts`
 - `app/workers/handlers/__tests__/session-runner-status-updates.test.ts`
 
-### 2. Missing Semantic Testing Utilities (16 files)
+### 2. Missing Semantic Testing Utilities (12 files - 4 fixed)
 
 These component tests use basic queries instead of semantic utilities:
 
+- ✅ `app/__tests__/green-line-indicator.test.tsx` - FIXED (now uses semantic utilities)
+- ✅ `app/__tests__/edit-tool-error-display.test.tsx` - FIXED (now uses semantic utilities)
+- ✅ `app/__tests__/todo-write-tool-display.test.tsx` - FIXED (now uses semantic utilities)
+- ✅ `app/__tests__/message-carousel.test.tsx` - FIXED (now uses semantic utilities)
 - `app/__tests__/event-renderer.test.tsx` - Using getByText instead of expectContent
 - `app/__tests__/tool-call-error-indicator.test.tsx` - Not using expectSemanticMarkup
 - `app/__tests__/message-header.test.tsx` - Using querySelector
 - `app/__tests__/diff-viewer.test.tsx` - Using getByText
-- `app/__tests__/message-carousel.test.tsx` - Using getByTestId
 - `app/__tests__/home-directory-selector.test.tsx` - Using getByTitle
 - `app/__tests__/session-creation.test.tsx` - Not using semantic utilities
-- `app/__tests__/green-line-indicator.test.tsx` - Using querySelector
 - `app/__tests__/active-session-tracking.test.tsx` - Using getByText
 - `app/__tests__/permission-badge.test.tsx` - Not using semantic utilities
 - `app/__tests__/tool-result-format-fix.test.tsx` - Using getByText
 - `app/__tests__/session-permissions-cycle.test.tsx` - Direct DOM manipulation
-- `app/__tests__/edit-tool-error-display.test.tsx` - Using getByText
 - `app/__tests__/image-preview.test.tsx` - Limited semantic utility usage
 
-### 3. CSS Class Testing (8 files)
+### 3. CSS Class Testing (9 files - 5 fixed)
 
 These files test CSS classes instead of behavior:
 
+- ✅ `app/__tests__/green-line-indicator.test.tsx` - FIXED (removed all opacity class tests and querySelector usage)
+- ✅ `app/__tests__/edit-tool-error-display.test.tsx` - FIXED (replaced text-red-400 class test with visibility check)
+- ✅ `app/__tests__/todo-write-tool-display.test.tsx` - FIXED (replaced font-mono test with structured format test)
+- ✅ `app/__tests__/message-carousel.test.tsx` - FIXED (removed overflow-hidden and font-mono tests)
+- ⏳ `app/__tests__/code-block.test.tsx` - IN PROGRESS (test still failing, needs fix)
 - `app/__tests__/message-header.test.tsx` - Tests `toHaveClass('custom-test-class')`
-- `app/__tests__/code-block.test.tsx` - Tests `toHaveClass('border-transparent')`
-- `app/__tests__/session-detail-component.test.tsx` - Tests `toHaveClass('font-mono')`
-- `app/__tests__/todo-write-tool-display.test.tsx` - Tests `toHaveClass('font-mono')`
 - `app/__tests__/tool-call-display.test.tsx` - Tests `toHaveClass('custom-class')`
-- `app/__tests__/message-carousel.test.tsx` - Tests `toHaveClass('overflow-hidden')`
-- `app/__tests__/green-line-indicator.test.tsx` - Tests `toHaveClass('opacity-100')`
 - `app/__tests__/permission-badge.test.tsx` - Tests `toHaveClass('custom-class')`
-- `app/__tests__/edit-tool-error-display.test.tsx` - Tests `toHaveClass('text-red-400')`
+- `app/__tests__/bash-tool-display.test.tsx` - Tests `toHaveClass('line-through')`
 
 ### 4. Direct Database Access (6 files)
 
@@ -146,7 +154,7 @@ These files mock internal services instead of only external dependencies:
 - `app/__tests__/maintenance-handler.test.ts` - Imports handler directly
 - `app/__tests__/session-runner-handler.test.ts` - Imports handler directly
 
-### 6. Using setTimeout (5 files)
+### 6. Using setTimeout (6 files)
 
 These files use `setTimeout` instead of smart waiting utilities:
 
@@ -155,6 +163,7 @@ These files use `setTimeout` instead of smart waiting utilities:
 - `app/__tests__/session-permissions-cycle.test.tsx` - Uses `setTimeout` in Promise
 - `app/db/sessions.service.test.ts` - Uses `setTimeout(resolve, 1)`
 - `app/db/settings.service.test.ts` - Uses `setTimeout(resolve, 50)`
+- **NEW**: `app/__tests__/session-activity-tracking.test.tsx` - Uses `setTimeout` and fake timers (added by Claude in violation of CLAUDE.md)
 
 ### 7. Testing Implementation Details (2 files)
 

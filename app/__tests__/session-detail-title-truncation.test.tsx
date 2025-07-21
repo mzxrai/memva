@@ -19,8 +19,8 @@ vi.mock('../hooks/useSSEEvents', () => ({
   useSSEEvents: () => ({ newEvents: [], sessionStatus: null })
 }))
 
-vi.mock('../hooks/useGreenLineIndicator', () => ({
-  useGreenLineIndicator: () => ({ clearGreenForSession: vi.fn() })
+vi.mock('../hooks/useMessageTracking', () => ({
+  useSessionActivity: () => ({})
 }))
 
 describe('Session Detail Title Display', () => {

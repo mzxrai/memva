@@ -8,7 +8,7 @@ import RelativeTime from "../components/RelativeTime";
 import DirectorySelector from "../components/DirectorySelector";
 import SettingsModal from "../components/SettingsModal";
 import clsx from "clsx";
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import { useHomepageData } from "../hooks/useHomepageData";
 import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
 import { useTextareaSubmit } from "../hooks/useTextareaSubmit";
@@ -106,26 +106,46 @@ function isSessionWithStats(session: SessionWithStats | { id: string }): session
   return 'event_count' in session && typeof session.event_count === 'number';
 }
 
-// Helper function to shorten path for display
-function shortenPath(path: string): string {
-  // If already shortened, return as-is
-  if (path === '~' || path.startsWith('~/')) {
-    return path;
-  }
+// Helper function to shorten path for display - pure function, no side effects
+function shortenPath(path: string, homedir?: string): string {
+  // Don't process empty paths
+  if (!path) return path;
   
   // For testing, use the mocked home directory
   const isTest = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
-  const homedir = isTest ? '/Users/testuser' : (typeof window !== 'undefined' ? localStorage.getItem('user-homedir') || '/Users/mbm-premva' : '/Users/mbm-premva');
+  if (isTest) {
+    const testHomedir = '/Users/testuser';
+    if (path.startsWith(testHomedir)) {
+      path = '~' + path.slice(testHomedir.length);
+    }
+  }
   
-  // Replace home directory with ~
-  if (path.startsWith(homedir)) {
-    path = '~' + path.slice(homedir.length);
+  // If homedir is provided and path starts with it, shorten it
+  if (homedir && path.startsWith(homedir)) {
+    // Use ~ for Unix-like systems, but keep full path for Windows
+    const isWindowsPath = path.includes('\\') || /^[A-Za-z]:/.test(path);
+    if (!isWindowsPath) {
+      path = '~' + path.slice(homedir.length);
+    }
   }
   
   // If path is too long, show last 2-3 segments
-  const segments = path.split('/').filter(Boolean);
-  if (segments.length > 3 && path.startsWith('~/')) {
-    return `~/.../` + segments.slice(-2).join('/');
+  const segments = path.split(/[/\\]/).filter(Boolean); // Handle both / and \ separators
+  const isWindowsPath = path.includes('\\') || /^[A-Za-z]:/.test(path);
+  
+  // Always shorten long paths
+  if (segments.length > 3) {
+    if (path.startsWith('~/')) {
+      // Unix-style with tilde: ~/.../last/two
+      return `~/.../` + segments.slice(-2).join('/');
+    } else if (isWindowsPath) {
+      // Windows: C:\...\last\two
+      const drive = segments[0];
+      return drive + '\\...\\' + segments.slice(-2).join('\\');
+    } else {
+      // Unix-style without tilde: /.../last/two
+      return '/' + segments.slice(0, 1).join('/') + '/.../' + segments.slice(-2).join('/');
+    }
   }
   
   return path;
@@ -134,15 +154,11 @@ function shortenPath(path: string): string {
 export default function Home() {
   const { sessions, isLoading } = useHomepageData();
   const [sessionTitle, setSessionTitle] = useState("");
-  // Initialize with last directory to prevent layout shift
-  const [currentDirectory, setCurrentDirectory] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('memva-last-directory');
-      // If we have a stored value, use it immediately to prevent shift
-      return stored || ''
-    }
-    return ''
-  });
+  // Don't access localStorage during initial render to prevent hydration errors
+  const [currentDirectory, setCurrentDirectory] = useState<string>('');
+  const [displayDirectory, setDisplayDirectory] = useState<string>(''); // Client-only shortened path
+  const [userHomedir, setUserHomedir] = useState<string>(''); // Cache home directory
+  const [isDirectoryLoaded, setIsDirectoryLoaded] = useState(false);
   const [isDirectoryModalOpen, setIsDirectoryModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
@@ -174,6 +190,7 @@ export default function Home() {
     return new Date(b.latest_user_message_at).getTime() - new Date(a.latest_user_message_at).getTime();
   });
 
+
   // Track when we've initially loaded to enable animations only on updates
   useEffect(() => {
     if (!isLoading && sessions.length > 0 && !hasInitiallyLoaded) {
@@ -181,24 +198,39 @@ export default function Home() {
     }
   }, [isLoading, sessions.length, hasInitiallyLoaded]);
 
-  // Verify directory on mount if needed
+  // Load directory from localStorage after mount to prevent hydration errors
   useEffect(() => {
-    const verifyDirectory = async () => {
-      const lastDir = localStorage.getItem('memva-last-directory');
-      if (!lastDir) {
-        // Only fetch if we don't have a stored directory
+    const loadDirectory = async () => {
+      // Get homedir once for shortening paths
+      const homedir = localStorage.getItem('userHomedir') || '';
+      setUserHomedir(homedir);
+      
+      // First check localStorage
+      const lastDir = localStorage.getItem('memvaLastDirectory');
+      if (lastDir) {
+        setCurrentDirectory(lastDir);
+        setDisplayDirectory(shortenPath(lastDir, homedir)); // Set shortened version for display
+        setIsDirectoryLoaded(true);
+      } else {
+        // Fetch current directory if nothing stored
         try {
           const response = await fetch('/api/filesystem?action=current');
           const data = await response.json();
           setCurrentDirectory(data.currentDirectory);
-          localStorage.setItem('memva-last-directory', data.currentDirectory);
+          setDisplayDirectory(shortenPath(data.currentDirectory, homedir)); // Set shortened version for display
+          localStorage.setItem('memvaLastDirectory', data.currentDirectory);
+          setIsDirectoryLoaded(true);
         } catch (error) {
           console.error('Failed to get current directory:', error);
-          // Keep the default '~' instead of changing to '/'
+          // If we can't get the current directory, show an empty state
+          // The user can still click to set a directory
+          setCurrentDirectory('');
+          setDisplayDirectory('Select directory');
+          setIsDirectoryLoaded(true);
         }
       }
     };
-    verifyDirectory();
+    loadDirectory();
   }, []);
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -210,7 +242,8 @@ export default function Home() {
 
   const handleDirectorySelect = (directory: string) => {
     setCurrentDirectory(directory);
-    localStorage.setItem('memva-last-directory', directory);
+    setDisplayDirectory(shortenPath(directory, userHomedir)); // Update display version with homedir
+    localStorage.setItem('memvaLastDirectory', directory);
     setIsDirectoryModalOpen(false);
   };
 
@@ -239,17 +272,10 @@ export default function Home() {
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* New Session Bar */}
         <div className="mb-8">
-          {!currentDirectory ? (
-            // Skeleton loader for input bar
+          {!isDirectoryLoaded ? (
+            // Empty container to reserve space
             <div className="p-4 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-xl">
-              <div className="flex items-start gap-2">
-                <div className="flex-shrink-0 px-3 py-3">
-                  <div className="h-5 w-24 bg-zinc-800 rounded animate-pulse" />
-                </div>
-                <div className="flex-1">
-                  <div className="h-12 bg-zinc-800/50 border border-zinc-700 rounded-lg animate-pulse" />
-                </div>
-              </div>
+              <div className="h-12" />
             </div>
           ) : (
             <>
@@ -287,7 +313,7 @@ export default function Home() {
                 )}
                 title="Click to change directory"
               >
-                <span>{shortenPath(currentDirectory)}</span>
+                <span>{displayDirectory}</span>
                 <span className="text-zinc-500 ml-1">$</span>
               </button>
               
@@ -364,25 +390,24 @@ export default function Home() {
         ) : (
           <motion.div 
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-            layout={hasInitiallyLoaded}
+            layout
           >
             <AnimatePresence mode="popLayout">
               {sortedSessions.map((session) => (
                 <motion.div
                   key={session.id}
-                  layout={hasInitiallyLoaded}
+                  layout
                   initial={hasInitiallyLoaded ? { opacity: 0, scale: 0.8 } : false}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{
-                    layout: hasInitiallyLoaded ? {
+                    layout: {
                       type: "spring",
-                      stiffness: 100,
-                      damping: 20,
-                      mass: 1.5,
-                    } : undefined,
-                    opacity: { duration: 0.4 },
-                    scale: { duration: 0.4 }
+                      stiffness: 350,
+                      damping: 25,
+                    },
+                    opacity: { duration: 0.2 },
+                    scale: { duration: 0.2 }
                   }}
                   layoutId={session.id}
                 >

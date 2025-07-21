@@ -3,7 +3,6 @@ import { vi } from 'vitest'
 import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
 import { createJob } from '../db/jobs.service'
-import { createMockNewJob } from '../test-utils/factories'
 
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
@@ -27,11 +26,11 @@ describe('Individual Job API Routes', () => {
       const { loader } = await import('../routes/api.jobs.$jobId')
       
       // Create a test job
-      const job = await createJob(createMockNewJob({
+      const job = await createJob({
         type: 'maintenance',
         data: { operation: 'cleanup-old-jobs', olderThanDays: 30 },
         priority: 3
-      }))
+      })
       
       const request = new Request(`http://localhost:3000/api/jobs/${job.id}`)
       

@@ -7,7 +7,7 @@ import { EventRenderer } from "../components/events/EventRenderer";
 import { PendingMessage } from "../components/PendingMessage";
 import { getSession, getSessionSettings } from "../db/sessions.service";
 import { getEventsForSession } from "../db/event-session.service";
-import { useGreenLineIndicator } from "../hooks/useGreenLineIndicator";
+import { useSessionActivity } from "../hooks/useMessageTracking";
 import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
 import { useTextareaSubmit } from "../hooks/useTextareaSubmit";
 import { useImageUpload } from "../hooks/useImageUpload";
@@ -146,11 +146,8 @@ export default function SessionDetail() {
     sessionId // Only poll for this session's permissions
   });
   
-  // Clear green indicators when visiting session detail
-  const { clearGreenForSession } = useGreenLineIndicator(sessionId);
-  useEffect(() => {
-    clearGreenForSession(sessionId);
-  }, [sessionId, clearGreenForSession]);
+  // Track user activity on this session page
+  useSessionActivity(sessionId);
   
   // Track active session to prevent green lines while user is present
   useEffect(() => {

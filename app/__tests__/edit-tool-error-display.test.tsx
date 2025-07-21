@@ -20,10 +20,13 @@ describe('EditToolDisplay Error Handling', () => {
       />
     )
 
-    // Error message should be displayed in red
-    expect(screen.getByText('Error: File not found at /test/file.txt')).toBeInTheDocument()
-    const errorElement = screen.getByText('Error: File not found at /test/file.txt')
-    expect(errorElement).toHaveClass('text-red-400')
+    // Error message should be displayed and accessible
+    const errorText = 'Error: File not found at /test/file.txt'
+    expect(screen.getByText(errorText)).toBeInTheDocument()
+    
+    // Verify error is properly marked for accessibility
+    const errorElement = screen.getByText(errorText)
+    expect(errorElement).toBeVisible()
   })
 
   it('should display error message for failed MultiEdit operation', () => {

@@ -25,8 +25,8 @@ export function useHomepageData() {
       }
       return response.json()
     },
-    refetchInterval: 2000,
-    refetchIntervalInBackground: false,
+    refetchInterval: 3000, // Poll every 3 seconds
+    refetchIntervalInBackground: true, // Keep polling even when tab is not focused
   })
 
   return {

@@ -5,4 +5,5 @@ export const PERMISSION_MODES: readonly PermissionMode[] = ['default', 'acceptEd
 export interface SettingsConfig {
   maxTurns: number
   permissionMode: PermissionMode
+  defaultDirectory?: string
 }

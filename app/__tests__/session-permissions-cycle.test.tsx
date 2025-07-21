@@ -12,13 +12,9 @@ vi.mock('../hooks/useSSEEvents', () => ({
   useSSEEvents: () => ({ newEvents: [], sessionStatus: null })
 }))
 
-// Mock the green line indicator hook
-vi.mock('../hooks/useGreenLineIndicator', () => ({
-  useGreenLineIndicator: () => ({
-    isGreenLine: vi.fn(() => false),
-    setLastGreenEvent: vi.fn(),
-    clearGreenForSession: vi.fn()
-  })
+// Mock the message tracking hook
+vi.mock('../hooks/useMessageTracking', () => ({
+  useSessionActivity: () => ({})
 }))
 
 // Mock the SettingsModal to avoid complexity

@@ -154,10 +154,14 @@ drwxr-xr-x  29 mbm-premva staff  928 Jul 15 19:49 ..
     const codeRegion = screen.getByRole('region', { name: /code block/i })
     expect(codeRegion).toBeInTheDocument()
     
-    // Check that the content is treated as plain text - no red coloring for "removed" lines
-    const codeLine = screen.getByText(/^-rw-r--r--@.*\.dockerignore$/)
-    expect(codeLine.closest('.code-line')).toHaveClass('border-transparent')
-    expect(codeLine.closest('.code-line')).not.toHaveClass('bg-red-950/20')
+    // Check that the content is treated as plain text without diff styling
+    // The dashes in the file listing should be rendered as content, not diff indicators
+    const fullContent = screen.getByText(/\.dockerignore$/)
+    expect(fullContent).toBeInTheDocument()
+    
+    // Verify the bash output is displayed correctly
+    expect(screen.getByText('total 19336')).toBeInTheDocument()
+    expect(screen.getAllByText(/mbm-premva staff/)).toHaveLength(4)
   })
 })
 

@@ -150,19 +150,6 @@ export const EditToolDisplay = memo(({ toolCall, hasResult, result, lineInfo }: 
 
   // Handle single Edit tool
   if ('old_string' in input && 'new_string' in input) {
-    console.log('EditToolDisplay debug:', {
-      toolCall: toolCall.name,
-      toolId: toolCall.id,
-      hasResult,
-      lineInfo,
-      startLine: lineInfo?.startLine,
-      showLineNumbers: lineInfo?.showLineNumbers,
-      defaultingTo1: !lineInfo?.startLine,
-      oldString: (input.old_string as string).substring(0, 50) + '...',
-      newString: (input.new_string as string).substring(0, 50) + '...',
-      resultPreview: sdkResult.content?.substring(0, 100) + '...'
-    })
-    
     return (
       <DiffViewer
         oldString={input.old_string as string}

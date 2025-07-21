@@ -33,7 +33,7 @@ describe('Home Component - Directory Selector', () => {
     Object.defineProperty(window, 'localStorage', {
       value: {
         getItem: vi.fn((key) => {
-          if (key === 'memva-last-directory') {
+          if (key === 'memvaLastDirectory') {
             return '/Users/testuser/last-used'
           }
           return null
@@ -120,7 +120,7 @@ describe('Home Component - Directory Selector', () => {
     })
 
     // Should save to localStorage
-    expect(window.localStorage.setItem).toHaveBeenCalledWith('memva-last-directory', '/Users/testuser/new-project')
+    expect(window.localStorage.setItem).toHaveBeenCalledWith('memvaLastDirectory', '/Users/testuser/new-project')
   })
 
   it('should include directory in form submission', async () => {
@@ -158,7 +158,7 @@ describe('Home Component - Directory Selector', () => {
 
     // Mock a very long path
     vi.mocked(window.localStorage.getItem).mockImplementation((key) => {
-      if (key === 'memva-last-directory') {
+      if (key === 'memvaLastDirectory') {
         return '/Users/testuser/very/long/path/to/deeply/nested/project/directory'
       }
       return null

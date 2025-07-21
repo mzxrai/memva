@@ -16,10 +16,14 @@ export function useSSEEvents(sessionId: string): UseSSEEventsReturn {
   const [connectionState, setConnectionState] = useState<SSEConnectionState>('disconnected')
   const [sessionStatus, setSessionStatus] = useState<string | null>(null)
   const eventSourceRef = useRef<EventSource | null>(null)
+  const eventUUIDsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     if (!sessionId) return
 
+    // Clear the event UUIDs when switching sessions
+    eventUUIDsRef.current.clear()
+    
     setConnectionState('connecting')
     setError(null)
 
@@ -38,7 +42,6 @@ export function useSSEEvents(sessionId: string): UseSSEEventsReturn {
         
         // Handle connection messages with initial session status
         if (data.type === 'connection') {
-          console.log('SSE protocol message:', data)
           if (data.sessionStatus) {
             setSessionStatus(data.sessionStatus)
           }
@@ -47,23 +50,20 @@ export function useSSEEvents(sessionId: string): UseSSEEventsReturn {
         
         // Handle session status updates
         if (data.type === 'session_status') {
-          console.log('SSE session status update:', data)
           setSessionStatus(data.status)
           return
         }
         
         // Filter out protocol messages - only process actual events
         if (!data.uuid || !data.event_type) {
-          console.log('SSE protocol message:', data)
           return
         }
         
         // Only add if it's a new event (not already in our list)
-        setNewEvents(prev => {
-          const eventExists = prev.some(e => e.uuid === data.uuid)
-          if (eventExists) return prev
-          return [...prev, data]
-        })
+        if (!eventUUIDsRef.current.has(data.uuid)) {
+          eventUUIDsRef.current.add(data.uuid)
+          setNewEvents(prev => [...prev, data])
+        }
       } catch (err) {
         console.error('Error parsing SSE message:', err)
         setError('Failed to parse incoming event')

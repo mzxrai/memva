@@ -83,6 +83,20 @@ body {
   animation: fade-in 0.3s ease-out;
 }
 
+.animate-fade-in-fast {
+  animation: fade-in 0.15s ease-out;
+}
+
+/* Opacity only fade in */
+@keyframes fadeInOpacity {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* Smooth pulse animation for star */
 @keyframes smooth-pulse {
   0%, 100% {
