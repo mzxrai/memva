@@ -12,11 +12,9 @@ async function startJobWorker() {
   })
 
   console.log('🚀 Starting job system...')
-  console.log('📋 Registered handlers:', jobSystem.getRegisteredHandlers())
   
   try {
     await jobSystem.start()
-    console.log('✅ Job system started successfully!')
     console.log('🔄 Polling for jobs...')
     
     // Keep the process alive

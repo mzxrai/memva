@@ -35,7 +35,6 @@ export async function action({ params, request }: ActionFunctionArgs) {
   })
   
   await storeEvent(cancelEvent)
-  console.log(`[Stop API] Created cancellation event for session ${sessionId}`)
   
   // Find active job for this session
   const activeJob = await getActiveJobForSession(sessionId)
@@ -43,7 +42,6 @@ export async function action({ params, request }: ActionFunctionArgs) {
   if (activeJob) {
     // Cancel the job - this triggers the polling in handler
     await cancelJob(activeJob.id)
-    console.log(`[Stop API] Cancelled job ${activeJob.id} for session ${sessionId}`)
   }
   
   // Update session status immediately so UI reflects stopped state

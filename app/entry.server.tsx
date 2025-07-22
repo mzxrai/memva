@@ -17,7 +17,6 @@ import { createMaintenanceJob } from "./workers/job-types";
 // 
 // Increasing from default 10 to 30 to handle typical usage patterns
 if (typeof process !== 'undefined' && process.setMaxListeners) {
-  console.warn('[WORKAROUND] Increasing process max listeners to 30 due to Claude Code SDK memory leak');
   process.setMaxListeners(30);
 }
 
@@ -34,15 +33,12 @@ async function initializeJobSystem() {
     
     try {
       await jobSystem.start();
-      console.log('✅ Job system started successfully');
-      console.log('📋 Registered handlers:', jobSystem.getRegisteredHandlers());
       
       // Schedule initial maintenance job to clean up expired permissions
       try {
         await createJob(createMaintenanceJob({
           operation: 'cleanup-expired-permissions'
         }));
-        console.log('🧹 Scheduled initial permission cleanup job');
       } catch (error) {
         console.error('❌ Failed to schedule maintenance job:', error);
       }

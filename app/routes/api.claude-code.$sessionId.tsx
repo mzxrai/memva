@@ -3,7 +3,6 @@ import { getSession, getLatestClaudeSessionId } from "../db/sessions.service"
 import { streamClaudeCodeResponse } from "../services/claude-code.server"
 
 export async function action({ request, params }: Route.ActionArgs) {
-  console.log(`[API] Action called for session ${params.sessionId}`)
   
   if (request.method !== "POST") {
     return new Response("Method not allowed", { status: 405 })
@@ -11,7 +10,6 @@ export async function action({ request, params }: Route.ActionArgs) {
   
   // Check if request was already aborted
   if (request.signal.aborted) {
-    console.log(`[API] Request already aborted on arrival`)
     return new Response("Request aborted", { status: 499 })
   }
 
@@ -30,8 +28,6 @@ export async function action({ request, params }: Route.ActionArgs) {
   // Get latest Claude sessionId from events
   const latestSessionId = await getLatestClaudeSessionId(params.sessionId)
   
-  // Import session status emitter
-  await import('../services/session-status-emitter.server')
   
   // Update session status to processing
   const { updateSessionClaudeStatus } = await import('../db/sessions.service')
@@ -62,8 +58,6 @@ export async function action({ request, params }: Route.ActionArgs) {
       permissionMode
     })
     
-    console.log(`[API] Response streaming completed`)
-    
     // Wait a bit before updating status to ensure all events are processed
     setTimeout(async () => {
       await updateSessionClaudeStatus(params.sessionId, 'completed')
@@ -79,7 +73,6 @@ export async function action({ request, params }: Route.ActionArgs) {
     
     // Check if it was an abort
     if (error instanceof Error && (error.name === 'AbortError' || request.signal.aborted)) {
-      console.log(`[API] Request was aborted`)
       return new Response("Request aborted", { status: 499 })
     }
     

@@ -35,6 +35,7 @@ interface ToolCallDisplayProps {
   permission?: PermissionRequest
   onApprovePermission?: (id: string) => void
   onDenyPermission?: (id: string) => void
+  onApprovePermissionWithSettings?: (id: string, permissionMode: 'default' | 'acceptEdits') => void
   isProcessingPermission?: boolean
   className?: string
   isStreaming?: boolean
@@ -217,6 +218,7 @@ export const ToolCallDisplay = memo(({
   permission, 
   onApprovePermission, 
   onDenyPermission, 
+  onApprovePermissionWithSettings,
   isProcessingPermission = false,
   className, 
   isStreaming = false, 
@@ -420,6 +422,7 @@ export const ToolCallDisplay = memo(({
             request={permission}
             onApprove={onApprovePermission}
             onDeny={onDenyPermission}
+            onApproveWithSettings={onApprovePermissionWithSettings}
             isProcessing={isProcessingPermission}
             isExitPlanMode={toolCall.name === 'exit_plan_mode'}
           />

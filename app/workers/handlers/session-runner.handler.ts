@@ -16,10 +16,6 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
     
     const { sessionId, prompt, userId } = jobData.data
     
-    console.log(`[Job ${jobData.id}] === SESSION RUNNER START ===`)
-    console.log(`[Job ${jobData.id}] Session ID: ${sessionId}`)
-    console.log(`[Job ${jobData.id}] Prompt: "${prompt}"`)
-    console.log(`[Job ${jobData.id}] User ID: ${userId || 'none'}`)
     
     // Validate session exists
     const session = await getSession(sessionId)
@@ -59,9 +55,6 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
       })
       
       await storeEvent(userEvent)
-      console.log('[SessionRunner] Created user event for homepage submission')
-    } else {
-      console.log('[SessionRunner] User event already exists, skipping creation')
     }
     
     // Get the latest Claude session ID for resumption
@@ -69,32 +62,14 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
     let resumeSessionId: string | undefined = undefined
     
     if (existingEvents.length > 0) {
-      // Log the last few events to understand the state
-      console.log('[SessionRunner] Last 3 events:')
-      existingEvents.slice(0, 3).forEach((event, idx) => {
-        console.log(`[SessionRunner]   ${idx}: type=${event.event_type}, timestamp=${event.timestamp}`)
-      })
-      
       // This is an existing conversation - get the Claude session ID to resume
       const { getLatestClaudeSessionId } = await import('../../db/sessions.service')
       const claudeSessionId = await getLatestClaudeSessionId(sessionId)
-      console.log(`[SessionRunner] getLatestClaudeSessionId returned: ${claudeSessionId}`)
       
       // Only set resumeSessionId if we actually got a non-null value
       if (claudeSessionId) {
         resumeSessionId = claudeSessionId
-        console.log('[SessionRunner] Will resume existing conversation with Claude session ID:', resumeSessionId)
-        
-        // Check if last event was a cancellation (just for logging)
-        const lastEvent = existingEvents[0]
-        if (lastEvent.event_type === 'user_cancelled') {
-          console.log('[SessionRunner] NOTE: Last event was a cancellation, but still attempting to resume')
-        }
-      } else {
-        console.log('[SessionRunner] No Claude session ID found to resume (this might be the first response still pending)')
       }
-    } else {
-      console.log('[SessionRunner] New session from homepage - NOT resuming any Claude session')
     }
     
     // Get the latest event to use as parent UUID
@@ -110,7 +85,6 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
       try {
         const currentJob = await getJob(jobData.id)
         if (currentJob?.status === 'cancelled') {
-          console.log(`[Job ${jobData.id}] Cancellation detected, aborting...`)
           abortController.abort()
           clearInterval(pollInterval)
         }
@@ -122,7 +96,6 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
     // Get session-specific settings (with fallback to global)
     const { getSessionSettings } = await import('../../db/sessions.service')
     const settings = await getSessionSettings(sessionId)
-    console.log(`[SessionRunner] Using settings - maxTurns: ${settings.maxTurns}, permissionMode: ${settings.permissionMode}`)
     
     // Execute Claude Code SDK interaction
     try {
@@ -177,7 +150,6 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
       const isCancelled = currentJob?.status === 'cancelled' || abortController.signal.aborted;
       
       if (isCancelled) {
-        console.log(`[Job ${jobData.id}] Job cancelled by user`)
         
         // Don't update status here - the stop endpoint already set it to 'completed'
         callback(new Error('Job cancelled by user'))

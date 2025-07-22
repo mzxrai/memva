@@ -163,7 +163,6 @@ export async function getLatestClaudeSessionId(memvaSessionId: string): Promise<
     .execute()
   
   const sessionId = result[0]?.session_id || null
-  console.log(`[getLatestClaudeSessionId] For memva session ${memvaSessionId}, found Claude session: ${sessionId}`)
   return sessionId
 }
 
@@ -205,10 +204,6 @@ export async function updateSessionClaudeStatus(sessionId: string, status: strin
     })
     .where(eq(sessions.id, sessionId))
     .execute()
-  
-  // Emit status change event for SSE
-  const { sessionStatusEmitter } = await import('../services/session-status-emitter.server')
-  sessionStatusEmitter.emitStatusChange(sessionId, status)
 }
 
 export async function getSessionsWithStatsBatch(sessionIds: string[]): Promise<Map<string, SessionWithStats>> {

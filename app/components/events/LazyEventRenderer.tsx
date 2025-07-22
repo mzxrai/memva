@@ -8,6 +8,7 @@ interface LazyEventRendererProps {
   permissions: Map<string, PermissionRequest>;
   onApprovePermission: (toolId: string) => void;
   onDenyPermission: (toolId: string) => void;
+  onApprovePermissionWithSettings?: (id: string, permissionMode: 'default' | 'acceptEdits') => void;
   isProcessingPermission: boolean;
   isStreaming: boolean;
 }

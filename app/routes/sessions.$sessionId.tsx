@@ -176,6 +176,38 @@ export default function SessionDetail() {
     };
   }, [sessionId]);
   
+  // Approve with specific permission mode setting
+  const approveWithSettings = useCallback(async (requestId: string, permissionMode: 'default' | 'acceptEdits') => {
+    try {
+      // First, update the session permissions mode
+      setCurrentPermissionMode(permissionMode);
+      setIsUpdatingPermissions(true);
+      
+      const settingsResponse = await fetch(`/api/session/${sessionId}/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(initialSettings || {}),
+          permissionMode
+        })
+      });
+      
+      if (!settingsResponse.ok) {
+        throw new Error('Failed to update settings');
+      }
+      
+      // Then approve the permission request
+      await approve(requestId);
+    } catch (error) {
+      console.error('Failed to approve with settings:', error);
+      // Revert permission mode on error
+      setCurrentPermissionMode(currentPermissionMode);
+      throw error;
+    } finally {
+      setIsUpdatingPermissions(false);
+    }
+  }, [approve, currentPermissionMode, sessionId, initialSettings]);
+
   // Cycle through permission modes
   const cyclePermissionMode = useCallback(async () => {
     const modes: PermissionMode[] = ['default', 'acceptEdits', 'bypassPermissions', 'plan'];
@@ -255,6 +287,16 @@ export default function SessionDetail() {
   // Don't show pending if we're waiting for permission decisions
   const hasPendingPermissions = permissions.some(p => p.status === 'pending');
   const showPending = processingStartTime !== null && !hasPendingPermissions;
+  
+  // Debug logging
+  console.log('[DEBUG] Spinner state:', {
+    claude_status: session?.claude_status,
+    processingStartTime,
+    hasPendingPermissions,
+    showPending,
+    eventsLoading,
+    isStopInProgress
+  });
   
   // Use custom hooks for textarea functionality
   const { textareaRef: inputRef } = useAutoResizeTextarea(prompt, { maxRows: 5 });
@@ -369,9 +411,30 @@ export default function SessionDetail() {
       
       if (lastUserEvent) {
         setProcessingStartTime(new Date(lastUserEvent.timestamp).getTime());
+      } else if (eventsLoading) {
+        // If events are still loading but session is processing, use current time as fallback
+        // This ensures spinner shows immediately when navigating from homepage
+        setProcessingStartTime(Date.now());
       }
     }
-  }, [session?.claude_status, processingStartTime, isStopInProgress, displayEvents.length]);
+  }, [session?.claude_status, processingStartTime, isStopInProgress, displayEvents.length, eventsLoading]);
+  
+  // Update processing time when events finish loading (to get accurate timestamp)
+  useEffect(() => {
+    if (session?.claude_status === 'processing' && processingStartTime && !eventsLoading) {
+      // Events have loaded, check if we need to update the timestamp
+      const userEvents = useEventStore.getState().getEventsByType('user');
+      const lastUserEvent = userEvents[userEvents.length - 1];
+      
+      if (lastUserEvent) {
+        const actualTime = new Date(lastUserEvent.timestamp).getTime();
+        // Only update if the difference is significant (more than 1 second)
+        if (Math.abs(actualTime - processingStartTime) > 1000) {
+          setProcessingStartTime(actualTime);
+        }
+      }
+    }
+  }, [eventsLoading, session?.claude_status, processingStartTime]);
   
   // Track if we should auto-scroll (user is near bottom)
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
@@ -610,6 +673,7 @@ export default function SessionDetail() {
                 permissions={permissionsByToolId}
                 onApprovePermission={approve}
                 onDenyPermission={deny}
+                onApprovePermissionWithSettings={approveWithSettings}
                 isProcessingPermission={isProcessingPermission}
                 isStreaming={false}
               />

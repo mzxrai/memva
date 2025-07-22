@@ -40,7 +40,6 @@ export function getDatabase(dbPath?: string) {
 
   // Use environment-based path if no explicit path provided
   const finalDbPath = dbPath || getDatabasePath()
-  console.log(`[Database] Using database: ${finalDbPath}`)
 
   // Create SQLite connection
   sqlite = new Database(finalDbPath)

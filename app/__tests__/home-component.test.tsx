@@ -20,7 +20,12 @@ vi.mock('react-router', () => ({
     <a href={to} {...props}>
       {children}
     </a>
-  )
+  ),
+  useFetcher: vi.fn(() => ({
+    submit: vi.fn(),
+    state: 'idle',
+    data: null
+  }))
 }))
 
 // Mock the useHomepageData hook

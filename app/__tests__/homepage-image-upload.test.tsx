@@ -13,6 +13,14 @@ vi.mock('react-router', () => ({
   Form: ({ children, method, onSubmit, ...props }: any) => (
     <form method={method} onSubmit={onSubmit} {...props}>{children}</form>
   ),
+  Link: ({ to, children, ...props }: any) => (
+    <a href={to} {...props}>{children}</a>
+  ),
+  useFetcher: () => ({
+    submit: vi.fn(),
+    state: 'idle',
+    data: null
+  }),
   redirect: vi.fn(),
 }))
 

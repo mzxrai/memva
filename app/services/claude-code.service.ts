@@ -23,8 +23,6 @@ export function sendPromptToClaudeCode({
 }: SendPromptOptions): void {
   const formData = new FormData()
   formData.append('prompt', prompt)
-  
-  console.log('[Client] Starting fetch with signal:', signal)
 
   fetch(`/api/claude-code/${sessionId}`, {
     method: 'POST',
@@ -69,7 +67,6 @@ export function sendPromptToClaudeCode({
   }).catch(error => {
     // Check if this is a user-initiated abort
     if (error.name === 'AbortError') {
-      console.log('[Client] Fetch aborted by user')
       // Don't call onError for user-initiated aborts
       return
     }
