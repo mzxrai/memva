@@ -18,7 +18,7 @@ interface UsePermissionPollingReturn {
 }
 
 export default function usePermissionPolling(options: UsePermissionPollingOptions = {}): UsePermissionPollingReturn {
-  const { enabled = true, pollingInterval = 500, sessionId } = options
+  const { enabled = true, pollingInterval = 1000, sessionId } = options
   
   const [permissions, setPermissions] = useState<PermissionRequest[]>([])
   const [isLoading, setIsLoading] = useState(true)
