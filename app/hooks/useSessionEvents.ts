@@ -127,13 +127,19 @@ export function useSessionEvents(
   }, [pollingQuery.data]);
   
   // Clear store ONLY when session actually changes
+  const previousSessionIdRef = useRef<string | null>(null);
   useEffect(() => {
-    // Clear on mount for new session
-    clearEvents();
+    // Only clear if this is actually a different session
+    if (previousSessionIdRef.current && previousSessionIdRef.current !== sessionId) {
+      clearEvents();
+      lastEventIdRef.current = null;
+      lastTimestampRef.current = null;
+    }
+    previousSessionIdRef.current = sessionId;
     
     return () => {
-      // Only clear refs on unmount, not on every render
-      clearEvents();
+      // Don't clear events on unmount - let the session change handle it
+      // This prevents StrictMode from clearing data during double-mount
       lastEventIdRef.current = null;
       lastTimestampRef.current = null;
     };
@@ -152,11 +158,19 @@ export function useSessionEvents(
     lastTimestampRef.current = null;
   };
   
+  // Manual refetch for polling query
+  const refetchPolling = () => {
+    if (shouldPoll) {
+      pollingQuery.refetch();
+    }
+  };
+
   return {
     isLoading,
     isError,
     error,
     refetch,
+    refetchPolling,
     // Expose session status from the store
     sessionStatus: useEventStore(state => state.sessionStatus),
   };

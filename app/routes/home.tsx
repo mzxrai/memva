@@ -1,21 +1,19 @@
 import type { Route } from "./+types/home";
-import { Link, Form, redirect } from "react-router";
-import { createSession, type SessionWithStats } from "../db/sessions.service";
-import { RiFolder3Line, RiTimeLine, RiPulseLine, RiSettings3Line } from "react-icons/ri";
-import StatusIndicator from "../components/StatusIndicator";
-import MessageCarousel from "../components/MessageCarousel";
-import RelativeTime from "../components/RelativeTime";
+import { Form, redirect } from "react-router";
+import { createSession } from "../db/sessions.service";
+import { RiPulseLine, RiSettings3Line } from "react-icons/ri";
 import DirectorySelector from "../components/DirectorySelector";
 import SettingsModal from "../components/SettingsModal";
+import SessionCard from "../components/SessionCard";
 import clsx from "clsx";
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useMemo, useRef, type FormEvent } from "react";
 import { useHomepageData } from "../hooks/useHomepageData";
 import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
 import { useTextareaSubmit } from "../hooks/useTextareaSubmit";
 import { colors, typography, transition, iconSize } from "../constants/design";
 import { useImageUpload } from "../hooks/useImageUpload";
 import { ImagePreview } from "../components/ImagePreview";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { SessionGridSkeleton } from "../components/SessionCardSkeleton";
 
 export function meta(): Array<{ title?: string; name?: string; content?: string }> {
@@ -102,9 +100,6 @@ export async function action({ request }: Route.ActionArgs) {
   return redirect(`/sessions/${session.id}`);
 }
 
-function isSessionWithStats(session: SessionWithStats | { id: string }): session is SessionWithStats {
-  return 'event_count' in session && typeof session.event_count === 'number';
-}
 
 // Helper function to shorten path for display - pure function, no side effects
 function shortenPath(path: string, homedir?: string): string {
@@ -161,7 +156,6 @@ export default function Home() {
   const [isDirectoryLoaded, setIsDirectoryLoaded] = useState(false);
   const [isDirectoryModalOpen, setIsDirectoryModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
   
   // Use custom hooks for textarea functionality
   const { textareaRef } = useAutoResizeTextarea(sessionTitle, { maxRows: 5 });
@@ -177,26 +171,39 @@ export default function Home() {
     removeImage,
   } = useImageUpload();
   
-  // Sort sessions by latest user message timestamp
-  const sortedSessions = [...sessions].sort((a, b) => {
-    // If neither has a user message, maintain original order
-    if (!a.latest_user_message_at && !b.latest_user_message_at) {
-      return 0;
-    }
-    // Sessions with user messages come first
-    if (!a.latest_user_message_at) return 1;
-    if (!b.latest_user_message_at) return -1;
-    // Sort by timestamp (most recent first)
-    return new Date(b.latest_user_message_at).getTime() - new Date(a.latest_user_message_at).getTime();
-  });
-
-
-  // Track when we've initially loaded to enable animations only on updates
+  // Track previous sort order to detect reordering
+  const previousOrderRef = useRef<string[]>([]);
+  const [orderChanged, setOrderChanged] = useState(false);
+  
+  // Memoize sorted sessions to prevent unnecessary re-sorts
+  const sortedSessions = useMemo(() => {
+    return [...sessions].sort((a, b) => {
+      // If neither has a user message, maintain original order
+      if (!a.latest_user_message_at && !b.latest_user_message_at) {
+        return 0;
+      }
+      // Sessions with user messages come first
+      if (!a.latest_user_message_at) return 1;
+      if (!b.latest_user_message_at) return -1;
+      // Sort by timestamp (most recent first)
+      return new Date(b.latest_user_message_at).getTime() - new Date(a.latest_user_message_at).getTime();
+    });
+  }, [sessions]);
+  
+  // Detect if order has changed - only in effect to avoid recalc on every render
   useEffect(() => {
-    if (!isLoading && sessions.length > 0 && !hasInitiallyLoaded) {
-      setHasInitiallyLoaded(true);
+    const currentOrder = sortedSessions.map(s => s.id);
+    const hasOrderChanged = previousOrderRef.current.length > 0 && 
+      JSON.stringify(previousOrderRef.current) !== JSON.stringify(currentOrder);
+    
+    if (hasOrderChanged) {
+      setOrderChanged(true);
+      // Reset after animation completes
+      setTimeout(() => setOrderChanged(false), 800);
     }
-  }, [isLoading, sessions.length, hasInitiallyLoaded]);
+    
+    previousOrderRef.current = currentOrder;
+  }, [sortedSessions]);
 
   // Load directory from localStorage after mount to prevent hydration errors
   useEffect(() => {
@@ -373,7 +380,7 @@ export default function Home() {
         />
 
         {/* Sessions Grid */}
-        {isLoading && !hasInitiallyLoaded ? (
+        {isLoading && sessions.length === 0 ? (
           <SessionGridSkeleton count={6} />
         ) : sortedSessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4">
@@ -394,90 +401,11 @@ export default function Home() {
           >
             <AnimatePresence mode="popLayout">
               {sortedSessions.map((session) => (
-                <motion.div
+                <SessionCard
                   key={session.id}
-                  layout
-                  initial={hasInitiallyLoaded ? { opacity: 0, scale: 0.8 } : false}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{
-                    layout: {
-                      type: "spring",
-                      stiffness: 350,
-                      damping: 25,
-                    },
-                    opacity: { duration: 0.2 },
-                    scale: { duration: 0.2 }
-                  }}
-                  layoutId={session.id}
-                >
-                  <Link
-                    to={`/sessions/${session.id}`}
-                    className={clsx(
-                      "group relative block p-6 h-full",
-                      "bg-zinc-900/50 backdrop-blur-sm",
-                      "border border-zinc-800",
-                      "rounded-xl",
-                      "hover:bg-zinc-900/70",
-                      "hover:border-zinc-700",
-                      "hover:shadow-lg hover:shadow-zinc-950/50",
-                      "transform hover:scale-[1.02]",
-                      "transition-all duration-150",
-                      "cursor-pointer",
-                      "h-[280px]",
-                      "grid grid-rows-[minmax(3rem,_1fr)_1.5rem_1.5rem_1.5rem_4rem]",
-                      "gap-3"
-                    )}
-                  >
-                {/* Status Indicator */}
-                <div className="absolute top-4 right-4">
-                  <StatusIndicator session={session} />
-                </div>
-
-                {/* Title */}
-                <h3 className="text-lg font-medium text-zinc-100 pr-20 min-h-[3rem] line-clamp-2">
-                  {session.title || "Untitled Session"}
-                </h3>
-
-                {/* Project Path */}
-                <div className="flex items-center gap-2 text-sm text-zinc-400">
-                  <RiFolder3Line className="w-4 h-4 text-zinc-500" />
-                  <span className="font-mono text-xs truncate">
-                    {session.project_path}
-                  </span>
-                </div>
-
-                {/* Last Event Time */}
-                <div className="flex items-center gap-2 text-sm text-zinc-500">
-                  <RiTimeLine className="w-4 h-4" />
-                  <RelativeTime 
-                    timestamp={isSessionWithStats(session) && session.last_event_at
-                      ? session.last_event_at
-                      : session.updated_at
-                    } 
-                  />
-                </div>
-
-                {/* Event Count */}
-                <div className="text-sm text-zinc-400">
-                  {(() => {
-                    const count = isSessionWithStats(session) ? session.event_count : 0;
-                    return `${count} event${count !== 1 ? "s" : ""}`;
-                  })()}
-                </div>
-
-                {/* Message Carousel - fixed height to prevent layout shift */}
-                <div className="h-16">
-                  <MessageCarousel 
-                    sessionId={session.id} 
-                    latestMessage={session.latestMessage}
-                  />
-                </div>
-
-                    {/* Hover Gradient */}
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-zinc-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                  </Link>
-                </motion.div>
+                  session={session}
+                  enableLayoutAnimation={orderChanged}
+                />
               ))}
             </AnimatePresence>
           </motion.div>

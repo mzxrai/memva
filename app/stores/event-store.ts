@@ -291,17 +291,23 @@ export const useEventStore = create<EventStore & EventSelectors>()(
         return { sessionStatus: status };
       }, false, 'updateSessionStatus'),
 
-      setOptimisticMessage: (message) => set({ optimisticUserMessage: message }, false, 'setOptimisticMessage'),
+      setOptimisticMessage: (message) => {
+        console.log('[EventStore] Setting optimistic message:', message);
+        set({ optimisticUserMessage: message }, false, 'setOptimisticMessage');
+      },
 
-      clearEvents: () => set({
-        events: new Map(),
-        toolResults: new Map(),
-        sessionStatus: null,
-        lastEventTimestamp: null,
-        optimisticUserMessage: null,
-        sortedEvents: [],
-        displayEvents: []
-      }, false, 'clearEvents'),
+      clearEvents: () => {
+        console.log('[EventStore] Clearing all events');
+        set({
+          events: new Map(),
+          toolResults: new Map(),
+          sessionStatus: null,
+          lastEventTimestamp: null,
+          optimisticUserMessage: null,
+          sortedEvents: [],
+          displayEvents: []
+        }, false, 'clearEvents');
+      },
 
       // Selectors
       getSortedEvents: () => {
@@ -362,6 +368,7 @@ export const useEventStore = create<EventStore & EventSelectors>()(
 
       getDisplayEvents: () => {
         const state = get()
+        console.log('[EventStore] getDisplayEvents called, has optimistic:', !!state.optimisticUserMessage);
         
         // Handle optimistic message if needed
         if (state.optimisticUserMessage) {

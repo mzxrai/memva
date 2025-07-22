@@ -215,12 +215,11 @@ export default function SessionDetail() {
   }, []);
   
   // Use React Query for polling events and Zustand for state management
-  const { isLoading: eventsLoading, sessionStatus } = useSessionEvents(sessionId);
+  const { isLoading: eventsLoading, sessionStatus, refetchPolling } = useSessionEvents(sessionId);
   
   // Get pre-computed data from Zustand store
   const displayEvents = useEventStore(state => state.displayEvents);
   const toolResults = useEventStore(state => state.toolResults);
-  const setOptimisticMessage = useEventStore(state => state.setOptimisticMessage);
   
   // Use SSE status if available, otherwise fall back to initial session
   const session = useMemo(() => {
@@ -234,7 +233,6 @@ export default function SessionDetail() {
   const [prompt, setPrompt] = useState("");
   const [processingStartTime, setProcessingStartTime] = useState<number | null>(null);
   const [isStopInProgress, setIsStopInProgress] = useState(false);
-  // Optimistic message is now managed in Zustand store
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   // Use image upload hook
@@ -279,8 +277,7 @@ export default function SessionDetail() {
     // Set stop in progress
     setIsStopInProgress(true);
     
-    // Clear optimistic message and processing time immediately for better UX
-    setOptimisticMessage(null);
+    // Clear processing time immediately for better UX
     setProcessingStartTime(null);
     
     // Focus input immediately since we're enabling it
@@ -379,9 +376,12 @@ export default function SessionDetail() {
   
   // Clear on result event OR when cancelled - but ensure messages are rendered first
   useEffect(() => {
-    if (processingStartTime) {
+    if (!processingStartTime) return;
+
+    // Subscribe to store changes
+    const unsubscribe = useEventStore.subscribe((state) => {
       // Check for result or cancellation events from the store
-      const events = useEventStore.getState().events;
+      const events = state.events;
       const eventsArray = Array.from(events.values());
       
       const resultEvent = eventsArray.find(e => 
@@ -396,7 +396,7 @@ export default function SessionDetail() {
       
       if (resultEvent) {
         // For result events, ensure we have a corresponding assistant message
-        const hasAssistantMessage = displayEvents.some(e => 
+        const hasAssistantMessage = state.displayEvents.some(e => 
           e.event_type === 'assistant' && 
           new Date(e.timestamp).getTime() > processingStartTime &&
           new Date(e.timestamp).getTime() <= new Date(resultEvent.timestamp).getTime()
@@ -405,7 +405,6 @@ export default function SessionDetail() {
         if (hasAssistantMessage) {
           // Assistant message is rendered, safe to clear
           setProcessingStartTime(null);
-          setOptimisticMessage(null);
           setIsStopInProgress(false);
           
           // Refocus input if user isn't actively reading/selecting
@@ -423,8 +422,10 @@ export default function SessionDetail() {
       } else if (hasNewCancellation) {
         setIsStopInProgress(false);
       }
-    }
-  }, [displayEvents, processingStartTime, shouldAutoScroll, setOptimisticMessage]);
+    });
+
+    return () => unsubscribe();
+  }, [processingStartTime, shouldAutoScroll, inputRef]);
   
   // Check if user is near bottom whenever they scroll
   useEffect(() => {
@@ -440,23 +441,50 @@ export default function SessionDetail() {
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
   
-  // Auto-scroll when content changes (new messages, pending state, etc)
+  // Auto-scroll when content changes
   useEffect(() => {
-    if (!isInitialMount.current && scrollContainerRef.current && shouldAutoScroll) {
-      const container = scrollContainerRef.current;
-      
-      // Scroll to bottom whenever content changes and we should auto-scroll
-      requestAnimationFrame(() => {
+    if (!scrollContainerRef.current) return;
+    
+    const container = scrollContainerRef.current;
+    
+    // Use ResizeObserver to detect ANY size change in the content
+    const resizeObserver = new ResizeObserver(() => {
+      if (shouldAutoScroll) {
+        // Always scroll to absolute bottom when content changes
         const scrollHeight = container.scrollHeight;
         const clientHeight = container.clientHeight;
         const maxScroll = scrollHeight - clientHeight;
         
-        if (maxScroll > 0) {
+        if (maxScroll > 0 && container.scrollTop < maxScroll) {
           container.scrollTop = maxScroll;
         }
+      }
+    });
+    
+    // Observe the container for size changes
+    resizeObserver.observe(container);
+    
+    // Also observe all child elements for size changes
+    const mutationObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node instanceof Element) {
+            resizeObserver.observe(node);
+          }
+        });
       });
-    }
-  }, [displayEvents.length, showPending, shouldAutoScroll]);
+    });
+    
+    mutationObserver.observe(container, {
+      childList: true,
+      subtree: true
+    });
+    
+    return () => {
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, [shouldAutoScroll]);
   
   // Clear prompt and images on successful submission
   const wasSubmittingRef = useRef(false);
@@ -492,6 +520,7 @@ export default function SessionDetail() {
   // Determine UI state based on claude_status
   const isProcessing = session.claude_status === 'processing';
   const hasError = session.claude_status === 'error';
+  
   
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -555,7 +584,11 @@ export default function SessionDetail() {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-32" ref={scrollContainerRef} style={{ opacity: isVisible ? 1 : 0 }}>
-        {displayEvents.length === 0 && !isProcessing && !isSubmitting && !showPending && !eventsLoading ? (
+        {eventsLoading ? (
+          <div className="h-full flex items-center justify-center">
+            <p className="text-zinc-500">Loading messages...</p>
+          </div>
+        ) : displayEvents.length === 0 && !isProcessing && !isSubmitting && !showPending ? (
           <div className="h-full flex items-center justify-center">
             <p className="text-zinc-500">No messages yet. Start by asking Claude Code something!</p>
           </div>
@@ -620,10 +653,10 @@ export default function SessionDetail() {
                       const now = Date.now();
                       setProcessingStartTime(now);
                       
-                      // Only set optimistic message if there's actual text
-                      if (message) {
-                        setOptimisticMessage({ content: message, timestamp: now });
-                      }
+                      // Trigger immediate poll to get the message quickly
+                      setTimeout(() => {
+                        refetchPolling();
+                      }, 100);
                     }
                   }}
                 >

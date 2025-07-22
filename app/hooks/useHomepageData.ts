@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import type { SessionWithStats } from '../db/sessions.service'
 
 type EnhancedSession = SessionWithStats & {
@@ -23,14 +24,20 @@ export function useHomepageData() {
       if (!response.ok) {
         throw new Error(`Failed to fetch sessions: ${response.statusText}`)
       }
-      return response.json()
+      return response.json();
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes - prevents conflicts with polling interval
     refetchInterval: 3000, // Poll every 3 seconds
     refetchIntervalInBackground: true, // Keep polling even when tab is not focused
   })
 
+  // Memoize sessions to maintain referential equality when data hasn't changed
+  const sessions = useMemo(() => {
+    return data?.sessions || [];
+  }, [data?.sessions]);
+
   return {
-    sessions: data?.sessions || [],
+    sessions,
     timestamp: data?.timestamp || new Date().toISOString(),
     error,
     isLoading,

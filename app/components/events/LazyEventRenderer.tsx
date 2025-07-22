@@ -55,19 +55,14 @@ function getEventTextContent(event: Event): string {
 }
 
 export function LazyEventRenderer(props: LazyEventRendererProps) {
-  const [isVisible, setIsVisible] = useState(false);
   const [hasBeenVisible, setHasBeenVisible] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
+        if (entry.isIntersecting && !hasBeenVisible) {
           setHasBeenVisible(true);
-        } else {
-          // Keep content rendered if it's been visible once (for better UX)
-          setIsVisible(false);
         }
       },
       {
@@ -84,7 +79,7 @@ export function LazyEventRenderer(props: LazyEventRendererProps) {
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [hasBeenVisible]);
   
   const textContent = getEventTextContent(props.event);
   
@@ -95,7 +90,7 @@ export function LazyEventRenderer(props: LazyEventRendererProps) {
       // Minimum height to prevent layout shift
       style={{ minHeight: '60px' }}
     >
-      {(isVisible || hasBeenVisible) ? (
+      {hasBeenVisible ? (
         <EventRenderer {...props} />
       ) : (
         // Minimal render for CTRL-F - just the text content
