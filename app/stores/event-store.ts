@@ -218,38 +218,56 @@ export const useEventStore = create<EventStore & EventSelectors>()(
         
         // For incremental updates, we can optimize by inserting new events
         // into the already-sorted arrays instead of re-sorting everything
-        const sortedEvents = [...state.sortedEvents];
-        const displayEvents = [...state.displayEvents];
         
         // Sort just the new events
         const sortedNewEvents = actuallyNewEvents.sort((a, b) => 
           new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
         
-        // Insert new events into sorted array (merge two sorted arrays)
+        // Helper function for binary search to find insertion point
+        const binarySearchInsertIndex = (arr: Event[], targetTime: number): number => {
+          let left = 0;
+          let right = arr.length;
+          
+          while (left < right) {
+            const mid = Math.floor((left + right) / 2);
+            if (new Date(arr[mid].timestamp).getTime() <= targetTime) {
+              left = mid + 1;
+            } else {
+              right = mid;
+            }
+          }
+          
+          return left;
+        };
+        
+        // Build new sorted events array immutably
+        let sortedEvents = state.sortedEvents;
+        let displayEvents = state.displayEvents;
+        
         for (const newEvent of sortedNewEvents) {
           const newEventTime = new Date(newEvent.timestamp).getTime();
-          const insertIndex = sortedEvents.findIndex(e => 
-            new Date(e.timestamp).getTime() > newEventTime
-          );
           
-          if (insertIndex === -1) {
-            sortedEvents.push(newEvent);
-          } else {
-            sortedEvents.splice(insertIndex, 0, newEvent);
-          }
+          // Use binary search for better performance with large arrays
+          const insertIndex = binarySearchInsertIndex(sortedEvents, newEventTime);
+          
+          // Create new array with event inserted at correct position
+          sortedEvents = [
+            ...sortedEvents.slice(0, insertIndex),
+            newEvent,
+            ...sortedEvents.slice(insertIndex)
+          ];
           
           // Check if this event should be displayed
           if (shouldDisplayEvent(newEvent)) {
-            const displayInsertIndex = displayEvents.findIndex(e => 
-              new Date(e.timestamp).getTime() > newEventTime
-            );
+            const displayInsertIndex = binarySearchInsertIndex(displayEvents, newEventTime);
             
-            if (displayInsertIndex === -1) {
-              displayEvents.push(newEvent);
-            } else {
-              displayEvents.splice(displayInsertIndex, 0, newEvent);
-            }
+            // Create new display array with event inserted
+            displayEvents = [
+              ...displayEvents.slice(0, displayInsertIndex),
+              newEvent,
+              ...displayEvents.slice(displayInsertIndex)
+            ];
           }
         }
         
@@ -311,10 +329,26 @@ export const useEventStore = create<EventStore & EventSelectors>()(
           // Check if real message has arrived
           const hasRealMessage = state.sortedEvents.some(e => {
             if (!state.optimisticUserMessage) return false
-            return e.event_type === 'user' &&
-              !e.uuid?.startsWith('optimistic-') &&
-              getUserMessageText(e.data) === state.optimisticUserMessage.content &&
-              Math.abs(new Date(e.timestamp).getTime() - state.optimisticUserMessage.timestamp) < 10000
+            
+            // Skip if not a user event or if it's another optimistic message
+            if (e.event_type !== 'user' || e.uuid?.startsWith('optimistic-')) {
+              return false;
+            }
+            
+            const messageText = getUserMessageText(e.data);
+            const optimisticContent = state.optimisticUserMessage.content;
+            
+            // Check for exact content match
+            if (messageText !== optimisticContent) {
+              return false;
+            }
+            
+            // Check if the timestamp is reasonably close (within 30 seconds)
+            // This accounts for network delays and processing time
+            const timeDiff = Math.abs(new Date(e.timestamp).getTime() - state.optimisticUserMessage.timestamp);
+            const MAX_TIME_DIFF = 30000; // 30 seconds
+            
+            return timeDiff < MAX_TIME_DIFF;
           })
           
           if (!hasRealMessage) {
@@ -333,10 +367,25 @@ export const useEventStore = create<EventStore & EventSelectors>()(
         if (state.optimisticUserMessage) {
           const hasRealMessage = state.displayEvents.some(e => {
             if (!state.optimisticUserMessage) return false
-            return e.event_type === 'user' &&
-              !e.uuid?.startsWith('optimistic-') &&
-              getUserMessageText(e.data) === state.optimisticUserMessage.content &&
-              Math.abs(new Date(e.timestamp).getTime() - state.optimisticUserMessage.timestamp) < 10000
+            
+            // Skip if not a user event or if it's another optimistic message
+            if (e.event_type !== 'user' || e.uuid?.startsWith('optimistic-')) {
+              return false;
+            }
+            
+            const messageText = getUserMessageText(e.data);
+            const optimisticContent = state.optimisticUserMessage.content;
+            
+            // Check for exact content match
+            if (messageText !== optimisticContent) {
+              return false;
+            }
+            
+            // Check if the timestamp is reasonably close (within 30 seconds)
+            const timeDiff = Math.abs(new Date(e.timestamp).getTime() - state.optimisticUserMessage.timestamp);
+            const MAX_TIME_DIFF = 30000; // 30 seconds
+            
+            return timeDiff < MAX_TIME_DIFF;
           })
           
           if (!hasRealMessage) {
