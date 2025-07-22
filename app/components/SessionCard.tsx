@@ -11,6 +11,7 @@ import type { SessionWithStats } from '../db/sessions.service'
 
 type EnhancedSession = SessionWithStats & {
   latest_user_message_at?: string | null
+  pendingPermissionsCount?: number
   latestMessage?: {
     uuid: string
     timestamp: string
@@ -135,6 +136,7 @@ const SessionCard = memo(function SessionCard({ session, enableLayoutAnimation =
     prevProps.session.event_count === nextProps.session.event_count &&
     prevProps.session.last_event_at === nextProps.session.last_event_at &&
     prevProps.session.latest_user_message_at === nextProps.session.latest_user_message_at &&
+    prevProps.session.pendingPermissionsCount === nextProps.session.pendingPermissionsCount &&
     prevProps.session.latestMessage?.uuid === nextProps.session.latestMessage?.uuid &&
     prevProps.session.latestMessage?.timestamp === nextProps.session.latestMessage?.timestamp &&
     prevProps.enableLayoutAnimation === nextProps.enableLayoutAnimation

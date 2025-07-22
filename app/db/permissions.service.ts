@@ -127,6 +127,42 @@ export async function updatePermissionDecision(
   return result
 }
 
+export async function getPendingPermissionsCountBatch(sessionIds: string[]): Promise<Map<string, number>> {
+  if (sessionIds.length === 0) {
+    return new Map()
+  }
+  
+  const now = new Date().toISOString()
+  
+  // Get all pending permissions for the given sessions
+  const pendingPermissions = db
+    .select()
+    .from(permissionRequests)
+    .where(
+      and(
+        eq(permissionRequests.status, 'pending'),
+        gt(permissionRequests.expires_at, now)
+      )
+    )
+    .all()
+  
+  // Count permissions per session
+  const countMap = new Map<string, number>()
+  
+  // Initialize all sessions with 0
+  sessionIds.forEach(id => countMap.set(id, 0))
+  
+  // Count pending permissions for each session
+  pendingPermissions.forEach(permission => {
+    if (sessionIds.includes(permission.session_id)) {
+      const currentCount = countMap.get(permission.session_id) || 0
+      countMap.set(permission.session_id, currentCount + 1)
+    }
+  })
+  
+  return countMap
+}
+
 export async function expireOldRequests(): Promise<number> {
   const now = new Date().toISOString()
 

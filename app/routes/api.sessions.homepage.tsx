@@ -1,5 +1,6 @@
 import { listSessions, getSessionsWithStatsBatch } from "../db/sessions.service"
 import { getLatestAssistantMessageBatch, getLatestUserMessageWithTextBatch } from "../db/event-session.service"
+import { getPendingPermissionsCountBatch } from "../db/permissions.service"
 
 export async function loader() {
   try {
@@ -14,22 +15,25 @@ export async function loader() {
     
     const sessionIds = sessions.map(s => s.id)
     
-    const [sessionStatsMap, latestMessagesMap, latestUserMessagesMap] = await Promise.all([
+    const [sessionStatsMap, latestMessagesMap, latestUserMessagesMap, pendingPermissionsMap] = await Promise.all([
       getSessionsWithStatsBatch(sessionIds),
       getLatestAssistantMessageBatch(sessionIds),
-      getLatestUserMessageWithTextBatch(sessionIds)
+      getLatestUserMessageWithTextBatch(sessionIds),
+      getPendingPermissionsCountBatch(sessionIds)
     ])
     
     const enhancedSessions = sessions.map(session => {
       const stats = sessionStatsMap.get(session.id)
       const latestMessage = latestMessagesMap.get(session.id)
       const latestUserMessage = latestUserMessagesMap.get(session.id)
+      const pendingPermissionsCount = pendingPermissionsMap.get(session.id) || 0
       
       return {
         ...session,
         event_count: stats?.event_count || 0,
         last_event_at: stats?.last_event_at || session.updated_at,
         latest_user_message_at: latestUserMessage?.timestamp || null,
+        pendingPermissionsCount,
         latestMessage: latestMessage ? {
           uuid: latestMessage.uuid,
           timestamp: latestMessage.timestamp,
