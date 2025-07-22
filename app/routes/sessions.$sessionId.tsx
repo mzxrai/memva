@@ -583,7 +583,7 @@ export default function SessionDetail() {
       )}
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-32" ref={scrollContainerRef} style={{ opacity: isVisible ? 1 : 0 }}>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-40" ref={scrollContainerRef} style={{ opacity: isVisible ? 1 : 0 }}>
         {eventsLoading ? (
           <div className="h-full flex items-center justify-center">
             <p className="text-zinc-500">Loading messages...</p>
