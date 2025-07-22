@@ -425,6 +425,15 @@ export default function SessionDetail() {
     }
   }, [eventsLoading, session?.claude_status, processingStartTime]);
   
+  // Clear processing time when session status changes to completed/error
+  useEffect(() => {
+    if (session?.claude_status === 'completed' || session?.claude_status === 'error') {
+      if (processingStartTime !== null) {
+        setProcessingStartTime(null);
+      }
+    }
+  }, [session?.claude_status, processingStartTime]);
+  
   // Track if we should auto-scroll (user is near bottom)
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   
