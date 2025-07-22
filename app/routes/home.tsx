@@ -86,6 +86,23 @@ export async function action({ request }: Route.ActionArgs) {
   const { formatPromptWithImages } = await import('../utils/image-prompt-formatting');
   const finalPrompt = formatPromptWithImages(prompt.trim(), imagePaths);
   
+  // Store user message as an event
+  const { storeEvent, createEventFromMessage } = await import('../db/events.service');
+  
+  const userEvent = createEventFromMessage({
+    message: {
+      type: 'user',
+      content: finalPrompt,
+      session_id: '' // Will be populated by Claude Code SDK
+    },
+    memvaSessionId: session.id,
+    projectPath: projectPath.trim(),
+    parentUuid: null,
+    timestamp: new Date().toISOString()
+  });
+  
+  await storeEvent(userEvent);
+  
   // Create session-runner job
   const { createJob } = await import('../db/jobs.service');
   const { createSessionRunnerJob } = await import('../workers/job-types');
