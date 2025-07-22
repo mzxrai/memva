@@ -119,7 +119,9 @@ export function FloatingPendingIndicator({ startTime, isVisible }: FloatingPendi
               'text-zinc-400',
               'tracking-wide',
               'animate-pulse',
-              'whitespace-nowrap'
+              'inline-block',
+              'w-20',
+              'truncate'
             )}>
               {currentVerb}...
             </span>
