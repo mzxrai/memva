@@ -80,7 +80,7 @@ export function FloatingPendingIndicator({ startTime, isVisible }: FloatingPendi
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 10 }}
           transition={{ duration: 0.2 }}
-          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3"
+          className="absolute bottom-full left-0 mb-3"
         >
           <div className="bg-zinc-800/90 backdrop-blur-sm border border-zinc-700/50 rounded-full px-4 py-2 flex items-center gap-3 shadow-lg">
             {/* Spinner */}
