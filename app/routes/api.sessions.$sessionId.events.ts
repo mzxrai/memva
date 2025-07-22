@@ -37,9 +37,9 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   // Parse query parameters
   const url = new URL(request.url);
   const queryParams = QuerySchema.parse({
-    since_timestamp: url.searchParams.get('since_timestamp'),
-    since_event_id: url.searchParams.get('since_event_id'), 
-    include_all: url.searchParams.get('include_all'),
+    since_timestamp: url.searchParams.get('since_timestamp') || undefined,
+    since_event_id: url.searchParams.get('since_event_id') || undefined, 
+    include_all: url.searchParams.get('include_all') || undefined,
   });
   
   // Get all events for the session

@@ -4,7 +4,7 @@ import { useSessionEvents } from "../hooks/useSessionEvents";
 import { useEventStore } from "../stores/event-store";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { RiFolder3Line, RiSettings3Line } from "react-icons/ri";
-import { EventRenderer } from "../components/events/EventRenderer";
+import { LazyEventRenderer } from "../components/events/LazyEventRenderer";
 import { PendingMessage } from "../components/PendingMessage";
 import { getSession, getSessionSettings } from "../db/sessions.service";
 import { useSessionActivity } from "../hooks/useMessageTracking";
@@ -217,8 +217,8 @@ export default function SessionDetail() {
   // Use React Query for polling events and Zustand for state management
   const { isLoading: eventsLoading, sessionStatus } = useSessionEvents(sessionId);
   
-  // Get events from Zustand store
-  const displayEvents = useEventStore(state => state.getDisplayEvents());
+  // Get pre-computed data from Zustand store
+  const displayEvents = useEventStore(state => state.displayEvents);
   const toolResults = useEventStore(state => state.toolResults);
   const setOptimisticMessage = useEventStore(state => state.setOptimisticMessage);
   
@@ -562,17 +562,16 @@ export default function SessionDetail() {
         ) : (
           <div className="container mx-auto max-w-7xl py-4">
             {displayEvents.map((event) => (
-              <div key={event.uuid} className="message-container">
-                <EventRenderer
-                  event={event}
-                  toolResults={toolResults}
-                  permissions={permissionsByToolId}
-                  onApprovePermission={approve}
-                  onDenyPermission={deny}
-                  isProcessingPermission={isProcessingPermission}
-                  isStreaming={false}
-                />
-              </div>
+              <LazyEventRenderer
+                key={event.uuid}
+                event={event}
+                toolResults={toolResults}
+                permissions={permissionsByToolId}
+                onApprovePermission={approve}
+                onDenyPermission={deny}
+                isProcessingPermission={isProcessingPermission}
+                isStreaming={false}
+              />
             ))}
             {showPending && (
               <div className="message-container">

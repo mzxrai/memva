@@ -7,6 +7,7 @@ export default [
   route("events/:sessionId", "routes/events.$sessionId.tsx"),
   route("api/session/:sessionId", "routes/api.session.$sessionId.ts"),
   route("api/sessions/:sessionId/stop", "routes/api.sessions.$sessionId.stop.tsx"),
+  route("api/sessions/:sessionId/events", "routes/api.sessions.$sessionId.events.ts"),
   route("api/sessions/homepage", "routes/api.sessions.homepage.tsx"),
   route("api/claude-code/:sessionId", "routes/api.claude-code.$sessionId.tsx"),
   route("api/jobs", "routes/api.jobs.tsx"),

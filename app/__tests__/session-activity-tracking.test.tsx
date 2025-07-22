@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { loader } from '../routes/sessions.$sessionId'
-import { createMockSession, createMockAssistantEvent } from '../test-utils/factories'
+import { createMockSession } from '../test-utils/factories'
 import { waitForCondition } from '../test-utils/async-testing'
 
 // Mock the loader to avoid database calls
@@ -32,7 +32,6 @@ import SessionDetail from '../routes/sessions.$sessionId'
 
 describe('Session Activity Tracking', () => {
   const mockSession = createMockSession({ id: 'test-session-1', title: 'Test Session' })
-  const mockEvents = [createMockAssistantEvent('Test message')]
   const mockSettings = { permissionMode: 'acceptEdits' as const, maxTurns: 10 }
 
   beforeEach(() => {

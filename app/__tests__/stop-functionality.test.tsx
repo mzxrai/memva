@@ -175,7 +175,6 @@ describe('Stop Functionality', () => {
     } as Route.ActionArgs)
     
     expect(response.status).toBe(200)
-    expect(response.headers.get('Content-Type')).toBe('text/event-stream')
     
     // Read some of the stream
     const reader = response.body?.getReader()

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useEventStore } from '../stores/event-store';
 import type { Event } from '../db/schema';
 
@@ -24,13 +24,12 @@ export function useSessionEvents(
   const lastEventIdRef = useRef<string | null>(null);
   const lastTimestampRef = useRef<string | null>(null);
   
-  // Zustand store actions
-  const {
-    setInitialEvents,
-    addEvents,
-    updateSessionStatus,
-    clearEvents,
-  } = useEventStore();
+  
+  // Get stable references to store actions
+  const setInitialEvents = useEventStore.getState().setInitialEvents;
+  const addEvents = useEventStore.getState().addEvents;
+  const updateSessionStatus = useEventStore.getState().updateSessionStatus;
+  const clearEvents = useEventStore.getState().clearEvents;
   
   // Initial fetch - get all events
   const initialQuery = useQuery({
@@ -52,10 +51,14 @@ export function useSessionEvents(
     gcTime: Infinity, // Keep in cache forever
   });
   
+  // State to track if we should poll
+  const [shouldPoll, setShouldPoll] = useState(false);
+  
   // Polling query - only fetch new events
   const pollingQuery = useQuery({
-    queryKey: ['session-events', sessionId, 'polling', lastTimestampRef.current],
+    queryKey: ['session-events', sessionId, 'polling'], // Stable key
     queryFn: async () => {
+      
       let url = `/api/sessions/${sessionId}/events`;
       
       // Only fetch new events if we have a reference point
@@ -77,9 +80,10 @@ export function useSessionEvents(
       const data: EventsResponse = await response.json();
       return data;
     },
-    enabled: enabled && !!sessionId && !!initialQuery.data,
+    enabled: enabled && !!sessionId && shouldPoll,
     refetchInterval: pollingInterval,
     staleTime: 0, // Always consider polling data stale
+    gcTime: 0, // Don't cache polling results
   });
   
   // Update Zustand store when initial data arrives
@@ -93,31 +97,47 @@ export function useSessionEvents(
       // Update our reference points
       lastEventIdRef.current = initialQuery.data.latest_event_id;
       lastTimestampRef.current = initialQuery.data.latest_timestamp;
+      
+      // Enable polling now that we have reference points
+      if (initialQuery.data.latest_event_id || initialQuery.data.latest_timestamp) {
+        setShouldPoll(true);
+      }
     }
-  }, [initialQuery.data, setInitialEvents, updateSessionStatus]);
+  }, [initialQuery.data]);
   
   // Update Zustand store when new events arrive from polling
   useEffect(() => {
-    if (pollingQuery.data && pollingQuery.data.events.length > 0) {
-      addEvents(pollingQuery.data.events);
+    if (pollingQuery.data) {
+      if (pollingQuery.data.events.length > 0) {
+        addEvents(pollingQuery.data.events);
+      }
+      
       if (pollingQuery.data.session_status) {
         updateSessionStatus(pollingQuery.data.session_status);
       }
       
-      // Update our reference points
-      lastEventIdRef.current = pollingQuery.data.latest_event_id;
-      lastTimestampRef.current = pollingQuery.data.latest_timestamp;
+      // Update our reference points - use the latest values if available
+      if (pollingQuery.data.latest_event_id) {
+        lastEventIdRef.current = pollingQuery.data.latest_event_id;
+      }
+      if (pollingQuery.data.latest_timestamp) {
+        lastTimestampRef.current = pollingQuery.data.latest_timestamp;
+      }
     }
-  }, [pollingQuery.data, addEvents, updateSessionStatus]);
+  }, [pollingQuery.data]);
   
-  // Clear store when session changes
+  // Clear store ONLY when session actually changes
   useEffect(() => {
+    // Clear on mount for new session
+    clearEvents();
+    
     return () => {
+      // Only clear refs on unmount, not on every render
       clearEvents();
       lastEventIdRef.current = null;
       lastTimestampRef.current = null;
     };
-  }, [sessionId, clearEvents]);
+  }, [sessionId]); // This should only run when sessionId changes
   
   // Combine loading states
   const isLoading = initialQuery.isLoading;

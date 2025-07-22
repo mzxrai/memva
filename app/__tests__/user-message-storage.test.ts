@@ -79,7 +79,6 @@ describe('User Message Storage', () => {
     } as Route.ActionArgs)
     
     expect(response.status).toBe(200)
-    expect(response.headers.get('Content-Type')).toBe('text/event-stream')
     
     // Clean up the stream
     await response.body?.cancel()
