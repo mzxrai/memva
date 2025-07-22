@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import clsx from 'clsx'
+import { typography } from '../constants/design'
 
 interface FloatingPendingIndicatorProps {
   startTime?: number | null
@@ -82,20 +84,37 @@ export function FloatingPendingIndicator({ startTime, isVisible }: FloatingPendi
           transition={{ duration: 0.2 }}
           className="absolute bottom-full left-0 mb-3"
         >
-          <div className="bg-zinc-800/90 backdrop-blur-sm border border-zinc-700/50 rounded-full px-4 py-2 flex items-center gap-3 shadow-lg">
+          <div className={clsx(
+            'flex items-center gap-2',
+            'px-2.5 py-1',
+            'rounded-md border',
+            'bg-zinc-800/50',
+            'border-zinc-700/50',
+            'backdrop-blur-sm'
+          )}>
             {/* Spinner */}
-            <div className="w-3 h-3 border-2 border-zinc-600 border-t-zinc-400 rounded-full animate-spin" />
+            <div className="w-2.5 h-2.5 border-2 border-zinc-600 border-t-zinc-400 rounded-full animate-spin" />
             
             {/* Status text */}
-            <div className="flex items-center gap-2 text-sm text-zinc-300 font-medium">
-              <span className="animate-pulse">{currentVerb}...</span>
-              {startTime && (
-                <>
-                  <span className="text-zinc-500">•</span>
-                  <span className="text-zinc-400 font-mono text-xs">{elapsedTime}</span>
-                </>
-              )}
-            </div>
+            <span className={clsx(
+              'text-[11px]',
+              typography.weight.normal,
+              'text-zinc-400',
+              'tracking-wide',
+              'animate-pulse'
+            )}>
+              {currentVerb}...
+            </span>
+            
+            {startTime && (
+              <span className={clsx(
+                'text-[10px]',
+                'text-zinc-600',
+                'ml-0.5'
+              )}>
+                {elapsedTime}
+              </span>
+            )}
           </div>
         </motion.div>
       )}
