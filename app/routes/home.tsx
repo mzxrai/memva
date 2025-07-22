@@ -1,5 +1,5 @@
 import type { Route } from "./+types/home";
-import { Form, redirect } from "react-router";
+import { Form, redirect, Link } from "react-router";
 import { createSession } from "../db/sessions.service";
 import { RiPulseLine, RiSettings3Line } from "react-icons/ri";
 import DirectorySelector from "../components/DirectorySelector";
@@ -427,6 +427,19 @@ export default function Home() {
             </AnimatePresence>
           </motion.div>
         )}
+        
+        {/* View Archived Link */}
+        <div className="mt-6">
+          <Link
+            to="/archived"
+            className={clsx(
+              "text-sm text-zinc-500 hover:text-zinc-400",
+              "transition-colors duration-150"
+            )}
+          >
+            View archived sessions
+          </Link>
+        </div>
       </div>
     </div>
   );

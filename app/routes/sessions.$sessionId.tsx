@@ -8,6 +8,7 @@ import { LazyEventRenderer } from "../components/events/LazyEventRenderer";
 import { FloatingPendingIndicator } from "../components/FloatingPendingIndicator";
 import { getSession, getSessionSettings } from "../db/sessions.service";
 import { useSessionActivity } from "../hooks/useMessageTracking";
+import { ArchiveButton } from "../components/ArchiveButton";
 import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
 import { useTextareaSubmit } from "../hooks/useTextareaSubmit";
 import { useImageUpload } from "../hooks/useImageUpload";
@@ -562,14 +563,20 @@ export default function SessionDetail() {
               <span className="mx-2">•</span>
               <span className="capitalize">{session.status}</span>
             </div>
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/50 transition-all duration-200"
-              aria-label="Session Settings"
-            >
-              <RiSettings3Line className="w-4 h-4" />
-              <span>Session Settings</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <ArchiveButton
+                sessionId={session.id}
+                sessionStatus={session.status as 'active' | 'archived'}
+              />
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/50 transition-all duration-200"
+                aria-label="Session Settings"
+              >
+                <RiSettings3Line className="w-4 h-4" />
+                <span>Session Settings</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

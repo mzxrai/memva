@@ -1,4 +1,4 @@
-import { memo } from 'react'
+import React, { memo } from 'react'
 import { Link } from 'react-router'
 import { motion } from 'framer-motion'
 import { RiFolder3Line, RiTimeLine } from 'react-icons/ri'
@@ -6,6 +6,7 @@ import clsx from 'clsx'
 import StatusIndicator from './StatusIndicator'
 import MessageCarousel from './MessageCarousel'
 import RelativeTime from './RelativeTime'
+import { ArchiveButton } from './ArchiveButton'
 import type { SessionWithStats } from '../db/sessions.service'
 
 type EnhancedSession = SessionWithStats & {
@@ -66,6 +67,15 @@ const SessionCard = memo(function SessionCard({ session, enableLayoutAnimation =
         <div className="absolute top-4 right-4">
           <StatusIndicator session={session} />
         </div>
+        
+        {/* Archive Button - Bottom Right */}
+        <div className="absolute bottom-2 right-2 z-10">
+          <ArchiveButton
+            sessionId={session.id}
+            sessionStatus={session.status as 'active' | 'archived'}
+            variant="compact"
+          />
+        </div>
 
         {/* Title */}
         <h3 className="text-lg font-medium text-zinc-100 pr-20 min-h-[3rem] line-clamp-2">
@@ -101,14 +111,16 @@ const SessionCard = memo(function SessionCard({ session, enableLayoutAnimation =
 
         {/* Message Carousel - fixed height to prevent layout shift */}
         <div className="h-16">
-          <MessageCarousel 
-            sessionId={session.id} 
-            latestMessage={session.latestMessage}
-          />
+          {session.status === 'active' && (
+            <MessageCarousel 
+              sessionId={session.id} 
+              latestMessage={session.latestMessage}
+            />
+          )}
         </div>
 
         {/* Hover Gradient */}
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-zinc-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-zinc-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-0" />
       </Link>
     </motion.div>
   )
