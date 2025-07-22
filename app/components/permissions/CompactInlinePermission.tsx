@@ -63,8 +63,8 @@ export default function CompactInlinePermission({
             className={clsx(
               "px-3 py-1 rounded-md",
               "text-xs font-medium",
-              "bg-amber-700/70 text-amber-100",
-              "hover:bg-amber-600/70",
+              "bg-amber-700/40 text-amber-200",
+              "hover:bg-amber-600/40",
               "disabled:opacity-50 disabled:cursor-not-allowed",
               "transition-all duration-150",
               "flex items-center gap-1.5"

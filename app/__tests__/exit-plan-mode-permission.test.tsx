@@ -2,8 +2,8 @@ import { vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
-import { createMockSession, createMockPermissionRequest } from '../test-utils/factories'
-import { expectSemanticMarkup, expectInteraction } from '../test-utils/component-testing'
+import { createMockPermissionRequest } from '../test-utils/factories'
+import { expectSemanticMarkup } from '../test-utils/component-testing'
 import CompactInlinePermission from '../components/permissions/CompactInlinePermission'
 
 // CRITICAL: Setup static mocks before any imports that use database

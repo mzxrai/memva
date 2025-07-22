@@ -284,19 +284,8 @@ export default function SessionDetail() {
   const isSubmitting = navigation.state === "submitting";
   
   // Define visibility states
-  // Don't show pending if we're waiting for permission decisions
-  const hasPendingPermissions = permissions.some(p => p.status === 'pending');
-  const showPending = processingStartTime !== null && !hasPendingPermissions;
-  
-  // Debug logging
-  console.log('[DEBUG] Spinner state:', {
-    claude_status: session?.claude_status,
-    processingStartTime,
-    hasPendingPermissions,
-    showPending,
-    eventsLoading,
-    isStopInProgress
-  });
+  // Show pending indicator whenever we have a processing start time
+  const showPending = processingStartTime !== null;
   
   // Use custom hooks for textarea functionality
   const { textareaRef: inputRef } = useAutoResizeTextarea(prompt, { maxRows: 5 });
