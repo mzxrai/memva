@@ -101,13 +101,13 @@ export function FloatingPendingIndicator({ startTime, isVisible }: FloatingPendi
           className="absolute bottom-full left-0 mb-3"
         >
           <div className={clsx(
-            'inline-grid items-center gap-2',
-            'grid-cols-[auto_minmax(7rem,7rem)_auto]',
+            'flex items-center gap-2',
             'px-2.5 py-1',
             'rounded-md border',
             'bg-zinc-800/50',
             'border-zinc-700/50',
-            'backdrop-blur-sm'
+            'backdrop-blur-sm',
+            'transition-all duration-300 ease-in-out'
           )}>
             {/* Spinner */}
             <div className="w-2.5 h-2.5 border-2 border-zinc-600 border-t-zinc-400 rounded-full animate-spin" />
