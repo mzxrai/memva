@@ -10,13 +10,29 @@ interface FloatingPendingIndicatorProps {
 
 const actionVerbs = [
   'Thinking',
-  'Processing',
-  'Analyzing',
-  'Working',
-  'Computing',
+  'Noodling',
   'Crafting',
   'Building',
-  'Pondering'
+  'Pondering',
+  'Computing',
+  'Analyzing',
+  'Crunching',
+  'Reasoning',
+  'Wrangling',
+  'Churning',
+  'Processing',
+  'Cogitating',
+  'Ruminating',
+  'Unraveling',
+  'Dissecting',
+  'Untangling',
+  'Evaluating',
+  'Calculating',
+  'Percolating',
+  'Deciphering',
+  'Considering',
+  'Formulating',
+  'Synthesizing'
 ]
 
 function formatElapsedTime(startTime: number): string {
@@ -85,7 +101,8 @@ export function FloatingPendingIndicator({ startTime, isVisible }: FloatingPendi
           className="absolute bottom-full left-0 mb-3"
         >
           <div className={clsx(
-            'flex items-center gap-2',
+            'inline-grid items-center gap-2',
+            'grid-cols-[auto_minmax(7rem,7rem)_auto]',
             'px-2.5 py-1',
             'rounded-md border',
             'bg-zinc-800/50',
@@ -101,7 +118,8 @@ export function FloatingPendingIndicator({ startTime, isVisible }: FloatingPendi
               typography.weight.normal,
               'text-zinc-400',
               'tracking-wide',
-              'animate-pulse'
+              'animate-pulse',
+              'whitespace-nowrap'
             )}>
               {currentVerb}...
             </span>
@@ -110,7 +128,7 @@ export function FloatingPendingIndicator({ startTime, isVisible }: FloatingPendi
               <span className={clsx(
                 'text-[10px]',
                 'text-zinc-600',
-                'ml-0.5'
+                'whitespace-nowrap'
               )}>
                 {elapsedTime}
               </span>
