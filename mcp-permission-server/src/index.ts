@@ -5,12 +5,27 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 import Database from 'better-sqlite3'
 import { PermissionPoller } from './permission-poller.js'
-import { appendFileSync } from 'fs'
+import { appendFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import { homedir } from 'os'
 
+// Store database in user's home directory under .memva
+const MEMVA_DIR = join(homedir(), '.memva')
+
+// Ensure .memva directory exists
+try {
+  mkdirSync(MEMVA_DIR, { recursive: true })
+} catch {
+  // Ignore if directory already exists
+}
+
+// Standard database path - same logic as main app
+const DATABASE_PATH = process.env.NODE_ENV === 'production' 
+  ? join(MEMVA_DIR, 'memva-prod.db')
+  : join(MEMVA_DIR, 'memva.db')
+
 // Debug logging to file
-const logFile = join(homedir(), '.memva', 'mcp-server.log')
+const logFile = join(MEMVA_DIR, 'mcp-server.log')
 const log = (message: string) => {
   const timestamp = new Date().toISOString()
   const logMessage = `[${timestamp}] ${message}\n`
@@ -29,7 +44,6 @@ log(`process.argv length: ${process.argv.length}`)
 // Parse command-line arguments
 const args = process.argv.slice(2)
 let SESSION_ID: string | undefined
-let DATABASE_PATH: string | undefined
 
 // Parse arguments - supports both --key=value and --key value formats
 for (let i = 0; i < args.length; i++) {
@@ -39,26 +53,17 @@ for (let i = 0; i < args.length; i++) {
     SESSION_ID = arg.slice('--session-id='.length)
   } else if (arg === '--session-id' && i + 1 < args.length) {
     SESSION_ID = args[++i]
-  } else if (arg.startsWith('--database-path=')) {
-    DATABASE_PATH = arg.slice('--database-path='.length)
-  } else if (arg === '--database-path' && i + 1 < args.length) {
-    DATABASE_PATH = args[++i]
   }
 }
 
 log(`MCP Permission Server starting...`)
 log(`Command-line args: ${JSON.stringify(args)}`)
 log(`Session ID: ${SESSION_ID}`)
-log(`Database Path: ${DATABASE_PATH}`)
+log(`Database Path: ${DATABASE_PATH} (hardcoded)`)
 log(`Current directory: ${process.cwd()}`)
 
 if (!SESSION_ID) {
   log('ERROR: --session-id argument is required')
-  process.exit(1)
-}
-
-if (!DATABASE_PATH) {
-  log('ERROR: --database-path argument is required')
   process.exit(1)
 }
 

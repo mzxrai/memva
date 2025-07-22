@@ -318,20 +318,17 @@ export async function getClaudeCodeOptionsWithPermissions(
   sessionId: string,
   baseOptions: Record<string, unknown> = {}
 ): Promise<Record<string, unknown>> {
-  // Get absolute paths
+  // Get absolute path for MCP server
   const mcpServerPath = path.resolve(process.cwd(), 'mcp-permission-server', 'build', 'index.js')
-  const databasePath = path.resolve(process.cwd(), 'memva-dev.db')
   
-  // Create MCP server config
+  // Create MCP server config (database path is now hardcoded in the MCP server)
   const mcpServers = {
     'memva-permissions': {
       command: 'node',
       args: [
         mcpServerPath,
         '--session-id',
-        sessionId,
-        '--database-path',
-        databasePath
+        sessionId
       ]
     }
   }

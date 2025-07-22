@@ -1,11 +1,24 @@
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import * as schema from './schema'
+import { join } from 'path'
+import { homedir } from 'os'
+import { mkdirSync } from 'fs'
 
 let db: ReturnType<typeof drizzle> | null = null
 let sqlite: Database.Database | null = null
 
+// Store database in user's home directory under .memva
+const MEMVA_DIR = join(homedir(), '.memva')
+
 function getDatabasePath(): string {
+  // Ensure .memva directory exists
+  try {
+    mkdirSync(MEMVA_DIR, { recursive: true })
+  } catch {
+    // Ignore if directory already exists
+  }
+
   // Use test database when running tests
   if (process.env.VITEST) {
     return './memva-test.db'
@@ -13,11 +26,11 @@ function getDatabasePath(): string {
   
   // Use production database in production
   if (process.env.NODE_ENV === 'production') {
-    return './memva-prod.db'
+    return join(MEMVA_DIR, 'memva-prod.db')
   }
   
   // Default to development database
-  return './memva-dev.db'
+  return join(MEMVA_DIR, 'memva.db')
 }
 
 export function getDatabase(dbPath?: string) {
