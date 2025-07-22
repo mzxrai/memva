@@ -369,7 +369,7 @@ export default function SessionDetail() {
         setProcessingStartTime(new Date(lastUserEvent.timestamp).getTime());
       }
     }
-  }, [session?.claude_status, processingStartTime, isStopInProgress]);
+  }, [session?.claude_status, processingStartTime, isStopInProgress, displayEvents.length]);
   
   // Track if we should auto-scroll (user is near bottom)
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
