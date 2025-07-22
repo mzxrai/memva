@@ -5,7 +5,7 @@ import { useEventStore } from "../stores/event-store";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { RiFolder3Line, RiSettings3Line } from "react-icons/ri";
 import { LazyEventRenderer } from "../components/events/LazyEventRenderer";
-import { PendingMessage } from "../components/PendingMessage";
+import { FloatingPendingIndicator } from "../components/FloatingPendingIndicator";
 import { getSession, getSessionSettings } from "../db/sessions.service";
 import { useSessionActivity } from "../hooks/useMessageTracking";
 import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
@@ -588,7 +588,7 @@ export default function SessionDetail() {
           <div className="h-full flex items-center justify-center">
             <p className="text-zinc-500">Loading messages...</p>
           </div>
-        ) : displayEvents.length === 0 && !isProcessing && !isSubmitting && !showPending ? (
+        ) : displayEvents.length === 0 && !isProcessing && !isSubmitting ? (
           <div className="h-full flex items-center justify-center">
             <p className="text-zinc-500">No messages yet. Start by asking Claude Code something!</p>
           </div>
@@ -606,14 +606,6 @@ export default function SessionDetail() {
                 isStreaming={false}
               />
             ))}
-            {showPending && (
-              <div className="message-container">
-                <PendingMessage 
-                  tokenCount={0}
-                  startTime={processingStartTime}
-                />
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -636,11 +628,16 @@ export default function SessionDetail() {
                 />
               </div>
               <div 
-                className={`bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border ${isDragging ? 'border-zinc-600' : 'border-zinc-800/50'} p-4 flex items-center gap-3 transition-colors duration-200`}
+                className={`relative bg-zinc-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border ${isDragging ? 'border-zinc-600' : 'border-zinc-800/50'} p-4 flex items-center gap-3 transition-colors duration-200`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
+                {/* Floating pending indicator */}
+                <FloatingPendingIndicator 
+                  startTime={processingStartTime}
+                  isVisible={showPending}
+                />
                 <Form 
                   method="post" 
                   className="flex-1"
