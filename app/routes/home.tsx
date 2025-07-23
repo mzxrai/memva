@@ -19,7 +19,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 export function meta(): Array<{ title?: string; name?: string; content?: string }> {
   return [
-    { title: "Memva - Session Manager" },
+    { title: "Memva | Session manager" },
     { name: "description", content: "Manage your agent sessions efficiently" },
   ];
 }

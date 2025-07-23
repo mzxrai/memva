@@ -28,7 +28,7 @@ type ArchivedSession = {
 
 export function meta() {
   return [
-    { title: "Archived Sessions - Memva" },
+    { title: "Memva | Archived sessions" },
     { name: "description", content: "View your archived sessions" },
   ];
 }

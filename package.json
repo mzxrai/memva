@@ -1,8 +1,34 @@
 {
   "name": "memva",
-  "private": true,
+  "version": "0.1.0",
+  "description": "Session manager for AI coding agents",
   "type": "module",
+  "bin": {
+    "memva": "./cli.js"
+  },
+  "keywords": [
+    "session-manager",
+    "ai",
+    "coding-assistant",
+    "claude code",
+    "claude",
+    "anthropic",
+    "development-tools"
+  ],
+  "author": "Premva Inc. <chiefnerd@premva.com>",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "private": false,
+  "files": [
+    "build/**/*",
+    "app/**/*",
+    "public/**/*",
+    "cli.js",
+    "package.json",
+    "README.md",
+    "LICENSE.txt"
+  ],
   "scripts": {
+    "prepublishOnly": "npm run build",
     "build": "react-router build",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
@@ -30,6 +56,7 @@
     "drizzle-orm": "^0.44.2",
     "framer-motion": "^12.23.6",
     "isbot": "^5.1.27",
+    "open": "^10.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-icons": "^5.5.0",
