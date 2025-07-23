@@ -80,18 +80,13 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
     
     // Create abort controller for cancellation
     const abortController = new AbortController()
-    console.log(`[SESSION RUNNER DEBUG] Job ${jobData.id} started for session ${sessionId}`)
     
     // Set up cancellation polling
-    let pollCount = 0
     const pollInterval = setInterval(async () => {
-      pollCount++
       try {
         const currentJob = await getJob(jobData.id)
         if (currentJob?.status === 'cancelled') {
-          console.log(`[SESSION RUNNER DEBUG] Job ${jobData.id} detected as cancelled after ${pollCount} polls (${pollCount * 100}ms)`)
           abortController.abort()
-          console.log(`[SESSION RUNNER DEBUG] AbortController.abort() called for job ${jobData.id}`)
           clearInterval(pollInterval)
         }
       } catch (error) {
@@ -105,7 +100,6 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
     
     // Execute Claude Code SDK interaction
     try {
-      console.log(`[SESSION RUNNER DEBUG] Starting streamClaudeCodeResponse for job ${jobData.id}`)
       await streamClaudeCodeResponse({
         prompt,
         projectPath: session.project_path,
@@ -115,18 +109,15 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
         abortController,
         maxTurns: settings.maxTurns,
         permissionMode: settings.permissionMode,
-        onMessage: (message) => {
+        onMessage: () => {
           messagesProcessed++
-          console.log(`[SESSION RUNNER DEBUG] Job ${jobData.id} received message ${messagesProcessed}: type=${message.type}`)
           // Messages are automatically stored by the service
         },
         onError: (error) => {
           hasError = true
           errorMessage = error.message
-          console.log(`[SESSION RUNNER DEBUG] Job ${jobData.id} error: ${error.message}`)
         },
         onStoredEvent: async (event) => {
-          console.log(`[SESSION RUNNER DEBUG] Job ${jobData.id} stored event: type=${event.event_type}, uuid=${event.uuid}`)
           
           // Check if this is a tool_result event for exit_plan_mode
           if (event.event_type === 'user' && event.data && typeof event.data === 'object') {
@@ -172,7 +163,6 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
                       )
                       
                       if (toolUse && !content.is_error) {
-                        console.log(`[SESSION RUNNER DEBUG] Detected successful exit_plan_mode tool_result, scheduling session restart`)
                         
                         // Signal that we should gracefully complete this session
                         hasError = false
@@ -185,7 +175,6 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
                         // We do this asynchronously to avoid blocking the current event processing
                         setTimeout(async () => {
                           try {
-                            console.log(`[SESSION RUNNER DEBUG] Creating continuation job for session ${sessionId}`)
                             
                             // Create a hidden user event for the continuation message
                             const continuationMessage = 'Continue with your plan.'
@@ -222,9 +211,8 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
                             
                             await createJob(jobInput)
                             
-                            console.log(`[SESSION RUNNER DEBUG] Continuation job created for session ${sessionId}`)
                           } catch (error) {
-                            console.error(`[SESSION RUNNER DEBUG] Error creating continuation job:`, error)
+                            console.error(`Error creating continuation job:`, error)
                           }
                         }, 100) // Small delay to ensure current session completes
                       }
@@ -236,7 +224,6 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
           }
         }
       })
-      console.log(`[SESSION RUNNER DEBUG] streamClaudeCodeResponse completed for job ${jobData.id}`)
       
       if (hasError) {
         try {

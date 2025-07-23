@@ -55,16 +55,13 @@ export async function streamClaudeCodeResponse({
 
   // Monitor the external abort signal
   controller.signal.addEventListener('abort', () => {
-    console.log(`[CLAUDE CODE DEBUG] Abort signal received. hasReceivedAssistantMessage: ${hasReceivedAssistantMessage}`)
     abortRequested = true
 
     // Only actually abort if we've received an assistant message
     if (hasReceivedAssistantMessage) {
-      console.log(`[CLAUDE CODE DEBUG] Already received assistant message - aborting immediately`)
       isAborted = true
       internalAbortController.abort()
     } else {
-      console.log(`[CLAUDE CODE DEBUG] No assistant message yet - setting earlyAbortRequested`)
       earlyAbortRequested = true
     }
   })
@@ -105,12 +102,10 @@ export async function streamClaudeCodeResponse({
 
       // Check if we've been aborted BEFORE processing (only if we have the session ID)
       if (isAborted) {
-        console.log(`[CLAUDE CODE DEBUG] Message loop: isAborted=true, breaking loop before processing message ${messageCount + 1}`)
         break
       }
 
       messageCount++
-      console.log(`[CLAUDE CODE DEBUG] Processing message ${messageCount}: type=${message.type}, earlyAbortRequested=${earlyAbortRequested}, isAborted=${isAborted}`)
 
       // Capture timestamp when message is received
       const receivedTimestamp = new Date().toISOString()
@@ -160,11 +155,9 @@ export async function streamClaudeCodeResponse({
       if (memvaSessionId) {
         // Skip storing ANY messages after system message if early abort requested
         if (earlyAbortRequested && message.type !== 'system') {
-          console.log(`[CLAUDE CODE DEBUG] Early abort requested - checking message type: ${message.type}`)
           
           // Check if this is the assistant message we were waiting for
           if (message.type === 'assistant') {
-            console.log(`[CLAUDE CODE DEBUG] Assistant message received during early abort - triggering full abort`)
             isAborted = true
             internalAbortController.abort()
 
@@ -172,7 +165,6 @@ export async function streamClaudeCodeResponse({
             continue
           }
 
-          console.log(`[CLAUDE CODE DEBUG] Skipping storage of ${message.type} message due to early abort`)
           // Skip to next message without storing
           continue
         }
@@ -190,7 +182,6 @@ export async function streamClaudeCodeResponse({
           timestamp: receivedTimestamp
         })
 
-        console.log(`[CLAUDE CODE DEBUG] Storing event: type=${event.event_type}, uuid=${event.uuid}`)
         await storeEvent(event)
         lastEventUuid = event.uuid
 

@@ -86,8 +86,5 @@ export function createEventFromMessage({
 }
 
 export async function storeEvent(event: NewEvent): Promise<void> {
-  if (event.event_type === 'result') {
-    console.log(`[EVENT STORAGE DEBUG] Storing result event at ${event.timestamp} for session ${event.memva_session_id}`)
-  }
   await db.insert(events).values(event).execute()
 }
