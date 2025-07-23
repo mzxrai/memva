@@ -267,9 +267,12 @@ export default function SessionDetail() {
     
     // Focus input immediately since we're enabling it
     if (inputRef.current) {
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 50);
+      // Use requestAnimationFrame instead of setTimeout to avoid race conditions
+      requestAnimationFrame(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+        }
+      });
     }
     
     // Simple retry logic
@@ -463,9 +466,12 @@ export default function SessionDetail() {
   
   // Clear prompt and images on successful submission
   const wasSubmittingRef = useRef(false);
+  
   useEffect(() => {
-    // Track if we were submitting
-    if (navigation.state === "submitting") {
+    // Track if we were submitting and start processing state
+    if ((navigation.state === "submitting" || navigation.state === "loading") && !wasSubmittingRef.current) {
+      processingState.startProcessing();
+      refetchPolling();
       wasSubmittingRef.current = true;
     }
     
@@ -479,7 +485,7 @@ export default function SessionDetail() {
       }
       wasSubmittingRef.current = false;
     }
-  }, [navigation.state, prompt, images.length, clearImages]);
+  }, [navigation.state, processingState, refetchPolling, prompt, images.length, clearImages]);
 
   if (!session) {
     return (
@@ -636,18 +642,19 @@ export default function SessionDetail() {
                 <Form 
                   method="post" 
                   className="flex-1"
-                  onSubmit={() => {
+                  onSubmit={(e) => {
                     const message = prompt.trim();
                     const hasImages = images.length > 0;
                     
-                    // Set processing state for either text or image submissions
-                    if (message || hasImages) {
-                      processingState.startProcessing();
-                      
-                      // Trigger immediate poll to get the message quickly
-                      setTimeout(() => {
-                        refetchPolling();
-                      }, 100);
+                    // Check if textarea is disabled - if so, prevent submit
+                    if (processingState.isInputDisabled) {
+                      e.preventDefault();
+                      return;
+                    }
+                    
+                    // Prevent submit if no content
+                    if (!message && !hasImages) {
+                      e.preventDefault();
                     }
                   }}
                 >
@@ -687,6 +694,11 @@ export default function SessionDetail() {
                       />
                     </div>
                   ))}
+                  
+                  {/* Hidden submit button for Enter key handling 
+                      React Router forms don't properly submit with form.requestSubmit(), 
+                      but clicking a submit button works correctly */}
+                  <button type="submit" style={{ display: 'none' }} aria-hidden="true">Submit</button>
                 </Form>
               </div>
             </div>

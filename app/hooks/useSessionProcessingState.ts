@@ -26,6 +26,15 @@ interface UseSessionProcessingStateOptions {
   isSubmitting?: boolean;
 }
 
+// How long to continue polling after startProcessing is called
+const GRACE_PERIOD_MS = 5000;
+
+// How long to wait before clearing optimistic processing state
+const OPTIMISTIC_TIMEOUT_MS = 10000;
+
+// How long to show transition state after exit plan mode
+const TRANSITION_TIMEOUT_MS = 3000;
+
 // Unified hook that manages all processing-related state for a session
 export function useSessionProcessingState({ 
   sessionId, 
@@ -41,6 +50,9 @@ export function useSessionProcessingState({
 
   // Track when we submit a form to show spinner immediately
   const [optimisticProcessing, setOptimisticProcessing] = useState<number | null>(null);
+  
+  // Track when we last started processing to maintain polling
+  const lastProcessingStartRef = useRef<number>(0);
   
   // Track exit plan mode transitions
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -72,7 +84,13 @@ export function useSessionProcessingState({
     refetchInterval: () => {
       // Poll faster when we know we're processing
       const shouldPoll = state.isProcessing || optimisticProcessing !== null || pendingPermissionCount > 0;
-      return shouldPoll ? pollingInterval : false;
+      
+      // Also keep polling for grace period after startProcessing was called
+      // This ensures we catch new jobs even if we get null responses initially
+      const timeSinceStart = Date.now() - lastProcessingStartRef.current;
+      const inGracePeriod = timeSinceStart < GRACE_PERIOD_MS;
+      
+      return (shouldPoll || inGracePeriod) ? pollingInterval : false;
     },
     enabled: !!sessionId,
     staleTime: 0,
@@ -123,20 +141,28 @@ export function useSessionProcessingState({
             }
           }
         } else {
-          // No job and no permissions - ensure clean state
-          if (prev.isProcessing && !newState.isTransitioning) {
-            // Just finished processing
-            newState.isProcessing = false;
-            newState.activeJob = null;
-            newState.processingStartTime = null;
-          } else if (!prev.isProcessing && prev.processingStartTime) {
-            // Ensure processingStartTime is cleared when not processing
-            newState.processingStartTime = null;
+          // No job and no permissions - check if we're in grace period
+          const timeSinceStart = Date.now() - lastProcessingStartRef.current;
+          const inGracePeriod = timeSinceStart < GRACE_PERIOD_MS;
+          
+          if (inGracePeriod) {
+            // Keep processing state during grace period
+          } else {
+            // Not in grace period - ensure clean state
+            if (prev.isProcessing && !newState.isTransitioning) {
+              // Just finished processing
+              newState.isProcessing = false;
+              newState.activeJob = null;
+              newState.processingStartTime = null;
+            } else if (!prev.isProcessing && prev.processingStartTime) {
+              // Ensure processingStartTime is cleared when not processing
+              newState.processingStartTime = null;
+            }
           }
         }
         
-        // Clear activeJob when no job exists
-        if (prev.activeJob) {
+        // Clear activeJob when no job exists (only if not already cleared above)
+        if (prev.activeJob && newState.activeJob !== null) {
           newState.activeJob = null;
         }
       }
@@ -150,7 +176,7 @@ export function useSessionProcessingState({
     if (optimisticProcessing) {
       const timeout = setTimeout(() => {
         setOptimisticProcessing(null);
-      }, 10000); // Clear after 10 seconds if no job shows up
+      }, OPTIMISTIC_TIMEOUT_MS);
 
       return () => {
         clearTimeout(timeout);
@@ -162,6 +188,7 @@ export function useSessionProcessingState({
   const startProcessing = useCallback(() => {
     const now = Date.now();
     setOptimisticProcessing(now);
+    lastProcessingStartRef.current = now; // Track when we started
     setState(prev => ({
       ...prev,
       isProcessing: true,
@@ -191,7 +218,7 @@ export function useSessionProcessingState({
         isTransitioning: false,
         processingStartTime: null
       }));
-    }, 3000);
+    }, TRANSITION_TIMEOUT_MS);
   }, []);
 
   // Stop processing (ESC key)
@@ -203,6 +230,7 @@ export function useSessionProcessingState({
       isTransitioning: false
     });
     setOptimisticProcessing(null);
+    lastProcessingStartRef.current = 0; // Reset grace period tracking
     if (transitionTimeoutRef.current) {
       clearTimeout(transitionTimeoutRef.current);
     }
@@ -225,7 +253,10 @@ export function useSessionProcessingState({
   // Compute derived state
   const hasPendingPermissions = pendingPermissionCount > 0;
   const showSpinner = state.isProcessing || state.isTransitioning || optimisticProcessing !== null || hasPendingPermissions;
+  
+  // Disable input when processing OR when submitting
   const isInputDisabled = showSpinner || isSubmitting;
+  
   
   const placeholderText = useMemo(() => {
     if (hasPendingPermissions) {

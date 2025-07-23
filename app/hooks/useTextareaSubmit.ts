@@ -15,7 +15,13 @@ export function useTextareaSubmit(
           if (onSubmit) {
             onSubmit();
           }
-          form.requestSubmit();
+          // Try to find and click a submit button instead of using requestSubmit
+          const submitButton = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+          if (submitButton) {
+            submitButton.click();
+          } else {
+            form.requestSubmit();
+          }
         }
       }
     },
