@@ -65,7 +65,7 @@ const SessionCard = memo(function SessionCard({ session, enableLayoutAnimation =
         )}
       >
         {/* Status Indicator */}
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-3 right-3">
           <StatusIndicator session={session} />
         </div>
         
@@ -79,7 +79,7 @@ const SessionCard = memo(function SessionCard({ session, enableLayoutAnimation =
         </div>
 
         {/* Title */}
-        <h3 className="text-lg font-medium text-zinc-100 pr-20 min-h-[3rem] line-clamp-2">
+        <h3 className="text-lg font-medium text-zinc-100 min-h-[3rem] line-clamp-2 mt-3">
           {session.title || "Untitled Session"}
         </h3>
 

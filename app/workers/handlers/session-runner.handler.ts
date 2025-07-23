@@ -79,13 +79,18 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
     
     // Create abort controller for cancellation
     const abortController = new AbortController()
+    console.log(`[SESSION RUNNER DEBUG] Job ${jobData.id} started for session ${sessionId}`)
     
     // Set up cancellation polling
+    let pollCount = 0
     const pollInterval = setInterval(async () => {
+      pollCount++
       try {
         const currentJob = await getJob(jobData.id)
         if (currentJob?.status === 'cancelled') {
+          console.log(`[SESSION RUNNER DEBUG] Job ${jobData.id} detected as cancelled after ${pollCount} polls (${pollCount * 100}ms)`)
           abortController.abort()
+          console.log(`[SESSION RUNNER DEBUG] AbortController.abort() called for job ${jobData.id}`)
           clearInterval(pollInterval)
         }
       } catch (error) {
@@ -99,6 +104,7 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
     
     // Execute Claude Code SDK interaction
     try {
+      console.log(`[SESSION RUNNER DEBUG] Starting streamClaudeCodeResponse for job ${jobData.id}`)
       await streamClaudeCodeResponse({
         prompt,
         projectPath: session.project_path,
@@ -108,18 +114,22 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
         abortController,
         maxTurns: settings.maxTurns,
         permissionMode: settings.permissionMode,
-        onMessage: () => {
+        onMessage: (message) => {
           messagesProcessed++
+          console.log(`[SESSION RUNNER DEBUG] Job ${jobData.id} received message ${messagesProcessed}: type=${message.type}`)
           // Messages are automatically stored by the service
         },
         onError: (error) => {
           hasError = true
           errorMessage = error.message
+          console.log(`[SESSION RUNNER DEBUG] Job ${jobData.id} error: ${error.message}`)
         },
-        onStoredEvent: () => {
+        onStoredEvent: (event) => {
+          console.log(`[SESSION RUNNER DEBUG] Job ${jobData.id} stored event: type=${event.event_type}, uuid=${event.uuid}`)
           // Event storage tracking if needed
         }
       })
+      console.log(`[SESSION RUNNER DEBUG] streamClaudeCodeResponse completed for job ${jobData.id}`)
       
       if (hasError) {
         try {

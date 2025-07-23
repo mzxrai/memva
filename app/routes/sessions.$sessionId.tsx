@@ -657,7 +657,7 @@ export default function SessionDetail() {
           <div className="h-full flex items-center justify-center">
             <p className="text-zinc-500">Loading messages...</p>
           </div>
-        ) : displayEvents.length === 0 && !isProcessing && !isSubmitting ? (
+        ) : displayEvents.length === 0 && !isProcessing && !isSubmitting && !eventsLoading ? (
           <div className="h-full flex items-center justify-center">
             <p className="text-zinc-500">No messages yet. Start by asking something.</p>
           </div>

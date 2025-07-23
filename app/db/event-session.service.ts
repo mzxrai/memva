@@ -142,6 +142,49 @@ export async function getLatestAssistantMessageBatch(
   return resultMap
 }
 
+export async function findAssistantEventWithToolUseId(
+  memvaSessionId: string,
+  toolUseId: string
+): Promise<Event | null> {
+  // Get all assistant events for this session
+  const assistantEvents = await db
+    .select()
+    .from(events)
+    .where(
+      and(
+        eq(events.memva_session_id, memvaSessionId),
+        eq(events.event_type, 'assistant')
+      )
+    )
+    .orderBy(desc(events.timestamp))
+    .execute()
+
+  // Find the event containing this tool_use_id
+  for (const event of assistantEvents) {
+    try {
+      const data = event.data as { 
+        message?: { 
+          content?: Array<{ type: string; id?: string }> 
+        } 
+      } | null
+      
+      if (data?.message?.content && Array.isArray(data.message.content)) {
+        const hasToolUse = data.message.content.some(item => 
+          item.type === 'tool_use' && item.id === toolUseId
+        )
+        
+        if (hasToolUse) {
+          return event
+        }
+      }
+    } catch {
+      // Skip malformed messages
+    }
+  }
+  
+  return null
+}
+
 export async function getLatestUserMessageWithTextBatch(
   memvaSessionIds: string[]
 ): Promise<Map<string, Event | null>> {
