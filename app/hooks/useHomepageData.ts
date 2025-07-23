@@ -29,7 +29,7 @@ export function useHomepageData() {
       return response.json();
     },
     staleTime: 5 * 60 * 1000, // 5 minutes - prevents conflicts with polling interval
-    refetchInterval: 3000, // Poll every 3 seconds
+    refetchInterval: 2000, // Poll every 2 seconds
     refetchIntervalInBackground: true, // Keep polling even when tab is not focused
   })
 

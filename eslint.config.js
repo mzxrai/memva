@@ -61,6 +61,18 @@ export default [
     }
   },
   {
+    files: ['**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.es2021
+      }
+    },
+    rules: {
+      'no-console': 'off'
+    }
+  },
+  {
     ignores: [
       'build/**',
       'node_modules/**',

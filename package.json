@@ -1,7 +1,7 @@
 {
   "name": "memva",
   "version": "0.1.1",
-  "description": "Session manager for AI coding agents",
+  "description": "Session manager for coding agents",
   "type": "module",
   "bin": {
     "memva": "./cli.js"

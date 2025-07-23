@@ -5,6 +5,7 @@ import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { spawn } from 'child_process';
 import open from 'open';
+import net from 'net';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -21,10 +22,59 @@ async function checkDatabase() {
   }
 }
 
+async function isPortAvailable(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    
+    server.once('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        resolve(false);
+      } else {
+        resolve(false);
+      }
+    });
+    
+    server.once('listening', () => {
+      server.close();
+      resolve(true);
+    });
+    
+    server.listen(port);
+  });
+}
+
+async function findAvailablePort(ports) {
+  for (const port of ports) {
+    if (await isPortAvailable(port)) {
+      return port;
+    }
+    console.log(`Port ${port} is already in use, trying next...`);
+  }
+  return null;
+}
+
 async function startServer() {
   // Set environment variables
   process.env.NODE_ENV = 'production';
-  const PORT = process.env.PORT || '7823';  // MEMVA on phone keypad :)
+  
+  // Try multiple ports if the default is blocked
+  const PORTS_TO_TRY = ['7823', '7824', '7825', '7826'];  // MEMVA on phone keypad :)
+  let PORT = process.env.PORT;
+  
+  if (!PORT) {
+    // If no port specified, we'll try our list
+    const availablePort = await findAvailablePort(PORTS_TO_TRY);
+    if (!availablePort) {
+      throw new Error(`All ports are in use: ${PORTS_TO_TRY.join(', ')}`);
+    }
+    PORT = availablePort;
+  } else {
+    // Check if the user-specified port is available
+    if (!(await isPortAvailable(PORT))) {
+      throw new Error(`Port ${PORT} is already in use`);
+    }
+  }
+  
   process.env.PORT = PORT;
   
   console.log(`Starting Memva server...`);

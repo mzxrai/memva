@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 /* eslint-env node */
-/* global console, process */
 
 import { JobSystem } from '../app/workers/index.js'
 
