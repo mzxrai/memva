@@ -1,7 +1,7 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useParams, Form, useLoaderData, useNavigation } from "react-router";
 import { useSessionEvents } from "../hooks/useSessionEvents";
-import { useProcessingState } from "../hooks/useProcessingState";
+import { useSessionProcessingState } from "../hooks/useSessionProcessingState";
 import { useEventStore } from "../stores/event-store";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { RiFolder3Line, RiSettings3Line } from "react-icons/ri";
@@ -18,8 +18,6 @@ import SettingsModal from "../components/SettingsModal";
 import PermissionsBadge from "../components/PermissionsBadge";
 import clsx from "clsx";
 import type { PermissionMode } from "../types/settings";
-import usePermissionPolling from "../hooks/usePermissionPolling";
-import type { PermissionRequest } from "../db/schema";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const sessionId = params.sessionId;
@@ -138,17 +136,6 @@ export default function SessionDetail() {
   const [currentPermissionMode, setCurrentPermissionMode] = useState<PermissionMode>(initialSettings?.permissionMode || 'acceptEdits');
   const [isUpdatingPermissions, setIsUpdatingPermissions] = useState(false);
   
-  // Poll for permission requests
-  const { 
-    permissions, 
-    approve, 
-    deny, 
-    isProcessing: isProcessingPermission 
-  } = usePermissionPolling({ 
-    enabled: true,
-    sessionId // Only poll for this session's permissions
-  });
-  
   // Track user activity on this session page
   useSessionActivity(sessionId);
   
@@ -177,71 +164,6 @@ export default function SessionDetail() {
     };
   }, [sessionId]);
   
-  // Approve with specific permission mode setting
-  const approveWithSettings = useCallback(async (requestId: string, permissionMode: 'default' | 'acceptEdits') => {
-    try {
-      // First, update the session permissions mode
-      setCurrentPermissionMode(permissionMode);
-      setIsUpdatingPermissions(true);
-      
-      const settingsResponse = await fetch(`/api/session/${sessionId}/settings`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...(initialSettings || {}),
-          permissionMode
-        })
-      });
-      
-      if (!settingsResponse.ok) {
-        throw new Error('Failed to update settings');
-      }
-      
-      // Then approve the permission request
-      await approve(requestId);
-    } catch (error) {
-      console.error('Failed to approve with settings:', error);
-      // Revert permission mode on error
-      setCurrentPermissionMode(currentPermissionMode);
-      throw error;
-    } finally {
-      setIsUpdatingPermissions(false);
-    }
-  }, [approve, currentPermissionMode, sessionId, initialSettings]);
-
-  // Cycle through permission modes
-  const cyclePermissionMode = useCallback(async () => {
-    const modes: PermissionMode[] = ['default', 'acceptEdits', 'bypassPermissions', 'plan'];
-    const currentIndex = modes.indexOf(currentPermissionMode);
-    const nextMode = modes[(currentIndex + 1) % modes.length];
-    
-    // Update UI optimistically
-    setCurrentPermissionMode(nextMode);
-    setIsUpdatingPermissions(true);
-    
-    try {
-      // Update session settings
-      const response = await fetch(`/api/session/${sessionId}/settings`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...(initialSettings || {}),
-          permissionMode: nextMode
-        })
-      });
-      
-      if (!response.ok) {
-        // Revert on error
-        setCurrentPermissionMode(currentPermissionMode);
-      }
-    } catch {
-      // Revert on error
-      setCurrentPermissionMode(currentPermissionMode);
-    } finally {
-      setIsUpdatingPermissions(false);
-    }
-  }, [currentPermissionMode, sessionId, initialSettings]);
-  
   // Autofocus input on mount
   useEffect(() => {
     if (inputRef.current) {
@@ -264,12 +186,50 @@ export default function SessionDetail() {
     return initialSession;
   }, [initialSession, sessionStatus]);
   
-  // Use unified processing state
-  const processingState = useProcessingState({ sessionId });
+  // Track form submission state
+  const isSubmitting = navigation.state === "submitting";
+  
+  // Use unified processing state that includes permissions
+  const processingState = useSessionProcessingState({ 
+    sessionId,
+    isSubmitting 
+  });
   
   // State management
   const [prompt, setPrompt] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  
+  // Approve with specific permission mode setting
+  const approveWithSettings = useCallback(async (requestId: string, permissionMode: 'default' | 'acceptEdits') => {
+    try {
+      // First, update the session permissions mode
+      setCurrentPermissionMode(permissionMode);
+      setIsUpdatingPermissions(true);
+      
+      const settingsResponse = await fetch(`/api/session/${sessionId}/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(initialSettings || {}),
+          permissionMode
+        })
+      });
+      
+      if (!settingsResponse.ok) {
+        throw new Error('Failed to update settings');
+      }
+      
+      // Then approve the permission request
+      await processingState.approvePermission(requestId);
+    } catch (error) {
+      console.error('Failed to approve with settings:', error);
+      // Revert permission mode on error
+      setCurrentPermissionMode(currentPermissionMode);
+      throw error;
+    } finally {
+      setIsUpdatingPermissions(false);
+    }
+  }, [processingState, currentPermissionMode, sessionId, initialSettings]);
   
   // Use image upload hook
   const {
@@ -282,9 +242,6 @@ export default function SessionDetail() {
     clearImages,
   } = useImageUpload();
   
-  // Track form submission state
-  const isSubmitting = navigation.state === "submitting";
-  
   // Use custom hooks for textarea functionality
   const { textareaRef: inputRef } = useAutoResizeTextarea(prompt, { maxRows: 5 });
   const handleTextareaKeyDown = useTextareaSubmit(prompt, undefined, images.length > 0);
@@ -292,14 +249,14 @@ export default function SessionDetail() {
 
   // Create permissions map by tool_use_id
   const permissionsByToolId = useMemo(() => {
-    const map = new Map<string, PermissionRequest>();
-    permissions.forEach(permission => {
+    const map = new Map<string, typeof processingState.permissions[0]>();
+    processingState.permissions.forEach(permission => {
       if (permission.tool_use_id) {
         map.set(permission.tool_use_id, permission);
       }
     });
     return map;
-  }, [permissions]);
+  }, [processingState.permissions]);
 
   // All event processing is now handled by Zustand store selectors
   
@@ -545,10 +502,10 @@ export default function SessionDetail() {
       // Escape key functionality
       if (e.key === 'Escape') {
         // First priority: deny pending permissions
-        const pendingPermission = permissions.find(p => p.status === 'pending');
-        if (pendingPermission && !isProcessingPermission) {
+        const pendingPermission = processingState.permissions.find(p => p.status === 'pending');
+        if (pendingPermission && !processingState.isProcessingPermission) {
           e.preventDefault();
-          await deny(pendingPermission.id);
+          await processingState.denyPermission(pendingPermission.id);
           return;
         }
         
@@ -561,15 +518,15 @@ export default function SessionDetail() {
       }
       
       // SHIFT+TAB to cycle permission modes
-      if (e.key === 'Tab' && e.shiftKey) {
-        e.preventDefault();
-        cyclePermissionMode();
-      }
+      // if (e.key === 'Tab' && e.shiftKey) {
+      //   e.preventDefault();
+      //   cyclePermissionMode();
+      // }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [processingState.isProcessing, handleStop, cyclePermissionMode, permissions, deny, isProcessingPermission]);
+  }, [processingState, handleStop]);
 
   return (
     <div className="h-screen bg-zinc-950 flex flex-col overflow-hidden">
@@ -636,10 +593,10 @@ export default function SessionDetail() {
                 event={event}
                 toolResults={toolResults}
                 permissions={permissionsByToolId}
-                onApprovePermission={approve}
-                onDenyPermission={deny}
+                onApprovePermission={processingState.approvePermission}
+                onDenyPermission={processingState.denyPermission}
                 onApprovePermissionWithSettings={approveWithSettings}
-                isProcessingPermission={isProcessingPermission}
+                isProcessingPermission={processingState.isProcessingPermission}
                 isStreaming={false}
               />
             ))}
@@ -702,7 +659,7 @@ export default function SessionDetail() {
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       onKeyDown={handleTextareaKeyDown}
-                      disabled={processingState.showSpinner || isSubmitting}
+                      disabled={processingState.isInputDisabled}
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
@@ -710,13 +667,7 @@ export default function SessionDetail() {
                       rows={1}
                       className="flex-1 bg-transparent text-zinc-100 focus:outline-none disabled:opacity-50 font-mono text-[0.9375rem] resize-none leading-normal"
                       role="textbox"
-                      placeholder={
-                        permissions.some(p => p.status === 'pending') 
-                          ? "Awaiting permission... (ESC to deny)" 
-                          : processingState.showSpinner || isSubmitting 
-                            ? "Processing... (ESC to stop)" 
-                            : ""
-                      }
+                      placeholder={processingState.placeholderText}
                       style={{ overflowY: 'hidden' }}
                     />
                   </div>

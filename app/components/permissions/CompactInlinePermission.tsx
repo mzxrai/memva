@@ -2,6 +2,7 @@ import type { PermissionRequest } from '../../db/schema'
 import { typography } from '../../constants/design'
 import { RiCheckLine, RiCloseLine } from 'react-icons/ri'
 import clsx from 'clsx'
+import { PermissionStatus } from '../../types/permissions'
 
 interface CompactInlinePermissionProps {
   request: PermissionRequest
@@ -10,6 +11,7 @@ interface CompactInlinePermissionProps {
   isProcessing?: boolean
   isExitPlanMode?: boolean
   onApproveWithSettings?: (requestId: string, permissionMode: 'default' | 'acceptEdits') => void
+  canAnswer?: boolean
 }
 
 export default function CompactInlinePermission({ 
@@ -18,11 +20,61 @@ export default function CompactInlinePermission({
   onDeny,
   isProcessing = false,
   isExitPlanMode = false,
-  onApproveWithSettings
+  onApproveWithSettings,
+  canAnswer = true
 }: CompactInlinePermissionProps) {
-  const isPending = request.status === 'pending'
+  const isPending = request.status === PermissionStatus.PENDING
+  const isApproved = request.status === PermissionStatus.APPROVED
+  const isDenied = request.status === PermissionStatus.DENIED
   
-  if (!isPending) return null
+  if (!isPending && !isApproved && !isDenied) return null
+
+  // Show status for non-pending requests
+  if (!isPending) {
+    return (
+      <div className={clsx(
+        "flex items-center justify-center gap-2 px-3 py-2 rounded-lg border",
+        "transition-all duration-200",
+        isApproved && "bg-green-900/20 border-green-800/30",
+        isDenied && "bg-red-900/20 border-red-800/30"
+      )}>
+        <div className={clsx(
+          typography.size.sm,
+          "flex items-center gap-1.5",
+          isApproved && "text-green-400",
+          isDenied && "text-red-400"
+        )}>
+          {isApproved && (
+            <>
+              <RiCheckLine className="w-3.5 h-3.5" />
+              <span>Approved</span>
+            </>
+          )}
+          {isDenied && (
+            <>
+              <RiCloseLine className="w-3.5 h-3.5" />
+              <span>Denied</span>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
+  
+  // If can't answer, show disabled state
+  if (!canAnswer) {
+    return (
+      <div className={clsx(
+        "flex items-center justify-center gap-2 px-3 py-2 rounded-lg border",
+        "bg-zinc-800/50 border-zinc-700/30",
+        "transition-all duration-200"
+      )}>
+        <div className={clsx(typography.size.sm, "text-zinc-500")}>
+          No longer answerable
+        </div>
+      </div>
+    )
+  }
 
   // For exit_plan_mode with onApproveWithSettings, show three options
   if (isExitPlanMode && onApproveWithSettings) {

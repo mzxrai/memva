@@ -74,7 +74,8 @@ export default function usePermissionPolling(options: UsePermissionPollingOption
       })
       
       if (!response.ok) {
-        throw new Error('Failed to approve permission')
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to approve permission')
       }
       
       await fetchPermissions() // Refetch after update
@@ -96,7 +97,8 @@ export default function usePermissionPolling(options: UsePermissionPollingOption
       })
       
       if (!response.ok) {
-        throw new Error('Failed to deny permission')
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to deny permission')
       }
       
       await fetchPermissions() // Refetch after update

@@ -21,9 +21,17 @@ describe('Permission Decision API Route', () => {
   describe('POST /api/permissions/:id', () => {
     it('should approve a permission request', async () => {
       const { createPermissionRequest } = await import('../db/permissions.service')
+      const { createJob } = await import('../db/jobs.service')
       const { action } = await import('../routes/api.permissions.$id')
       
       const session = testDb.createSession({ title: 'Test Session', project_path: '/test' })
+      
+      // Create an active job for the session
+      await createJob({
+        type: 'session-runner',
+        data: { sessionId: session.id },
+        priority: 1
+      })
       
       const request = await createPermissionRequest({
         session_id: session.id,
@@ -53,9 +61,17 @@ describe('Permission Decision API Route', () => {
 
     it('should deny a permission request', async () => {
       const { createPermissionRequest } = await import('../db/permissions.service')
+      const { createJob } = await import('../db/jobs.service')
       const { action } = await import('../routes/api.permissions.$id')
       
       const session = testDb.createSession({ title: 'Test Session', project_path: '/test' })
+      
+      // Create an active job for the session
+      await createJob({
+        type: 'session-runner',
+        data: { sessionId: session.id },
+        priority: 1
+      })
       
       const request = await createPermissionRequest({
         session_id: session.id,
@@ -142,11 +158,19 @@ describe('Permission Decision API Route', () => {
 
     it('should create synthetic tool_result event when permission with tool_use_id is denied', async () => {
       const { createPermissionRequest } = await import('../db/permissions.service')
+      const { createJob } = await import('../db/jobs.service')
       const { action } = await import('../routes/api.permissions.$id')
       const { storeEvent } = await import('../db/events.service')
       const { getEventsForSession } = await import('../db/event-session.service')
       
       const session = testDb.createSession({ title: 'Test Session', project_path: '/test' })
+      
+      // Create an active job for the session
+      await createJob({
+        type: 'session-runner',
+        data: { sessionId: session.id },
+        priority: 1
+      })
       
       // Create a mock assistant event with tool_use
       const toolUseId = 'toolu_test123'

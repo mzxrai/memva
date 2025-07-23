@@ -56,7 +56,7 @@ export const permissionRequests = sqliteTable('permission_requests', {
   tool_name: text('tool_name').notNull(),
   tool_use_id: text('tool_use_id'),
   input: text('input', { mode: 'json' }).notNull(),
-  status: text('status').notNull().default('pending'), // pending, approved, denied, timeout
+  status: text('status').notNull().default('pending'), // pending, approved, denied, timeout, expired, superseded, cancelled
   decision: text('decision'), // allow, deny
   decided_at: text('decided_at'),
   created_at: text('created_at').notNull(),

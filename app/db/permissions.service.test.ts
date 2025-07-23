@@ -58,6 +58,38 @@ describe('Permissions Service', () => {
       const diffInHours = (expiresAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60)
       expect(diffInHours).toBeCloseTo(24, 0)
     })
+
+    it('should supersede existing pending permissions for the same session', async () => {
+      const session = testDb.createSession({ title: 'Test Session', project_path: '/test' })
+      
+      // Create first permission
+      const first = await createPermissionRequest({
+        session_id: session.id,
+        tool_name: 'Read',
+        tool_use_id: 'tool-1',
+        input: { file_path: '/file1.txt' }
+      })
+      
+      // Create second permission for same session
+      const second = await createPermissionRequest({
+        session_id: session.id,
+        tool_name: 'Write',
+        tool_use_id: 'tool-2',
+        input: { file_path: '/file2.txt' }
+      })
+      
+      // Check that first is superseded and second is pending
+      const allRequests = await getPermissionRequests({ session_id: session.id })
+      const firstUpdated = allRequests.find(r => r.id === first.id)
+      const secondUpdated = allRequests.find(r => r.id === second.id)
+      
+      expect(firstUpdated?.status).toBe('superseded')
+      expect(secondUpdated?.status).toBe('pending')
+      
+      // Only one should be pending
+      const pendingRequests = allRequests.filter(r => r.status === 'pending')
+      expect(pendingRequests).toHaveLength(1)
+    })
   })
 
   describe('getPermissionRequests', () => {
@@ -111,6 +143,14 @@ describe('Permissions Service', () => {
 
     it('should filter permission requests by status', async () => {
       const session = testDb.createSession({ title: 'Session', project_path: '/test' })
+      
+      // Create an active job so we can approve the permission
+      const { createJob } = await import('./jobs.service')
+      await createJob({
+        type: 'session-runner',
+        data: { sessionId: session.id },
+        priority: 1
+      })
 
       const pending = await createPermissionRequest({
         session_id: session.id,
@@ -119,14 +159,23 @@ describe('Permissions Service', () => {
         input: { file_path: '/file1.txt' }
       })
 
-      const approved = await createPermissionRequest({
+      // Clone the permission and approve it (simulating different request)
+      const { db } = await import('./index')
+      const { permissionRequests } = await import('./schema')
+      const insertedApproved = db.insert(permissionRequests).values({
+        id: crypto.randomUUID(),
         session_id: session.id,
         tool_name: 'Write',
         tool_use_id: 'tool-2',
-        input: { file_path: '/file2.txt' }
-      })
-
-      await updatePermissionDecision(approved.id, { decision: 'allow' })
+        input: { file_path: '/file2.txt' },
+        status: 'approved',
+        decision: 'allow',
+        decided_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      }).returning().get()
+      
+      const approved = insertedApproved as typeof insertedApproved & NonNullable<typeof insertedApproved>
 
       const pendingRequests = await getPermissionRequests({ status: 'pending' })
       expect(pendingRequests).toHaveLength(1)
@@ -150,14 +199,21 @@ describe('Permissions Service', () => {
         input: { file_path: '/file1.txt' }
       })
 
-      // Create an approved request
-      const approved = await createPermissionRequest({
+      // Create an approved request directly in DB
+      const { db } = await import('./index')
+      const { permissionRequests } = await import('./schema')
+      db.insert(permissionRequests).values({
+        id: crypto.randomUUID(),
         session_id: session.id,
         tool_name: 'Write',
         tool_use_id: 'tool-2',
-        input: { file_path: '/file2.txt' }
-      })
-      await updatePermissionDecision(approved.id, { decision: 'allow' })
+        input: { file_path: '/file2.txt' },
+        status: 'approved',
+        decision: 'allow',
+        decided_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      }).run()
 
       const pendingRequests = await getPendingPermissionRequests()
       expect(pendingRequests).toHaveLength(1)
@@ -229,12 +285,13 @@ describe('Permissions Service', () => {
   })
 
   describe('expireOldRequests', () => {
-    it('should mark requests older than 24 hours as timeout', async () => {
-      const session = testDb.createSession({ title: 'Session', project_path: '/test' })
+    it('should mark requests older than 24 hours as expired', async () => {
+      const session1 = testDb.createSession({ title: 'Session 1', project_path: '/test1' })
+      const session2 = testDb.createSession({ title: 'Session 2', project_path: '/test2' })
 
       // Create a request with expires_at in the past
       const expiredRequest = await createPermissionRequest({
-        session_id: session.id,
+        session_id: session1.id,
         tool_name: 'Read',
         tool_use_id: 'tool-1',
         input: { file_path: '/file.txt' }
@@ -245,9 +302,9 @@ describe('Permissions Service', () => {
         'UPDATE permission_requests SET expires_at = ? WHERE id = ?'
       ).run(new Date(Date.now() - 1000).toISOString(), expiredRequest.id)
 
-      // Create a non-expired request
+      // Create a non-expired request for different session
       const validRequest = await createPermissionRequest({
-        session_id: session.id,
+        session_id: session2.id,
         tool_name: 'Write',
         tool_use_id: 'tool-2',
         input: { file_path: '/file2.txt' }
@@ -260,7 +317,7 @@ describe('Permissions Service', () => {
       const expired = requests.find(r => r.id === expiredRequest.id)
       const valid = requests.find(r => r.id === validRequest.id)
 
-      expect(expired?.status).toBe('timeout')
+      expect(expired?.status).toBe('expired')
       expect(valid?.status).toBe('pending')
     })
 
@@ -331,8 +388,8 @@ describe('Permissions Service', () => {
 
       const countMap = await getPendingPermissionsCountBatch([session1.id, session2.id, session3.id])
 
-      expect(countMap.get(session1.id)).toBe(2)
-      expect(countMap.get(session2.id)).toBe(1)
+      expect(countMap.get(session1.id)).toBe(1) // Only one pending per session due to transaction
+      expect(countMap.get(session2.id)).toBe(0) // Approved request superseded the pending one
       expect(countMap.get(session3.id)).toBe(0)
     })
 

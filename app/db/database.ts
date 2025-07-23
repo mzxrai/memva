@@ -228,6 +228,7 @@ function runMigrations() {
     console.log('Migrating: Adding visible column to events table')
     sqlite.exec(`ALTER TABLE events ADD COLUMN visible INTEGER DEFAULT 1`)
   }
+  
 }
 
 export function closeDatabase() {

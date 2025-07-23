@@ -1,5 +1,5 @@
 import type { Route } from "./+types/api.permissions.$id"
-import { getPermissionRequests, updatePermissionDecision } from "../db/permissions.service"
+import { getPermissionRequests, updatePermissionDecision, canAnswerPermission } from "../db/permissions.service"
 import { getActiveJobForSession, cancelJob, getJob } from "../db/jobs.service"
 import { updateSessionClaudeStatus } from "../db/sessions.service"
 import { createEventFromMessage, storeEvent } from "../db/events.service"
@@ -46,6 +46,15 @@ export async function action({ request, params }: Route.ActionArgs) {
     if (permission.status !== 'pending') {
       return Response.json(
         { error: "Permission request has already been decided" },
+        { status: 400 }
+      )
+    }
+    
+    // Check if permission can still be answered
+    const canAnswer = await canAnswerPermission(id)
+    if (!canAnswer) {
+      return Response.json(
+        { error: "Permission request can no longer be answered" },
         { status: 400 }
       )
     }

@@ -7,6 +7,7 @@ import { ServerRouter } from "react-router";
 import { JobSystem } from "./workers/index";
 import { createJob } from "./db/jobs.service";
 import { createMaintenanceJob } from "./workers/job-types";
+import { expireAllPendingPermissions } from "./db/permissions.service";
 
 // WARNING: This is a workaround for a memory leak in @anthropic-ai/claude-code SDK
 // The SDK adds exit listeners to the process without cleaning them up, causing
@@ -117,6 +118,15 @@ const sigtermListeners = process.listenerCount('SIGTERM');
 if (sigintListeners === 0) {
   process.on('SIGINT', async () => {
     console.log('\n🛑 Shutting down job system...');
+    
+    // Expire all pending permissions before shutdown
+    try {
+      await expireAllPendingPermissions();
+      console.log('✅ Expired pending permissions');
+    } catch (error) {
+      console.error('❌ Failed to expire pending permissions:', error);
+    }
+    
     if (jobSystem) {
       await jobSystem.stop();
       console.log('✅ Job system stopped');
@@ -127,6 +137,13 @@ if (sigintListeners === 0) {
 
 if (sigtermListeners === 0) {
   process.on('SIGTERM', async () => {
+    // Expire all pending permissions before shutdown
+    try {
+      await expireAllPendingPermissions();
+    } catch (error) {
+      console.error('Failed to expire pending permissions:', error);
+    }
+    
     if (jobSystem) {
       await jobSystem.stop();
     }

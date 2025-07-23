@@ -128,14 +128,24 @@ async function handleDatabaseBackup(data: MaintenanceJobData, result: Record<str
 
 async function handlePermissionCleanup(data: MaintenanceJobData, result: Record<string, unknown>) {
   const { expireOldRequests } = await import('../../db/permissions.service')
+  const { createJob } = await import('../../db/jobs.service')
+  const { createMaintenanceJob } = await import('../job-types')
   
   try {
     // Expire permission requests older than 24 hours
     const expiredCount = await expireOldRequests()
     
+    // Schedule next cleanup in 5 minutes
+    const nextCleanup = new Date(Date.now() + 5 * 60 * 1000) // 5 minutes from now
+    await createJob({
+      ...createMaintenanceJob({ operation: 'cleanup-expired-permissions' }),
+      scheduled_at: nextCleanup.toISOString()
+    })
+    
     return {
       ...result,
-      expiredCount
+      expiredCount,
+      nextCleanupScheduled: nextCleanup.toISOString()
     }
   } catch (error) {
     throw new Error(`Permission cleanup failed: ${(error as Error).message}`)

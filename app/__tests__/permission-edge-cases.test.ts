@@ -186,14 +186,18 @@ describe('Permission System Edge Cases', () => {
     it('should handle many permissions efficiently', async () => {
       const { createPermissionRequest, getPendingPermissionRequests } = await import('../db/permissions.service')
       
-      const session = testDb.createSession({ title: 'Bulk Test Session', project_path: '/test' })
+      // Create multiple sessions to test many permissions
+      const sessions = []
+      for (let i = 0; i < 50; i++) {
+        sessions.push(testDb.createSession({ title: `Session ${i}`, project_path: `/test${i}` }))
+      }
       
-      // Create many permission requests
+      // Create one permission per session
       const promises = []
       for (let i = 0; i < 50; i++) {
         promises.push(
           createPermissionRequest({
-            session_id: session.id,
+            session_id: sessions[i].id,
             tool_name: ['Bash', 'Read', 'Write'][i % 3],
             tool_use_id: `bulk-${i}`,
             input: { index: i }
@@ -213,13 +217,17 @@ describe('Permission System Edge Cases', () => {
       const { db } = await import('../db/index')
       const { permissionRequests } = await import('../db/schema')
       
-      const session = testDb.createSession({ title: 'Bulk Expiry Test', project_path: '/test' })
+      // Create multiple sessions
+      const sessions = []
+      for (let i = 0; i < 30; i++) {
+        sessions.push(testDb.createSession({ title: `Expiry Session ${i}`, project_path: `/test${i}` }))
+      }
       
-      // Create many old permissions
+      // Create one permission per session
       const requests = []
       for (let i = 0; i < 30; i++) {
         const request = await createPermissionRequest({
-          session_id: session.id,
+          session_id: sessions[i].id,
           tool_name: 'Bash',
           tool_use_id: `expire-${i}`,
           input: { command: `echo ${i}` }

@@ -88,27 +88,37 @@ describe('Permissions API Routes', () => {
 
     it('should filter by status when provided', async () => {
       const { createPermissionRequest } = await import('../db/permissions.service')
+      const { createJob } = await import('../db/jobs.service')
       const { loader } = await import('../routes/api.permissions')
       
-      const session = testDb.createSession({ title: 'Test Session', project_path: '/test' })
+      // Create two different sessions
+      const session1 = testDb.createSession({ title: 'Test Session 1', project_path: '/test1' })
+      const session2 = testDb.createSession({ title: 'Test Session 2', project_path: '/test2' })
+      
+      // Create an active job for session2 so we can answer its permission
+      await createJob({
+        type: 'session-runner',
+        data: { sessionId: session2.id },
+        priority: 1
+      })
       
       // Create permissions with different statuses
       const pendingRequest = await createPermissionRequest({
-        session_id: session.id,
+        session_id: session1.id,
         tool_name: 'Bash',
         tool_use_id: null,
         input: { command: 'ls' }
       })
       
-      const approvedRequest = await createPermissionRequest({
-        session_id: session.id,
+      const toApproveRequest = await createPermissionRequest({
+        session_id: session2.id,
         tool_name: 'Write',
         tool_use_id: null,
         input: { file_path: '/test.txt', content: 'test' }
       })
       
       const { updatePermissionDecision } = await import('../db/permissions.service')
-      await updatePermissionDecision(approvedRequest.id, { decision: 'allow' })
+      await updatePermissionDecision(toApproveRequest.id, { decision: 'allow' })
       
       // Test with status filter
       const request = new Request('http://localhost/api/permissions?status=pending')

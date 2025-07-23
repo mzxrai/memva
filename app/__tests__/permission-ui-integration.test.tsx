@@ -265,14 +265,28 @@ describe('Permission UI Integration', () => {
     it('should handle rapid permission changes', async () => {
       const { default: usePermissionPolling } = await import('../hooks/usePermissionPolling')
       const { createPermissionRequest } = await import('../db/permissions.service')
+      const { createJob } = await import('../db/jobs.service')
       
-      const session = testDb.createSession({ title: 'Test Session', project_path: '/test' })
+      const session1 = testDb.createSession({ title: 'Test Session 1', project_path: '/test1' })
+      const session2 = testDb.createSession({ title: 'Test Session 2', project_path: '/test2' })
+      
+      // Create jobs so we can answer permissions
+      await createJob({
+        type: 'session-runner',
+        data: { sessionId: session1.id },
+        priority: 1
+      })
+      await createJob({
+        type: 'session-runner',
+        data: { sessionId: session2.id },
+        priority: 1
+      })
       
       const { result } = renderHook(() => usePermissionPolling({ pollingInterval: 100 }))
       
       // Create multiple permissions rapidly
       await createPermissionRequest({
-        session_id: session.id,
+        session_id: session1.id,
         tool_name: 'Bash',
         tool_use_id: 'tool-1',
         input: { command: 'echo 1' }
@@ -285,9 +299,9 @@ describe('Permission UI Integration', () => {
       
       expect(result.current.permissions).toHaveLength(1)
       
-      // Add more
+      // Add more from different session
       await createPermissionRequest({
-        session_id: session.id,
+        session_id: session2.id,
         tool_name: 'Write',
         tool_use_id: 'tool-2',
         input: { file_path: '/test.txt', content: 'data' }
@@ -307,7 +321,7 @@ describe('Permission UI Integration', () => {
       })
       
       expect(result.current.permissions).toHaveLength(1)
-      expect(result.current.permissions[0].tool_name).toBe('Write')
+      expect(result.current.pendingCount).toBe(1)
     })
   })
 })

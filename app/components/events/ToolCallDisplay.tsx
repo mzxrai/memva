@@ -416,7 +416,7 @@ export const ToolCallDisplay = memo(({
       </div>
       
       {/* Inline permission request */}
-      {permission && permission.status === 'pending' && onApprovePermission && onDenyPermission && (
+      {permission && onApprovePermission && onDenyPermission && (
         <div className="mt-2 mb-2">
           <CompactInlinePermission
             request={permission}

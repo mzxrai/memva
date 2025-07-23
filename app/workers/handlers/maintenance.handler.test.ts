@@ -26,8 +26,9 @@ describe('Maintenance Handler - Permission Cleanup', () => {
       const { permissionRequests } = await import('../../db/schema')
       const { eq } = await import('drizzle-orm')
       
-      // Create test session
-      const session = testDb.createSession({ title: 'Test Session', project_path: '/test' })
+      // Create test sessions
+      const session1 = testDb.createSession({ title: 'Test Session 1', project_path: '/test1' })
+      const session2 = testDb.createSession({ title: 'Test Session 2', project_path: '/test2' })
       
       // Create permission requests with different ages
       const now = new Date()
@@ -35,7 +36,7 @@ describe('Maintenance Handler - Permission Cleanup', () => {
       
       // Create old permission request
       const oldRequest = await createPermissionRequest({
-        session_id: session.id,
+        session_id: session1.id,
         tool_name: 'Bash',
         tool_use_id: null,
         input: { command: 'ls' }
@@ -47,9 +48,9 @@ describe('Maintenance Handler - Permission Cleanup', () => {
         .where(eq(permissionRequests.id, oldRequest.id))
         .run()
       
-      // Create recent permission request
+      // Create recent permission request for different session
       await createPermissionRequest({
-        session_id: session.id,
+        session_id: session2.id,
         tool_name: 'Write',
         tool_use_id: null,
         input: { file_path: '/test.txt', content: 'test' }
@@ -82,7 +83,7 @@ describe('Maintenance Handler - Permission Cleanup', () => {
         .where(eq(permissionRequests.id, oldRequest.id))
         .get()
       
-      expect(oldRequestUpdated?.status).toBe('timeout')
+      expect(oldRequestUpdated?.status).toBe('expired')
     })
 
     it('should handle case with no expired permissions', async () => {
