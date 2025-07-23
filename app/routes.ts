@@ -4,8 +4,6 @@ export default [
   index("routes/home.tsx"),
   route("archived", "routes/archived.tsx"),
   route("sessions/:sessionId", "routes/sessions.$sessionId.tsx"),
-  route("events", "routes/events.tsx"),
-  route("events/:sessionId", "routes/events.$sessionId.tsx"),
   route("api/session/:sessionId", "routes/api.session.$sessionId.ts"),
   route("api/session/:sessionId/status", "routes/api.session.$sessionId.status.tsx"),
   route("api/sessions/:sessionId/stop", "routes/api.sessions.$sessionId.stop.tsx"),

@@ -1,14 +1,18 @@
-import { listSessions, getSessionsWithStatsBatch } from "../db/sessions.service"
+import { listSessions, getSessionsWithStatsBatch, countArchivedSessions } from "../db/sessions.service"
 import { getLatestAssistantMessageBatch, getLatestUserMessageWithTextBatch } from "../db/event-session.service"
 import { getPendingPermissionsCountBatch } from "../db/permissions.service"
 
 export async function loader() {
   try {
-    const sessions = await listSessions({ status: 'active' })
+    const [sessions, archivedCount] = await Promise.all([
+      listSessions({ status: 'active' }),
+      countArchivedSessions()
+    ])
     
     if (sessions.length === 0) {
       return Response.json({
         sessions: [],
+        archivedCount,
         timestamp: new Date().toISOString()
       })
     }
@@ -44,6 +48,7 @@ export async function loader() {
     
     return Response.json({
       sessions: enhancedSessions,
+      archivedCount,
       timestamp: new Date().toISOString()
     })
   } catch (error) {

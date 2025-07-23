@@ -29,7 +29,7 @@ type ArchivedSession = {
 export function meta() {
   return [
     { title: "Archived Sessions - Memva" },
-    { name: "description", content: "View your archived Claude Code sessions" },
+    { name: "description", content: "View your archived sessions" },
   ];
 }
 

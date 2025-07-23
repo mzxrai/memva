@@ -632,10 +632,10 @@ export default function SessionDetail() {
               <button
                 onClick={() => setIsSettingsOpen(true)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/50 transition-all duration-200"
-                aria-label="Session Settings"
+                aria-label="Session settings"
               >
                 <RiSettings3Line className="w-4 h-4" />
-                <span>Session Settings</span>
+                <span>Session settings</span>
               </button>
             </div>
           </div>
@@ -659,7 +659,7 @@ export default function SessionDetail() {
           </div>
         ) : displayEvents.length === 0 && !isProcessing && !isSubmitting ? (
           <div className="h-full flex items-center justify-center">
-            <p className="text-zinc-500">No messages yet. Start by asking Claude Code something!</p>
+            <p className="text-zinc-500">No messages yet. Start by asking something.</p>
           </div>
         ) : (
           <div className="container mx-auto max-w-7xl py-4">
@@ -743,7 +743,7 @@ export default function SessionDetail() {
                       rows={1}
                       className="flex-1 bg-transparent text-zinc-100 focus:outline-none disabled:opacity-50 font-mono text-[0.9375rem] resize-none leading-normal"
                       role="textbox"
-                      placeholder={isProcessing || isSubmitting ? "Processing... (ESC to stop)" : "Ask Claude Code anything..."}
+                      placeholder={isProcessing || isSubmitting ? "Processing... (ESC to stop)" : ""}
                       style={{ overflowY: 'hidden' }}
                     />
                   </div>

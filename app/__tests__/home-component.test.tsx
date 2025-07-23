@@ -3,10 +3,11 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useLoaderData } from 'react-router'
 import { createMockSessionWithStats } from '../test-utils/factories'
-import { expectSemanticMarkup, expectContent } from '../test-utils/component-testing'
+import { expectContent } from '../test-utils/component-testing'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Home from '../routes/home'
 import { useHomepageData } from '../hooks/useHomepageData'
+import { useImageUpload } from '../hooks/useImageUpload'
 
 // Mock React Router hooks
 vi.mock('react-router', () => ({
@@ -49,7 +50,8 @@ vi.mock('../hooks/useImageUpload', () => ({
     handleDragOver: vi.fn(),
     handleDragLeave: vi.fn(),
     handleDrop: vi.fn(),
-    removeImage: vi.fn()
+    removeImage: vi.fn(),
+    clearImages: vi.fn()
   }))
 }))
 
@@ -86,13 +88,14 @@ describe('Home Component', () => {
     })
   })
 
-  it('should render page title and empty state when no sessions', () => {
+  it('should render empty state with centered form when no sessions', () => {
     // Mock loader data with empty sessions
     vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
     
     // Mock useHomepageData to return empty sessions
     vi.mocked(useHomepageData).mockReturnValue({
       sessions: [],
+      archivedCount: 0,
       timestamp: new Date().toISOString(),
       error: null,
       isLoading: false
@@ -104,16 +107,20 @@ describe('Home Component', () => {
       </QueryClientProvider>
     )
     
-    // Test empty state heading (h2 instead of h1)
-    expectSemanticMarkup.heading(2, 'No sessions yet')
-    
-    // Test empty state content
-    expectContent.text('No sessions yet')
-    expectContent.text('Start working with Claude Code to see your sessions here')
-    
-    // Test session creation form
+    // Test session creation form exists (centered when no sessions)
     expect(screen.getByRole('textbox')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText(/start a new claude code session/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/start a new session: ask, brainstorm, build/i)).toBeInTheDocument()
+    
+    // Test directory selector button is visible (path might be shortened to ~)
+    expect(screen.getByText('~')).toBeInTheDocument()
+    expect(screen.getByText('$')).toBeInTheDocument()
+    
+    // Test settings button is present
+    const settingsButton = screen.getByRole('button', { name: 'Open settings' })
+    expect(settingsButton).toBeInTheDocument()
+    
+    // Test tooltip appears when no sessions
+    expect(screen.getByText('Select your working directory')).toBeInTheDocument()
   })
 
   it('should render sessions grid when sessions exist', () => {
@@ -140,6 +147,7 @@ describe('Home Component', () => {
     // Mock useHomepageData to return sessions
     vi.mocked(useHomepageData).mockReturnValue({
       sessions: mockSessions,
+      archivedCount: 0,
       timestamp: new Date().toISOString(),
       error: null,
       isLoading: false
@@ -167,7 +175,7 @@ describe('Home Component', () => {
     expectContent.text('/test/project2')
     
     // Test session creation form is still present
-    expect(screen.getByPlaceholderText(/start a new claude code session/i)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/start a new session: ask, brainstorm, build/i)).toBeInTheDocument()
   })
 
   it('should handle session creation form interactions', async () => {
@@ -176,6 +184,7 @@ describe('Home Component', () => {
     // Mock useHomepageData
     vi.mocked(useHomepageData).mockReturnValue({
       sessions: [],
+      archivedCount: 0,
       timestamp: new Date().toISOString(),
       error: null,
       isLoading: false
@@ -187,7 +196,7 @@ describe('Home Component', () => {
       </QueryClientProvider>
     )
 
-    const titleInput = screen.getByPlaceholderText(/start a new claude code session/i)
+    const titleInput = screen.getByPlaceholderText(/start a new session: ask, brainstorm, build/i)
 
     // Test initial state - input should be empty
     expect(titleInput).toHaveValue('')
@@ -222,6 +231,7 @@ describe('Home Component', () => {
     // Mock useHomepageData
     vi.mocked(useHomepageData).mockReturnValue({
       sessions: [sessionWithStats],
+      archivedCount: 0,
       timestamp: new Date().toISOString(),
       error: null,
       isLoading: false
@@ -252,6 +262,7 @@ describe('Home Component', () => {
     // Mock useHomepageData
     vi.mocked(useHomepageData).mockReturnValue({
       sessions: [untitledSession],
+      archivedCount: 0,
       timestamp: new Date().toISOString(),
       error: null,
       isLoading: false
@@ -284,6 +295,7 @@ describe('Home Component', () => {
     // Mock useHomepageData
     vi.mocked(useHomepageData).mockReturnValue({
       sessions: [recentSession],
+      archivedCount: 0,
       timestamp: new Date().toISOString(),
       error: null,
       isLoading: false
@@ -320,6 +332,7 @@ describe('Home Component', () => {
     // Mock useHomepageData
     vi.mocked(useHomepageData).mockReturnValue({
       sessions: [processingSession, completedSession],
+      archivedCount: 0,
       timestamp: new Date().toISOString(),
       error: null,
       isLoading: false
@@ -349,6 +362,7 @@ describe('Home Component', () => {
     // Mock useHomepageData
     vi.mocked(useHomepageData).mockReturnValue({
       sessions: [],
+      archivedCount: 0,
       timestamp: new Date().toISOString(),
       error: null,
       isLoading: false
@@ -360,7 +374,7 @@ describe('Home Component', () => {
       </QueryClientProvider>
     )
 
-    const titleInput = screen.getByPlaceholderText(/start a new claude code session/i)
+    const titleInput = screen.getByPlaceholderText(/start a new session: ask, brainstorm, build/i)
     const form = titleInput.closest('form')
 
     // Form should exist
@@ -380,6 +394,7 @@ describe('Home Component', () => {
     // Mock useHomepageData
     vi.mocked(useHomepageData).mockReturnValue({
       sessions: [],
+      archivedCount: 0,
       timestamp: new Date().toISOString(),
       error: null,
       isLoading: false
@@ -391,7 +406,7 @@ describe('Home Component', () => {
       </QueryClientProvider>
     )
 
-    const titleInput = screen.getByPlaceholderText(/start a new claude code session/i)
+    const titleInput = screen.getByPlaceholderText(/start a new session: ask, brainstorm, build/i)
 
     // Test form elements are accessible
     expect(titleInput).toBeInTheDocument()
@@ -411,5 +426,445 @@ describe('Home Component', () => {
     // Test that form can be submitted via Enter key
     fireEvent.change(titleInput, { target: { value: 'Test session' } })
     expect(titleInput).toHaveValue('Test session')
+  })
+
+  it('should show archived sessions link only when archived count > 0', () => {
+    // Need at least one active session for the link to show
+    const activeSession = createMockSessionWithStats({ 
+      id: 'active-session',
+      title: 'Active Session',
+      status: 'active'
+    })
+    
+    vi.mocked(useLoaderData).mockReturnValue({ sessions: [activeSession] })
+    
+    // First test with no archived sessions
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [activeSession],
+      archivedCount: 0,
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
+
+    const { rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
+
+    // Should not show link when archivedCount is 0
+    expect(screen.queryByText(/View archived sessions/)).not.toBeInTheDocument()
+
+    // Now test with archived sessions
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [activeSession],
+      archivedCount: 5,
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
+
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
+
+    // Should show link when archivedCount > 0 and there are active sessions
+    expect(screen.getByText('View archived sessions')).toBeInTheDocument()
+    const archivedLink = screen.getByRole('link', { name: 'View archived sessions' })
+    expect(archivedLink).toHaveAttribute('href', '/archived')
+  })
+
+  it('should handle image upload via drag and drop', () => {
+    vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
+    
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [],
+      archivedCount: 0,
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
+
+    // Mock the image upload hook with dragging state
+    const mockHandleDrop = vi.fn()
+    const mockHandleDragOver = vi.fn()
+    const mockHandleDragLeave = vi.fn()
+    const mockRemoveImage = vi.fn()
+    
+    vi.mocked(useImageUpload).mockReturnValue({
+      images: [],
+      isDragging: true,
+      handleDragOver: mockHandleDragOver,
+      handleDragLeave: mockHandleDragLeave,
+      handleDrop: mockHandleDrop,
+      removeImage: mockRemoveImage,
+      clearImages: vi.fn()
+    })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
+
+    const form = screen.getByRole('textbox').closest('form')
+    expect(form).toBeInTheDocument()
+    
+    // Test that form shows dragging state
+    expect(form).toHaveClass('border-zinc-500')
+    
+    // Test drag events are connected
+    if (form) {
+      fireEvent.dragOver(form)
+      expect(mockHandleDragOver).toHaveBeenCalled()
+      
+      fireEvent.dragLeave(form)
+      expect(mockHandleDragLeave).toHaveBeenCalled()
+      
+      fireEvent.drop(form)
+      expect(mockHandleDrop).toHaveBeenCalled()
+    }
+  })
+
+  it('should display uploaded images with preview', () => {
+    vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
+    
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [],
+      archivedCount: 0,
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
+
+    const mockImages = [
+      {
+        id: 'image-1',
+        file: new File(['test'], 'test1.png', { type: 'image/png' }),
+        preview: 'data:image/png;base64,test1'
+      },
+      {
+        id: 'image-2',
+        file: new File(['test'], 'test2.jpg', { type: 'image/jpeg' }),
+        preview: 'data:image/jpeg;base64,test2'
+      }
+    ]
+    
+    const mockRemoveImage = vi.fn()
+    
+    vi.mocked(useImageUpload).mockReturnValue({
+      images: mockImages,
+      isDragging: false,
+      handleDragOver: vi.fn(),
+      handleDragLeave: vi.fn(),
+      handleDrop: vi.fn(),
+      removeImage: mockRemoveImage,
+      clearImages: vi.fn()
+    })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
+
+    // Test that hidden inputs are created for each image
+    expect(screen.getByTestId('image-data-0')).toBeInTheDocument()
+    expect(screen.getByTestId('image-data-0')).toHaveValue('data:image/png;base64,test1')
+    
+    expect(screen.getByTestId('image-data-1')).toBeInTheDocument()
+    expect(screen.getByTestId('image-data-1')).toHaveValue('data:image/jpeg;base64,test2')
+  })
+
+  it('should open directory selector when clicking directory button', () => {
+    vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
+    
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [],
+      archivedCount: 0,
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
+
+    // Find the directory button by title attribute
+    const directoryButton = screen.getByTitle('Click to change directory')
+    expect(directoryButton).toBeInTheDocument()
+    
+    // The button should show shortened path with $
+    expect(screen.getByText('~')).toBeInTheDocument()
+    expect(screen.getByText('$')).toBeInTheDocument()
+    
+    // Click to open directory selector
+    fireEvent.click(directoryButton)
+    
+    // Verify the button is a button element
+    expect(directoryButton.tagName).toBe('BUTTON')
+  })
+
+  it('should hide tooltip when user has sessions or has typed in input', () => {
+    // Test 1: Show tooltip when no sessions and empty input
+    vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
+    
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [],
+      archivedCount: 0,
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
+
+    const { rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
+
+    // Tooltip should appear when no sessions and empty input
+    expect(screen.getByText('Select your working directory')).toBeInTheDocument()
+    
+    // Test 2: Hide tooltip when user types
+    const input = screen.getByPlaceholderText(/start a new session: ask, brainstorm, build/i)
+    fireEvent.change(input, { target: { value: 'test' } })
+    
+    // Tooltip should disappear when user types
+    expect(screen.queryByText('Select your working directory')).not.toBeInTheDocument()
+    
+    // Test 3: Hide tooltip when there are sessions
+    const session = createMockSessionWithStats({ id: 'test-session' })
+    
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [session],
+      archivedCount: 0,
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
+    
+    // Clear the input first
+    fireEvent.change(input, { target: { value: '' } })
+    
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
+    
+    // Tooltip should not appear when there are sessions (even with empty input)
+    expect(screen.queryByText('Select your working directory')).not.toBeInTheDocument()
+  })
+
+  it('should handle session reordering based on latest user message', () => {
+    // Create sessions with different latest_user_message_at timestamps as EnhancedSession
+    const olderSession = {
+      ...createMockSessionWithStats({ 
+        id: 'older-session',
+        title: 'Older Session'
+      }),
+      latest_user_message_at: new Date(Date.now() - 1000 * 60 * 60).toISOString() // 1 hour ago
+    }
+    
+    const newerSession = {
+      ...createMockSessionWithStats({ 
+        id: 'newer-session',
+        title: 'Newer Session'
+      }),
+      latest_user_message_at: new Date(Date.now() - 1000 * 60).toISOString() // 1 minute ago
+    }
+    
+    const noMessageSession = {
+      ...createMockSessionWithStats({ 
+        id: 'no-message-session',
+        title: 'No Message Session'
+      }),
+      latest_user_message_at: null
+    }
+
+    vi.mocked(useLoaderData).mockReturnValue({ 
+      sessions: [olderSession, noMessageSession, newerSession] 
+    })
+    
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [olderSession, noMessageSession, newerSession],
+      archivedCount: 0,
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
+
+    // Get all session links
+    const sessionLinks = screen.getAllByRole('link', { name: /Session/ })
+    
+    // Verify order: newer session first, older session second, no message session last
+    expect(sessionLinks[0]).toHaveAttribute('href', '/sessions/newer-session')
+    expect(sessionLinks[1]).toHaveAttribute('href', '/sessions/older-session')
+    expect(sessionLinks[2]).toHaveAttribute('href', '/sessions/no-message-session')
+  })
+
+  it('should show loading skeleton when data is loading', () => {
+    const mockSessions = [createMockSessionWithStats()]
+    
+    vi.mocked(useLoaderData).mockReturnValue({ sessions: mockSessions })
+    
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: mockSessions,
+      archivedCount: 0,
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: true // Set loading state
+    })
+
+    const { container } = render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
+
+    // Should show skeleton animation divs instead of actual sessions
+    const skeletons = container.querySelectorAll('.animate-pulse')
+    expect(skeletons).toHaveLength(6) // Default skeleton count
+    
+    // Should not show actual session cards
+    expect(screen.queryByRole('link', { name: /Session/ })).not.toBeInTheDocument()
+  })
+
+  // Test removed - memvaHasCreatedSession tracking was removed from the app
+
+  it('should handle form submission with images and create proper hidden inputs', () => {
+    vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
+    
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [],
+      archivedCount: 0,
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
+
+    const mockImages = [
+      {
+        id: 'image-1',
+        file: new File(['test'], 'screenshot.png', { type: 'image/png' }),
+        preview: 'data:image/png;base64,iVBORw0KGgoAAAANS'
+      }
+    ]
+    
+    vi.mocked(useImageUpload).mockReturnValue({
+      images: mockImages,
+      isDragging: false,
+      handleDragOver: vi.fn(),
+      handleDragLeave: vi.fn(),
+      handleDrop: vi.fn(),
+      removeImage: vi.fn(),
+      clearImages: vi.fn()
+    })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
+
+    // Get the form
+    const form = screen.getByRole('textbox').closest('form')
+    expect(form).toBeInTheDocument()
+    
+    if (form) {
+      // Verify hidden inputs for prompt and project_path
+      const promptInput = form.querySelector('input[name="prompt"]')
+      const projectPathInput = form.querySelector('input[name="project_path"]')
+      
+      expect(promptInput).toBeInTheDocument()
+      expect(projectPathInput).toBeInTheDocument()
+      expect(projectPathInput).toHaveValue('/Users/testuser')
+      
+      // Verify image hidden inputs
+      const imageDataInput = form.querySelector('input[name="image-data-0"]')
+      const imageNameInput = form.querySelector('input[name="image-name-0"]')
+      
+      expect(imageDataInput).toBeInTheDocument()
+      expect(imageDataInput).toHaveValue('data:image/png;base64,iVBORw0KGgoAAAANS')
+      expect(imageNameInput).toBeInTheDocument()
+      expect(imageNameInput).toHaveValue('screenshot.png')
+    }
+  })
+
+  it('should update hidden prompt input when title changes', () => {
+    vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
+    
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [],
+      archivedCount: 0,
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
+
+    const titleInput = screen.getByPlaceholderText(/start a new session: ask, brainstorm, build/i)
+    const form = titleInput.closest('form')
+    
+    if (form) {
+      const promptInput = form.querySelector('input[name="prompt"]') as HTMLInputElement
+      
+      // Initially both should be empty
+      expect(titleInput).toHaveValue('')
+      expect(promptInput).toHaveValue('')
+      
+      // Type in title
+      fireEvent.change(titleInput, { target: { value: 'Build a chat app' } })
+      
+      // Prompt should match title
+      expect(promptInput).toHaveValue('Build a chat app')
+    }
+  })
+
+  it('should handle settings button click', () => {
+    vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
+    
+    vi.mocked(useHomepageData).mockReturnValue({
+      sessions: [],
+      archivedCount: 0,
+      timestamp: new Date().toISOString(),
+      error: null,
+      isLoading: false
+    })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
+
+    const settingsButton = screen.getByRole('button', { name: 'Open settings' })
+    expect(settingsButton).toBeInTheDocument()
+    
+    // Click settings button
+    fireEvent.click(settingsButton)
+    
+    // Can't test modal opening directly as it's a separate component
+    // but we can verify the button is clickable and has correct attributes
+    expect(settingsButton).toHaveAttribute('aria-label', 'Open settings')
+    expect(settingsButton).toHaveAttribute('title', 'Settings')
   })
 })

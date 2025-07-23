@@ -2,6 +2,7 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useLoaderData } from 'react-router'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Home from '../routes/home'
 import { server } from '../test-utils/msw-server'
 import { http, HttpResponse } from 'msw'
@@ -23,12 +24,48 @@ vi.mock('react-router', () => ({
 
 // Mock useHomepageData hook
 vi.mock('../hooks/useHomepageData', () => ({
-  useHomepageData: vi.fn(() => ({ sessions: [] }))
+  useHomepageData: vi.fn(() => ({ 
+    sessions: [],
+    archivedCount: 0,
+    timestamp: new Date().toISOString(),
+    error: null,
+    isLoading: false
+  }))
+}))
+
+// Mock other custom hooks used by the component
+vi.mock('../hooks/useAutoResizeTextarea', () => ({
+  useAutoResizeTextarea: vi.fn(() => ({ textareaRef: { current: null } }))
+}))
+
+vi.mock('../hooks/useTextareaSubmit', () => ({
+  useTextareaSubmit: vi.fn(() => vi.fn())
+}))
+
+vi.mock('../hooks/useImageUpload', () => ({
+  useImageUpload: vi.fn(() => ({
+    images: [],
+    isDragging: false,
+    handleDragOver: vi.fn(),
+    handleDragLeave: vi.fn(),
+    handleDrop: vi.fn(),
+    removeImage: vi.fn()
+  }))
 }))
 
 describe('Home Component - Directory Selector', () => {
+  let queryClient: QueryClient
+
   beforeEach(() => {
     vi.clearAllMocks()
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+      },
+    })
+    
     // Mock localStorage
     Object.defineProperty(window, 'localStorage', {
       value: {
@@ -55,7 +92,11 @@ describe('Home Component - Directory Selector', () => {
     // Mock loader data
     vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
 
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
 
     // Should show current directory in terminal style
     expect(screen.getByText('$')).toBeInTheDocument()
@@ -64,7 +105,11 @@ describe('Home Component - Directory Selector', () => {
   it('should load last used directory from localStorage', () => {
     vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
 
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
 
     // Should use the last directory from localStorage
     expect(screen.getByText('~/last-used')).toBeInTheDocument()
@@ -74,7 +119,11 @@ describe('Home Component - Directory Selector', () => {
   it('should open directory selector when prefix is clicked', async () => {
     vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
 
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
 
     const directoryButton = screen.getByTitle('Click to change directory')
     fireEvent.click(directoryButton)
@@ -98,7 +147,11 @@ describe('Home Component - Directory Selector', () => {
       })
     )
 
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
 
     // Open directory selector
     const directoryButton = screen.getByTitle('Click to change directory')
@@ -128,7 +181,11 @@ describe('Home Component - Directory Selector', () => {
 
     const mockSubmit = vi.fn()
     
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
 
     // Find the form and attach submit handler
     const form = screen.getByRole('textbox').closest('form')
@@ -137,7 +194,7 @@ describe('Home Component - Directory Selector', () => {
     }
 
     // Type in session input
-    const input = screen.getByPlaceholderText(/start a new claude code session/i)
+    const input = screen.getByPlaceholderText(/start a new session/i)
     fireEvent.change(input, { target: { value: 'Build a feature' } })
 
     // Submit form
@@ -164,7 +221,11 @@ describe('Home Component - Directory Selector', () => {
       return null
     })
 
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
 
     // Should show shortened path (last 2-3 segments)
     expect(screen.getByText('~/.../project/directory')).toBeInTheDocument()
@@ -187,7 +248,11 @@ describe('Home Component - Directory Selector', () => {
       })
     )
 
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
 
     // Should fetch and display current directory
     await waitFor(() => {

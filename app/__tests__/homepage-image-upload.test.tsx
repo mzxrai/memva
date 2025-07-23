@@ -124,7 +124,7 @@ describe('Homepage Image Upload', () => {
       </QueryClientProvider>
     )
     
-    const textarea = screen.getByPlaceholderText(/start a new claude code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new session/i)
     expect(textarea).toBeInTheDocument()
     
     // Find the container div that has the drop handlers
@@ -190,7 +190,7 @@ describe('Homepage Image Upload', () => {
       </QueryClientProvider>
     )
     
-    const textarea = screen.getByPlaceholderText(/start a new claude code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new session/i)
     const dropContainer = textarea.parentElement
     
     // Create mock dragover event with preventDefault spy
@@ -214,7 +214,7 @@ describe('Homepage Image Upload', () => {
       </QueryClientProvider>
     )
     
-    const textarea = screen.getByPlaceholderText(/start a new claude code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new session/i)
     const dropContainer = textarea.parentElement
     
     // Create mock drag events
@@ -246,7 +246,7 @@ describe('Homepage Image Upload', () => {
       </QueryClientProvider>
     )
     
-    const textarea = screen.getByPlaceholderText(/start a new claude code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new session/i)
     const dropContainer = textarea.parentElement
     
     // Drop an image
@@ -305,7 +305,7 @@ describe('Homepage Image Upload', () => {
       </QueryClientProvider>
     )
     
-    const textarea = screen.getByPlaceholderText(/start a new claude code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new session/i)
     
     // Create mock image files
     const mockImages = [
@@ -371,7 +371,7 @@ describe('Homepage Image Upload', () => {
       </QueryClientProvider>
     )
     
-    const textarea = screen.getByPlaceholderText(/start a new claude code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new session/i)
     const dropContainer = textarea.parentElement
     
     // Drop mixed file types

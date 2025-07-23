@@ -14,6 +14,7 @@ type EnhancedSession = SessionWithStats & {
 
 type HomepageData = {
   sessions: EnhancedSession[]
+  archivedCount: number
   timestamp: string
 }
 
@@ -39,6 +40,7 @@ export function useHomepageData() {
 
   return {
     sessions,
+    archivedCount: data?.archivedCount || 0,
     timestamp: data?.timestamp || new Date().toISOString(),
     error,
     isLoading,

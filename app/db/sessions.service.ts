@@ -320,3 +320,13 @@ export async function getSessionSettings(sessionId: string): Promise<SettingsCon
   
   return await getSettings()
 }
+
+export async function countArchivedSessions(): Promise<number> {
+  const result = await db
+    .select({ count: sessions.id })
+    .from(sessions)
+    .where(eq(sessions.status, 'archived'))
+    .execute()
+  
+  return result.length
+}

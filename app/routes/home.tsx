@@ -1,7 +1,7 @@
 import type { Route } from "./+types/home";
 import { Form, redirect, Link } from "react-router";
 import { createSession } from "../db/sessions.service";
-import { RiPulseLine, RiSettings3Line } from "react-icons/ri";
+import { RiSettings3Line } from "react-icons/ri";
 import DirectorySelector from "../components/DirectorySelector";
 import SettingsModal from "../components/SettingsModal";
 import SessionCard from "../components/SessionCard";
@@ -15,11 +15,12 @@ import { useImageUpload } from "../hooks/useImageUpload";
 import { ImagePreview } from "../components/ImagePreview";
 import { AnimatePresence, motion } from "framer-motion";
 import { SessionGridSkeleton } from "../components/SessionCardSkeleton";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function meta(): Array<{ title?: string; name?: string; content?: string }> {
   return [
     { title: "Memva - Session Manager" },
-    { name: "description", content: "Manage your Claude Code sessions efficiently" },
+    { name: "description", content: "Manage your agent sessions efficiently" },
   ];
 }
 
@@ -164,7 +165,8 @@ function shortenPath(path: string, homedir?: string): string {
 }
 
 export default function Home() {
-  const { sessions, isLoading } = useHomepageData();
+  const queryClient = useQueryClient();
+  const { sessions, isLoading, archivedCount } = useHomepageData();
   const [sessionTitle, setSessionTitle] = useState("");
   // Don't access localStorage during initial render to prevent hydration errors
   const [currentDirectory, setCurrentDirectory] = useState<string>('');
@@ -222,6 +224,12 @@ export default function Home() {
     previousOrderRef.current = currentOrder;
   }, [sortedSessions]);
 
+  // Invalidate query on mount to get fresh data immediately
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ['homepage-sessions'] });
+  }, [queryClient]);
+
+
   // Load directory from localStorage after mount to prevent hydration errors
   useEffect(() => {
     const loadDirectory = async () => {
@@ -271,6 +279,10 @@ export default function Home() {
     setIsDirectoryModalOpen(false);
   };
 
+  const hasNoSessions = sortedSessions.length === 0;
+  // Only center AFTER we've loaded data and confirmed no sessions
+  const shouldCenter = hasNoSessions && !isLoading;
+
   return (
     <div className="min-h-screen bg-zinc-950">
       {/* Settings button - fixed to top right */}
@@ -293,9 +305,12 @@ export default function Home() {
         <RiSettings3Line className={iconSize.md} />
       </button>
 
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* New Session Bar */}
-        <div className="mb-8">
+      <div className={clsx(
+        shouldCenter ? "flex items-center justify-center min-h-screen pb-20" : "container mx-auto px-4 py-8 max-w-7xl"
+      )}>
+        <div className={shouldCenter ? "w-full max-w-5xl mx-auto px-4" : "w-full"}>
+          {/* New Session Bar */}
+          <div className={shouldCenter ? "" : "mb-8"}>
           {!isDirectoryLoaded ? (
             // Empty container to reserve space
             <div className="p-4 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-xl">
@@ -323,23 +338,52 @@ export default function Home() {
           >
             <div className="flex items-start gap-2">
               {/* Terminal-style directory prefix */}
-              <button
-                type="button"
-                onClick={() => setIsDirectoryModalOpen(true)}
-                className={clsx(
-                  "flex-shrink-0 px-3 py-3",
-                  typography.font.mono,
-                  typography.size.sm,
-                  colors.text.secondary,
-                  "hover:text-zinc-300",
-                  "transition-colors duration-150",
-                  "cursor-pointer"
+              <div className="relative group">
+                <button
+                  type="button"
+                  onClick={() => setIsDirectoryModalOpen(true)}
+                  className={clsx(
+                    "flex-shrink-0 px-3 py-3",
+                    typography.font.mono,
+                    typography.size.sm,
+                    colors.text.secondary,
+                    "hover:text-zinc-300",
+                    "transition-colors duration-150",
+                    "cursor-pointer"
+                  )}
+                  title="Click to change directory"
+                >
+                  <span>{displayDirectory}</span>
+                  <span className="text-zinc-500 ml-1">$</span>
+                </button>
+                
+                {/* Tooltip for empty state */}
+                {sortedSessions.length === 0 && sessionTitle.trim() === '' && (
+                  <div className={clsx(
+                    "absolute -top-6 left-2",
+                    "px-3 py-1.5",
+                    "bg-zinc-900/90 backdrop-blur-sm",
+                    "border border-zinc-800",
+                    "rounded-lg",
+                    "text-zinc-500",
+                    typography.size.xs,
+                    "whitespace-nowrap",
+                    "pointer-events-none",
+                    "animate-bounce-light",
+                    "shadow-sm"
+                  )}>
+                    Select your working directory
+                    {/* Arrow using pseudo-element style */}
+                    <div className={clsx(
+                      "absolute -bottom-[5px] left-4",
+                      "w-2 h-2",
+                      "bg-zinc-900/90",
+                      "border-r border-b border-zinc-800",
+                      "transform rotate-45"
+                    )} />
+                  </div>
                 )}
-                title="Click to change directory"
-              >
-                <span>{displayDirectory}</span>
-                <span className="text-zinc-500 ml-1">$</span>
-              </button>
+              </div>
               
               {/* Session input */}
               <textarea
@@ -348,11 +392,12 @@ export default function Home() {
                 value={sessionTitle}
                 onChange={(e) => setSessionTitle(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Start a new Claude Code session: ask, brainstorm, build"
+                placeholder="Start a new session: ask, brainstorm, build"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
+                autoFocus
                 rows={1}
                 className="flex-1 px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem] resize-none leading-normal"
                 style={{ minHeight: '48px', overflowY: 'hidden' }}
@@ -380,7 +425,7 @@ export default function Home() {
           </Form>
           </>
           )}
-        </div>
+          </div>
 
         {/* Directory Selector Modal */}
         <DirectorySelector
@@ -397,21 +442,10 @@ export default function Home() {
         />
 
         {/* Sessions Grid */}
-        {isLoading && sessions.length === 0 ? (
-          <SessionGridSkeleton count={6} />
-        ) : sortedSessions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 px-4">
-            <div className="text-center max-w-md">
-              <div className="mb-6 text-zinc-700">
-                <RiPulseLine className="w-16 h-16 mx-auto" />
-              </div>
-              <h2 className="text-xl font-medium text-zinc-300 mb-2">No sessions yet</h2>
-              <p className="text-zinc-500">
-                Start working with Claude Code to see your sessions here
-              </p>
-            </div>
-          </div>
-        ) : (
+        {!hasNoSessions && (
+          isLoading ? (
+            <SessionGridSkeleton count={6} />
+          ) : (
           <motion.div 
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
             layout
@@ -426,19 +460,25 @@ export default function Home() {
               ))}
             </AnimatePresence>
           </motion.div>
+          )
         )}
         
-        {/* View Archived Link */}
-        <div className="mt-6">
-          <Link
-            to="/archived"
-            className={clsx(
-              "text-sm text-zinc-500 hover:text-zinc-400",
-              "transition-colors duration-150"
-            )}
-          >
-            View archived sessions
-          </Link>
+          {/* View Archived Link */}
+          {archivedCount > 0 && (
+            <div className={clsx(
+              shouldCenter ? "mt-6 text-center" : "mt-6"
+            )}>
+              <Link
+                to="/archived"
+                className={clsx(
+                  "text-sm text-zinc-500 hover:text-zinc-400",
+                  "transition-colors duration-150"
+                )}
+              >
+                View archived sessions
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>

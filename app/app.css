@@ -133,3 +133,17 @@ body {
   contain-intrinsic-size: auto 150px;
 }
 
+/* Light bounce animation for tooltip */
+@keyframes bounce-light {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.animate-bounce-light {
+  animation: bounce-light 2s ease-in-out infinite;
+}
+

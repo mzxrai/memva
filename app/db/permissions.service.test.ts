@@ -10,7 +10,8 @@ import {
   getPermissionRequests, 
   getPendingPermissionRequests,
   updatePermissionDecision,
-  expireOldRequests 
+  expireOldRequests,
+  getPendingPermissionsCountBatch
 } from './permissions.service'
 
 describe('Permissions Service', () => {
@@ -286,6 +287,120 @@ describe('Permissions Service', () => {
       const requests = await getPermissionRequests()
       const approved = requests.find(r => r.id === approvedRequest.id)
       expect(approved?.status).toBe('approved')
+    })
+  })
+
+  describe('getPendingPermissionsCountBatch', () => {
+    it('should return count map for multiple sessions', async () => {
+      const session1 = testDb.createSession({ title: 'Session 1', project_path: '/test1' })
+      const session2 = testDb.createSession({ title: 'Session 2', project_path: '/test2' })
+      const session3 = testDb.createSession({ title: 'Session 3', project_path: '/test3' })
+
+      // Create pending permissions for session1
+      await createPermissionRequest({
+        session_id: session1.id,
+        tool_name: 'Read',
+        tool_use_id: 'tool-1',
+        input: { file_path: '/file1.txt' }
+      })
+      await createPermissionRequest({
+        session_id: session1.id,
+        tool_name: 'Write',
+        tool_use_id: 'tool-2',
+        input: { file_path: '/file2.txt' }
+      })
+
+      // Create pending permission for session2
+      await createPermissionRequest({
+        session_id: session2.id,
+        tool_name: 'Edit',
+        tool_use_id: 'tool-3',
+        input: { file_path: '/file3.txt' }
+      })
+
+      // Create approved permission for session2 (should not be counted)
+      const approvedRequest = await createPermissionRequest({
+        session_id: session2.id,
+        tool_name: 'Delete',
+        tool_use_id: 'tool-4',
+        input: { file_path: '/file4.txt' }
+      })
+      await updatePermissionDecision(approvedRequest.id, { decision: 'allow' })
+
+      // No permissions for session3
+
+      const countMap = await getPendingPermissionsCountBatch([session1.id, session2.id, session3.id])
+
+      expect(countMap.get(session1.id)).toBe(2)
+      expect(countMap.get(session2.id)).toBe(1)
+      expect(countMap.get(session3.id)).toBe(0)
+    })
+
+    it('should return empty map for empty session array', async () => {
+      const countMap = await getPendingPermissionsCountBatch([])
+      expect(countMap.size).toBe(0)
+    })
+
+    it('should not count expired permissions', async () => {
+      const session = testDb.createSession({ title: 'Session', project_path: '/test' })
+
+      // Create an expired permission
+      const expiredRequest = await createPermissionRequest({
+        session_id: session.id,
+        tool_name: 'Read',
+        tool_use_id: 'tool-1',
+        input: { file_path: '/file.txt' }
+      })
+
+      // Manually update expires_at to be in the past
+      testDb.sqlite.prepare(
+        'UPDATE permission_requests SET expires_at = ? WHERE id = ?'
+      ).run(new Date(Date.now() - 1000).toISOString(), expiredRequest.id)
+
+      // Create a valid permission
+      await createPermissionRequest({
+        session_id: session.id,
+        tool_name: 'Write',
+        tool_use_id: 'tool-2',
+        input: { file_path: '/file2.txt' }
+      })
+
+      const countMap = await getPendingPermissionsCountBatch([session.id])
+      expect(countMap.get(session.id)).toBe(1)
+    })
+
+    it('should only count permissions for requested sessions', async () => {
+      const session1 = testDb.createSession({ title: 'Session 1', project_path: '/test1' })
+      const session2 = testDb.createSession({ title: 'Session 2', project_path: '/test2' })
+      const session3 = testDb.createSession({ title: 'Session 3', project_path: '/test3' })
+
+      // Create permissions for all sessions
+      await createPermissionRequest({
+        session_id: session1.id,
+        tool_name: 'Read',
+        tool_use_id: 'tool-1',
+        input: { file_path: '/file1.txt' }
+      })
+      await createPermissionRequest({
+        session_id: session2.id,
+        tool_name: 'Write',
+        tool_use_id: 'tool-2',
+        input: { file_path: '/file2.txt' }
+      })
+      await createPermissionRequest({
+        session_id: session3.id,
+        tool_name: 'Edit',
+        tool_use_id: 'tool-3',
+        input: { file_path: '/file3.txt' }
+      })
+
+      // Only request counts for session1 and session3
+      const countMap = await getPendingPermissionsCountBatch([session1.id, session3.id])
+
+      expect(countMap.size).toBe(2)
+      expect(countMap.get(session1.id)).toBe(1)
+      expect(countMap.get(session3.id)).toBe(1)
+      expect(countMap.has(session2.id)).toBe(false)
     })
   })
 })

@@ -107,7 +107,7 @@ describe('Homepage Initial Prompt Behavior', () => {
     )
 
     // User should see the input field
-    const input = screen.getByPlaceholderText(/start a new claude code session/i)
+    const input = screen.getByPlaceholderText(/start a new session/i)
     expect(input).toBeInTheDocument()
     
     // User should be able to type into it
@@ -122,9 +122,12 @@ describe('Homepage Initial Prompt Behavior', () => {
       </QueryClientProvider>
     )
     
-    // User should see empty state messaging
-    expect(screen.getByText('No sessions yet')).toBeInTheDocument()
-    expect(screen.getByText(/Start working with Claude Code/)).toBeInTheDocument()
+    // User should see the centered input form
+    const input = screen.getByPlaceholderText(/start a new session/i)
+    expect(input).toBeInTheDocument()
+    
+    // Should show directory selector prompt
+    expect(screen.getByText('Select your working directory')).toBeInTheDocument()
   })
 
   it('should require input before submitting', async () => {
@@ -136,7 +139,7 @@ describe('Homepage Initial Prompt Behavior', () => {
       </QueryClientProvider>
     )
 
-    const input = screen.getByPlaceholderText(/start a new claude code session/i)
+    const input = screen.getByPlaceholderText(/start a new session/i)
     
     // Initial value should be empty
     expect(input).toHaveValue('')

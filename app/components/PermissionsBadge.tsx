@@ -20,7 +20,7 @@ const MODE_CONFIG = {
     color: 'text-emerald-400',
     bgColor: 'bg-zinc-800/50',
     borderColor: 'border-zinc-700/50',
-    description: 'Claude plans actions before executing'
+    description: 'Agent plans actions before executing'
   },
   acceptEdits: {
     label: 'Accept Edits',
