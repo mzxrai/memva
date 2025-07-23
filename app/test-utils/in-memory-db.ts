@@ -46,7 +46,8 @@ export function setupInMemoryDb(): TestDatabase {
       cwd TEXT NOT NULL,
       project_name TEXT NOT NULL,
       data TEXT NOT NULL,
-      memva_session_id TEXT
+      memva_session_id TEXT,
+      visible INTEGER DEFAULT 1
     )
   `)
 
@@ -102,6 +103,8 @@ export function setupInMemoryDb(): TestDatabase {
     CREATE INDEX IF NOT EXISTS idx_event_type ON events(event_type);
     CREATE INDEX IF NOT EXISTS idx_parent_uuid ON events(parent_uuid);
     CREATE INDEX IF NOT EXISTS idx_memva_session_id ON events(memva_session_id);
+    CREATE INDEX IF NOT EXISTS idx_visible ON events(visible);
+    CREATE INDEX IF NOT EXISTS idx_session_visible ON events(session_id, visible);
     CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
     CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at);
     CREATE INDEX IF NOT EXISTS idx_sessions_claude_status ON sessions(claude_status);

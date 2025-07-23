@@ -6,6 +6,7 @@ import { typography } from '../constants/design'
 interface FloatingPendingIndicatorProps {
   startTime?: number | null
   isVisible: boolean
+  isTransitioning?: boolean
 }
 
 const actionVerbs = [
@@ -47,7 +48,7 @@ function formatElapsedTime(startTime: number): string {
   return `${minutes}m ${seconds}s`
 }
 
-export function FloatingPendingIndicator({ startTime, isVisible }: FloatingPendingIndicatorProps) {
+export function FloatingPendingIndicator({ startTime, isVisible, isTransitioning }: FloatingPendingIndicatorProps) {
   const [currentVerb, setCurrentVerb] = useState(() => 
     actionVerbs[Math.floor(Math.random() * actionVerbs.length)]
   )
@@ -104,13 +105,18 @@ export function FloatingPendingIndicator({ startTime, isVisible }: FloatingPendi
             'flex items-center gap-2',
             'px-2.5 py-1',
             'rounded-md border',
-            'bg-zinc-800/50',
-            'border-zinc-700/50',
+            isTransitioning ? 'bg-amber-900/30' : 'bg-zinc-800/50',
+            isTransitioning ? 'border-amber-700/50' : 'border-zinc-700/50',
             'backdrop-blur-sm',
             'transition-all duration-300 ease-in-out'
           )}>
             {/* Spinner */}
-            <div className="w-2.5 h-2.5 border-2 border-zinc-600 border-t-zinc-400 rounded-full animate-spin" />
+            <div className={clsx(
+              "w-2.5 h-2.5 border-2 rounded-full animate-spin",
+              isTransitioning 
+                ? "border-amber-600 border-t-amber-400" 
+                : "border-zinc-600 border-t-zinc-400"
+            )} />
             
             {/* Status text */}
             <span className={clsx(
@@ -123,7 +129,7 @@ export function FloatingPendingIndicator({ startTime, isVisible }: FloatingPendi
               'w-20',
               'truncate'
             )}>
-              {currentVerb}...
+              {isTransitioning ? 'Switching modes' : currentVerb}...
             </span>
             
             {startTime && (

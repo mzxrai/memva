@@ -22,7 +22,8 @@ export const events = sqliteTable('events', {
   cwd: text('cwd').notNull(),
   project_name: text('project_name').notNull(),
   data: text('data', { mode: 'json' }).notNull(),
-  memva_session_id: text('memva_session_id')
+  memva_session_id: text('memva_session_id'),
+  visible: integer('visible', { mode: 'boolean' }).default(true)
 })
 
 export const jobs = sqliteTable('jobs', {

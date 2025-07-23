@@ -111,8 +111,8 @@ describe('Home Component - Directory Selector', () => {
       </QueryClientProvider>
     )
 
-    // Should use the last directory from localStorage (shows full path initially)
-    expect(screen.getByText('/Users/testuser/last-used')).toBeInTheDocument()
+    // Should use the last directory from localStorage (shows shortened path)
+    expect(screen.getByText('~/last-used')).toBeInTheDocument()
     expect(screen.getByText('$')).toBeInTheDocument()
   })
 
@@ -169,7 +169,7 @@ describe('Home Component - Directory Selector', () => {
 
     // Should update the prefix (shows full path initially)
     await waitFor(() => {
-      expect(screen.getByText('/Users/testuser/new-project')).toBeInTheDocument()
+      expect(screen.getByText('~/new-project')).toBeInTheDocument()
     })
 
     // Should save to localStorage
@@ -227,8 +227,8 @@ describe('Home Component - Directory Selector', () => {
       </QueryClientProvider>
     )
 
-    // Should show shortened path (last 2-3 segments, but without ~ initially)
-    expect(screen.getByText('/Users/.../project/directory')).toBeInTheDocument()
+    // Should show shortened path with tilde
+    expect(screen.getByText('~/.../project/directory')).toBeInTheDocument()
   })
 
   it('should use current directory if no last directory in localStorage', async () => {
@@ -256,7 +256,7 @@ describe('Home Component - Directory Selector', () => {
 
     // Should fetch and display current directory (shows full path initially)
     await waitFor(() => {
-      expect(screen.getByText('/Users/testuser/memva')).toBeInTheDocument()
+      expect(screen.getByText('~/memva')).toBeInTheDocument()
     })
   })
 })

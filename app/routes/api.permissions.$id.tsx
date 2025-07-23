@@ -118,7 +118,7 @@ export async function action({ request, params }: Route.ActionArgs) {
           } catch (error) {
             console.error(`[PERMISSION DEBUG] Error in delayed cancellation:`, error)
           }
-        }, 5000) // 5 second delay to allow Claude to process
+        }, 1000) // 1 second delay to allow Claude to process
       }
     }
     

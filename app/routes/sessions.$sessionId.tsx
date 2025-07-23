@@ -1,6 +1,7 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { useParams, Form, useLoaderData, useNavigation } from "react-router";
 import { useSessionEvents } from "../hooks/useSessionEvents";
+import { useProcessingState } from "../hooks/useProcessingState";
 import { useEventStore } from "../stores/event-store";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { RiFolder3Line, RiSettings3Line } from "react-icons/ri";
@@ -263,10 +264,11 @@ export default function SessionDetail() {
     return initialSession;
   }, [initialSession, sessionStatus]);
   
+  // Use unified processing state
+  const processingState = useProcessingState({ sessionId });
+  
   // State management
   const [prompt, setPrompt] = useState("");
-  const [processingStartTime, setProcessingStartTime] = useState<number | null>(null);
-  const [isStopInProgress, setIsStopInProgress] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   // Use image upload hook
@@ -282,10 +284,6 @@ export default function SessionDetail() {
   
   // Track form submission state
   const isSubmitting = navigation.state === "submitting";
-  
-  // Define visibility states
-  // Show pending indicator whenever we have a processing start time
-  const showPending = processingStartTime !== null;
   
   // Use custom hooks for textarea functionality
   const { textareaRef: inputRef } = useAutoResizeTextarea(prompt, { maxRows: 5 });
@@ -307,11 +305,8 @@ export default function SessionDetail() {
   
   // Handle stop functionality (Escape key only)
   const handleStop = useCallback(async () => {
-    // Set stop in progress
-    setIsStopInProgress(true);
-    
-    // Clear processing time immediately for better UX
-    setProcessingStartTime(null);
+    // Stop processing state
+    processingState.stopProcessing();
     
     // Focus input immediately since we're enabling it
     if (inputRef.current) {
@@ -334,12 +329,12 @@ export default function SessionDetail() {
         await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
       }
     }
-  }, [sessionId]);
+  }, [sessionId, processingState]);
   
   // Initial positioning - ensure last message is visible WITHOUT visible scrolling
   useEffect(() => {
     // Only do initial scroll if we have events OR if we're showing pending
-    if ((displayEvents.length > 0 || showPending) && scrollContainerRef.current && isInitialMount.current) {
+    if ((displayEvents.length > 0 || processingState.showSpinner) && scrollContainerRef.current && isInitialMount.current) {
       const container = scrollContainerRef.current;
       
       // Use ResizeObserver to detect when content stops changing
@@ -385,110 +380,70 @@ export default function SessionDetail() {
         clearTimeout(resizeTimeout);
         observer.disconnect();
       };
-    } else if (displayEvents.length === 0 && !showPending) {
+    } else if (displayEvents.length === 0 && !processingState.showSpinner) {
       setIsVisible(true);
     }
-  }, [displayEvents.length, showPending]);
+  }, [displayEvents.length, processingState.showSpinner]);
   
   
-  // Initialize processing time when session is processing
+  // Watch for exit_plan_mode transitions
   useEffect(() => {
-    if (session?.claude_status === 'processing' && !processingStartTime && !isStopInProgress) {
-      // Find the most recent user message from Zustand store
-      const userEvents = useEventStore.getState().getEventsByType('user');
-      const lastUserEvent = userEvents[userEvents.length - 1];
+    if (!processingState.isProcessing) return;
+    
+    const unsubscribe = useEventStore.subscribe((state) => {
+      const events = Array.from(state.events.values());
       
-      if (lastUserEvent) {
-        setProcessingStartTime(new Date(lastUserEvent.timestamp).getTime());
-      } else if (eventsLoading) {
-        // If events are still loading but session is processing, use current time as fallback
-        // This ensures spinner shows immediately when navigating from homepage
-        setProcessingStartTime(Date.now());
-      }
-    }
-  }, [session?.claude_status, processingStartTime, isStopInProgress, displayEvents.length, eventsLoading]);
-  
-  // Update processing time when events finish loading (to get accurate timestamp)
-  useEffect(() => {
-    if (session?.claude_status === 'processing' && processingStartTime && !eventsLoading) {
-      // Events have loaded, check if we need to update the timestamp
-      const userEvents = useEventStore.getState().getEventsByType('user');
-      const lastUserEvent = userEvents[userEvents.length - 1];
+      // Look for recent exit_plan_mode tool_result
+      const recentExitPlanResult = events.find(e => {
+        if (e.event_type !== 'user' || !e.data || typeof e.data !== 'object') return false;
+        
+        const data = e.data as {
+          message?: {
+            content?: Array<{
+              type: string;
+              tool_use_id?: string;
+              is_error?: boolean;
+            }>;
+          };
+        };
+        if (!data.message?.content || !Array.isArray(data.message.content)) return false;
+        
+        // Check if this is a tool_result for exit_plan_mode
+        return data.message.content.some((c) => 
+          c.type === 'tool_result' && 
+          c.tool_use_id && 
+          !c.is_error &&
+          // Check timestamp is recent (within last 5 seconds)
+          new Date(e.timestamp).getTime() > Date.now() - 5000
+        );
+      });
       
-      if (lastUserEvent) {
-        const actualTime = new Date(lastUserEvent.timestamp).getTime();
-        // Only update if the difference is significant (more than 1 second)
-        if (Math.abs(actualTime - processingStartTime) > 1000) {
-          setProcessingStartTime(actualTime);
-        }
+      if (recentExitPlanResult) {
+        // Start transition mode
+        processingState.startTransition();
       }
-    }
-  }, [eventsLoading, session?.claude_status, processingStartTime]);
-  
-  // Clear processing time when session status changes to completed/error
-  useEffect(() => {
-    if (session?.claude_status === 'completed' || session?.claude_status === 'error') {
-      if (processingStartTime !== null) {
-        setProcessingStartTime(null);
-      }
-    }
-  }, [session?.claude_status, processingStartTime]);
+    });
+    
+    return () => unsubscribe();
+  }, [processingState.isProcessing, processingState]);
   
   // Track if we should auto-scroll (user is near bottom)
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   
-  // Clear on result event OR when cancelled - but ensure messages are rendered first
+  // Auto-focus input when processing completes
   useEffect(() => {
-    if (!processingStartTime) return;
-
-    // Subscribe to store changes
-    const unsubscribe = useEventStore.subscribe((state) => {
-      // Check for result or cancellation events from the store
-      const events = state.events;
-      const eventsArray = Array.from(events.values());
+    if (!processingState.isProcessing && !processingState.isTransitioning && inputRef.current && shouldAutoScroll) {
+      // Refocus input if user isn't actively reading/selecting
+      const selection = window.getSelection();
+      const hasSelection = selection && selection.toString().length > 0;
       
-      const resultEvent = eventsArray.find(e => 
-        e.event_type === 'result' && 
-        new Date(e.timestamp).getTime() > processingStartTime
-      );
-      
-      const hasNewCancellation = eventsArray.some(e => 
-        e.event_type === 'user_cancelled' && 
-        new Date(e.timestamp).getTime() > processingStartTime
-      );
-      
-      if (resultEvent) {
-        // For result events, ensure we have a corresponding assistant message
-        const hasAssistantMessage = state.displayEvents.some(e => 
-          e.event_type === 'assistant' && 
-          new Date(e.timestamp).getTime() > processingStartTime &&
-          new Date(e.timestamp).getTime() <= new Date(resultEvent.timestamp).getTime()
-        );
-        
-        if (hasAssistantMessage) {
-          // Assistant message is rendered, safe to clear
-          setProcessingStartTime(null);
-          setIsStopInProgress(false);
-          
-          // Refocus input if user isn't actively reading/selecting
-          if (inputRef.current && shouldAutoScroll) {
-            const selection = window.getSelection();
-            const hasSelection = selection && selection.toString().length > 0;
-            
-            if (!hasSelection) {
-              setTimeout(() => {
-                inputRef.current?.focus();
-              }, 100);
-            }
-          }
-        }
-      } else if (hasNewCancellation) {
-        setIsStopInProgress(false);
+      if (!hasSelection) {
+        setTimeout(() => {
+          inputRef.current?.focus();
+        }, 100);
       }
-    });
-
-    return () => unsubscribe();
-  }, [processingStartTime, shouldAutoScroll, inputRef]);
+    }
+  }, [processingState.isProcessing, processingState.isTransitioning, shouldAutoScroll, inputRef]);
   
   // Check if user is near bottom whenever they scroll
   useEffect(() => {
@@ -580,17 +535,29 @@ export default function SessionDetail() {
     );
   }
 
-  // Determine UI state based on claude_status
-  const isProcessing = session.claude_status === 'processing';
+  // Determine UI state
   const hasError = session.claude_status === 'error';
   
   
   // Handle keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Escape key to stop processing
-      if (e.key === 'Escape' && processingStartTime && !isStopInProgress) {
-        handleStop();
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      // Escape key functionality
+      if (e.key === 'Escape') {
+        // First priority: deny pending permissions
+        const pendingPermission = permissions.find(p => p.status === 'pending');
+        if (pendingPermission && !isProcessingPermission) {
+          e.preventDefault();
+          await deny(pendingPermission.id);
+          return;
+        }
+        
+        // Second priority: stop processing
+        if (processingState.isProcessing) {
+          e.preventDefault();
+          handleStop();
+          return;
+        }
       }
       
       // SHIFT+TAB to cycle permission modes
@@ -602,7 +569,7 @@ export default function SessionDetail() {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [processingStartTime, isStopInProgress, handleStop, cyclePermissionMode]);
+  }, [processingState.isProcessing, handleStop, cyclePermissionMode, permissions, deny, isProcessingPermission]);
 
   return (
     <div className="h-screen bg-zinc-950 flex flex-col overflow-hidden">
@@ -652,12 +619,12 @@ export default function SessionDetail() {
       )}
 
       {/* Messages Area */}
-      <div className={clsx("flex-1 overflow-y-auto overflow-x-hidden", showPending ? "pb-40" : "pb-32")} ref={scrollContainerRef} style={{ opacity: isVisible ? 1 : 0 }}>
+      <div className={clsx("flex-1 overflow-y-auto overflow-x-hidden", processingState.showSpinner ? "pb-40" : "pb-32")} ref={scrollContainerRef} style={{ opacity: isVisible ? 1 : 0 }}>
         {eventsLoading ? (
           <div className="h-full flex items-center justify-center">
             <p className="text-zinc-500">Loading messages...</p>
           </div>
-        ) : displayEvents.length === 0 && !isProcessing && !isSubmitting && !eventsLoading ? (
+        ) : displayEvents.length === 0 && !processingState.showSpinner && !isSubmitting && !eventsLoading ? (
           <div className="h-full flex items-center justify-center">
             <p className="text-zinc-500">No messages yet. Start by asking something.</p>
           </div>
@@ -705,8 +672,9 @@ export default function SessionDetail() {
               >
                 {/* Floating pending indicator */}
                 <FloatingPendingIndicator 
-                  startTime={processingStartTime}
-                  isVisible={showPending}
+                  startTime={processingState.processingStartTime}
+                  isVisible={processingState.showSpinner}
+                  isTransitioning={processingState.isTransitioning}
                 />
                 <Form 
                   method="post" 
@@ -717,8 +685,7 @@ export default function SessionDetail() {
                     
                     // Set processing state for either text or image submissions
                     if (message || hasImages) {
-                      const now = Date.now();
-                      setProcessingStartTime(now);
+                      processingState.startProcessing();
                       
                       // Trigger immediate poll to get the message quickly
                       setTimeout(() => {
@@ -735,7 +702,7 @@ export default function SessionDetail() {
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       onKeyDown={handleTextareaKeyDown}
-                      disabled={(isProcessing && !isStopInProgress) || isSubmitting}
+                      disabled={processingState.showSpinner || isSubmitting}
                       autoComplete="off"
                       autoCorrect="off"
                       autoCapitalize="off"
@@ -743,7 +710,13 @@ export default function SessionDetail() {
                       rows={1}
                       className="flex-1 bg-transparent text-zinc-100 focus:outline-none disabled:opacity-50 font-mono text-[0.9375rem] resize-none leading-normal"
                       role="textbox"
-                      placeholder={isProcessing || isSubmitting ? "Processing... (ESC to stop)" : ""}
+                      placeholder={
+                        permissions.some(p => p.status === 'pending') 
+                          ? "Awaiting permission... (ESC to deny)" 
+                          : processingState.showSpinner || isSubmitting 
+                            ? "Processing... (ESC to stop)" 
+                            : ""
+                      }
                       style={{ overflowY: 'hidden' }}
                     />
                   </div>

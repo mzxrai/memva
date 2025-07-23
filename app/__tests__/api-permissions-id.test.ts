@@ -84,6 +84,9 @@ describe('Permission Decision API Route', () => {
     })
 
     it('should cancel active job when permission is denied', async () => {
+      // Use fake timers to avoid waiting
+      vi.useFakeTimers()
+      
       const { createPermissionRequest } = await import('../db/permissions.service')
       const { action } = await import('../routes/api.permissions.$id')
       const { createJob, getJob } = await import('../db/jobs.service')
@@ -122,6 +125,9 @@ describe('Permission Decision API Route', () => {
       expect(response.status).toBe(200)
       expect(data.status).toBe('denied')
       
+      // Advance timers to trigger the delayed cancellation
+      await vi.runAllTimersAsync()
+      
       // Verify the job was cancelled
       const updatedJob = await getJob(job.id)
       expect(updatedJob?.status).toBe('cancelled')
@@ -129,6 +135,9 @@ describe('Permission Decision API Route', () => {
       // Verify the session status was updated to completed
       const updatedSession = await getSession(session.id)
       expect(updatedSession?.claude_status).toBe('completed')
+      
+      // Restore real timers
+      vi.useRealTimers()
     })
 
     it('should create synthetic tool_result event when permission with tool_use_id is denied', async () => {
@@ -190,7 +199,7 @@ describe('Permission Decision API Route', () => {
       expect(response.status).toBe(200)
       
       // Verify synthetic tool_result event was created
-      const events = await getEventsForSession(session.id)
+      const events = await getEventsForSession(session.id, { visibleOnly: false })
       const toolResultEvent = events.find(e => {
         if (e.event_type !== 'user') return false
         const data = e.data as any

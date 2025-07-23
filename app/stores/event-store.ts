@@ -77,12 +77,8 @@ const computeSortedEvents = (eventMap: Map<string, Event>): Event[] => {
 
 // Helper to check if a single event should be displayed
 const shouldDisplayEvent = (event: Event): boolean => {
-  // Always exclude system and result events
-  if (event.event_type === 'system' || event.event_type === 'result') {
-    return false
-  }
-  
-  // For user events, exclude if they contain only tool_result content
+  // System and result events are now filtered at the database level (visible = false)
+  // So we only need to filter user events that contain only tool_result content
   if (event.event_type === 'user' && event.data && typeof event.data === 'object') {
     const data = event.data as Record<string, unknown>
     if ('message' in data && typeof data.message === 'object' && data.message) {
@@ -327,7 +323,8 @@ export const useEventStore = create<EventStore & EventSelectors>()(
             is_sidechain: false,
             parent_uuid: null,
             cwd: '',
-            project_name: ''
+            project_name: '',
+            visible: true
           }
           
           // Check if real message has arrived
@@ -407,7 +404,8 @@ export const useEventStore = create<EventStore & EventSelectors>()(
               is_sidechain: false,
               parent_uuid: null,
               cwd: '',
-              project_name: ''
+              project_name: '',
+              visible: true
             }
             return [...state.displayEvents, optimisticEvent]
           }

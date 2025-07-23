@@ -63,6 +63,7 @@ export function createMockEvent(overrides?: Partial<Event>): Event {
     project_name: 'test-project',
     data: { type: 'user', content: 'Test message' },
     memva_session_id: null,
+    visible: true,
     ...overrides
   }
 }

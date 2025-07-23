@@ -86,7 +86,8 @@ function initializeSchema() {
       parent_uuid TEXT,
       cwd TEXT NOT NULL,
       project_name TEXT NOT NULL,
-      data TEXT NOT NULL
+      data TEXT NOT NULL,
+      visible INTEGER DEFAULT 1
     )
   `)
   
@@ -131,6 +132,8 @@ function initializeSchema() {
     CREATE INDEX IF NOT EXISTS idx_event_type ON events(event_type);
     CREATE INDEX IF NOT EXISTS idx_parent_uuid ON events(parent_uuid);
     CREATE INDEX IF NOT EXISTS idx_memva_session_id ON events(memva_session_id);
+    CREATE INDEX IF NOT EXISTS idx_visible ON events(visible);
+    CREATE INDEX IF NOT EXISTS idx_session_visible ON events(session_id, visible);
     CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
     CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at);
     CREATE INDEX IF NOT EXISTS idx_sessions_claude_status ON sessions(claude_status);
@@ -214,6 +217,16 @@ function runMigrations() {
       CREATE INDEX IF NOT EXISTS idx_permission_requests_expires_at ON permission_requests(expires_at);
       CREATE INDEX IF NOT EXISTS idx_permission_requests_created_at ON permission_requests(created_at);
     `)
+  }
+  
+  // Check if visible column exists in events table
+  const eventsVisibleColumn = eventsColumns.some((col: unknown) => 
+    typeof col === 'object' && col !== null && 'name' in col && (col as { name: string }).name === 'visible'
+  )
+  
+  if (!eventsVisibleColumn) {
+    console.log('Migrating: Adding visible column to events table')
+    sqlite.exec(`ALTER TABLE events ADD COLUMN visible INTEGER DEFAULT 1`)
   }
 }
 

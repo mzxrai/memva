@@ -51,6 +51,7 @@ interface CreateEventOptions {
   projectPath: string
   parentUuid: string | null
   timestamp?: string
+  visible?: boolean
 }
 
 export function createEventFromMessage({
@@ -58,10 +59,16 @@ export function createEventFromMessage({
   memvaSessionId,
   projectPath,
   parentUuid,
-  timestamp
+  timestamp,
+  visible = true
 }: CreateEventOptions): NewEvent {
   const pathParts = projectPath.split('/')
   const projectName = pathParts[pathParts.length - 1] || 'root'
+
+  // Auto-hide system and result events at the database level
+  if (message.type === 'system' || message.type === 'result') {
+    visible = false
+  }
 
   return {
     uuid: uuidv4(),
@@ -73,10 +80,14 @@ export function createEventFromMessage({
     cwd: projectPath,
     project_name: projectName,
     data: message,
-    memva_session_id: memvaSessionId
+    memva_session_id: memvaSessionId,
+    visible
   }
 }
 
 export async function storeEvent(event: NewEvent): Promise<void> {
+  if (event.event_type === 'result') {
+    console.log(`[EVENT STORAGE DEBUG] Storing result event at ${event.timestamp} for session ${event.memva_session_id}`)
+  }
   await db.insert(events).values(event).execute()
 }

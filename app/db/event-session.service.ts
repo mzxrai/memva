@@ -4,6 +4,7 @@ import { eq, and, desc, inArray } from 'drizzle-orm'
 type GetEventsOptions = {
   eventType?: string
   includeSidechain?: boolean
+  visibleOnly?: boolean
 }
 
 export async function associateEventsWithSession(
@@ -45,6 +46,11 @@ export async function getEventsForSession(
   
   if (options.includeSidechain === false) {
     conditions.push(eq(events.is_sidechain, false))
+  }
+  
+  // Default to showing only visible events unless explicitly set to false
+  if (options.visibleOnly !== false) {
+    conditions.push(eq(events.visible, true))
   }
   
   // Execute query with all conditions - newest first

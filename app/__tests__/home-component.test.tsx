@@ -111,8 +111,8 @@ describe('Home Component', () => {
     expect(screen.getByRole('textbox')).toBeInTheDocument()
     expect(screen.getByPlaceholderText(/start a new session: ask, brainstorm, build/i)).toBeInTheDocument()
     
-    // Test directory selector button is visible - it will show the full path initially
-    expect(screen.getByText('/Users/testuser')).toBeInTheDocument()
+    // Test directory selector button is visible - it will show the shortened path
+    expect(screen.getByText('~')).toBeInTheDocument()
     expect(screen.getByText('$')).toBeInTheDocument()
     
     // Test settings button is present
@@ -600,8 +600,8 @@ describe('Home Component', () => {
     const directoryButton = screen.getByTitle('Click to change directory')
     expect(directoryButton).toBeInTheDocument()
     
-    // The button should show the full path initially
-    expect(screen.getByText('/Users/testuser')).toBeInTheDocument()
+    // The button should show the shortened path
+    expect(screen.getByText('~')).toBeInTheDocument()
     expect(screen.getByText('$')).toBeInTheDocument()
     
     // Click to open directory selector
