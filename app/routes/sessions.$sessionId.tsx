@@ -258,6 +258,39 @@ export default function SessionDetail() {
     return map;
   }, [processingState.permissions]);
 
+  // Cycle through permission modes
+  const cyclePermissionMode = useCallback(async () => {
+    const modes: PermissionMode[] = ['default', 'acceptEdits', 'bypassPermissions', 'plan'];
+    const currentIndex = modes.indexOf(currentPermissionMode);
+    const nextMode = modes[(currentIndex + 1) % modes.length];
+    
+    // Update UI optimistically
+    setCurrentPermissionMode(nextMode);
+    setIsUpdatingPermissions(true);
+    
+    try {
+      // Update session settings
+      const response = await fetch(`/api/session/${sessionId}/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(initialSettings || {}),
+          permissionMode: nextMode
+        })
+      });
+      
+      if (!response.ok) {
+        // Revert on error
+        setCurrentPermissionMode(currentPermissionMode);
+      }
+    } catch {
+      // Revert on error
+      setCurrentPermissionMode(currentPermissionMode);
+    } finally {
+      setIsUpdatingPermissions(false);
+    }
+  }, [currentPermissionMode, sessionId, initialSettings]);
+
   // All event processing is now handled by Zustand store selectors
   
   // Handle stop functionality (Escape key only)
@@ -524,15 +557,15 @@ export default function SessionDetail() {
       }
       
       // SHIFT+TAB to cycle permission modes
-      // if (e.key === 'Tab' && e.shiftKey) {
-      //   e.preventDefault();
-      //   cyclePermissionMode();
-      // }
+      if (e.key === 'Tab' && e.shiftKey) {
+        e.preventDefault();
+        cyclePermissionMode();
+      }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [processingState, handleStop]);
+  }, [processingState, handleStop, cyclePermissionMode]);
 
   return (
     <div className="h-screen bg-zinc-950 flex flex-col overflow-hidden">
