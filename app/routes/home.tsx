@@ -358,7 +358,7 @@ export default function Home() {
                 </button>
                 
                 {/* Tooltip for empty state */}
-                {sortedSessions.length === 0 && sessionTitle.trim() === '' && (
+                {shouldCenter && sessionTitle.trim() === '' && (
                   <div className={clsx(
                     "absolute -top-6 left-2",
                     "px-3 py-1.5",

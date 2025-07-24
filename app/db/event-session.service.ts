@@ -54,12 +54,14 @@ export async function getEventsForSession(
   }
   
   // Execute query with all conditions - newest first
-  return db
+  const results = await db
     .select()
     .from(events)
     .where(and(...conditions))
     .orderBy(desc(events.timestamp))
     .execute()
+  
+  return results
 }
 
 export async function getClaudeSessionsForMemvaSession(

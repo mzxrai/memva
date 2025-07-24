@@ -68,9 +68,11 @@ export function useSessionEvents(
         url += `?since_event_id=${encodeURIComponent(lastEventIdRef.current)}`;
       } else {
         // If no reference point, skip this poll
+;
         return null;
       }
       
+;
       const response = await fetch(url);
       
       if (!response.ok) {
@@ -78,6 +80,7 @@ export function useSessionEvents(
       }
       
       const data: EventsResponse = await response.json();
+;
       return data;
     },
     enabled: enabled && !!sessionId && shouldPoll,
@@ -109,6 +112,7 @@ export function useSessionEvents(
   useEffect(() => {
     if (pollingQuery.data) {
       if (pollingQuery.data.events.length > 0) {
+;
         addEvents(pollingQuery.data.events);
       }
       

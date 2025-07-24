@@ -57,6 +57,9 @@ export function useSessionProcessingState({
   // Track exit plan mode transitions
   const transitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   
+  // Only poll for permissions during active session runs
+  const shouldPollPermissions = state.isProcessing || state.isTransitioning || !!state.activeJob || optimisticProcessing !== null;
+  
   // Poll for permissions
   const { 
     permissions, 
@@ -65,7 +68,7 @@ export function useSessionProcessingState({
     deny: denyPermission,
     isProcessing: isProcessingPermission
   } = usePermissionPolling({ 
-    enabled: true,
+    enabled: shouldPollPermissions,
     sessionId,
     pollingInterval
   });
@@ -203,7 +206,8 @@ export function useSessionProcessingState({
     setState(prev => ({
       ...prev,
       isTransitioning: true,
-      isProcessing: false,
+      // Keep isProcessing true during transition for seamless loading state
+      isProcessing: true,
       activeJob: null
       // Keep processingStartTime during transition for smooth UI
     }));
@@ -215,8 +219,8 @@ export function useSessionProcessingState({
     transitionTimeoutRef.current = setTimeout(() => {
       setState(prev => ({
         ...prev,
-        isTransitioning: false,
-        processingStartTime: null
+        isTransitioning: false
+        // Keep processingStartTime and isProcessing - they will be updated when new job arrives
       }));
     }, TRANSITION_TIMEOUT_MS);
   }, []);

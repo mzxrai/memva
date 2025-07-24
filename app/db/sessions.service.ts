@@ -1,4 +1,4 @@
-import { db, sessions, events, type Session, type NewSession } from './index'
+import { db, sessions, events, type Session, type NewSession, type Event } from './index'
 import { eq, desc, and, ne, inArray } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 import { getSettings } from './settings.service'
@@ -109,6 +109,37 @@ export async function listSessions(options: ListSessionsOptions = {}): Promise<S
   return finalQuery.execute()
 }
 
+// Helper function to count visible events the same way as the detail page
+function getVisibleEventCount(sessionEvents: Event[]): number {
+  let count = 0
+  
+  for (const event of sessionEvents) {
+    // Skip invisible events (system and result events are already marked visible: false)
+    if (event.visible === false) continue
+    
+    // Skip user events that contain only tool_result content
+    if (event.event_type === 'user' && event.data && typeof event.data === 'object') {
+      const data = event.data as Record<string, unknown>
+      if ('message' in data && typeof data.message === 'object' && data.message) {
+        const message = data.message as Record<string, unknown>
+        if ('content' in message && Array.isArray(message.content)) {
+          const hasNonToolResultContent = message.content.some((item: unknown) => 
+            item && typeof item === 'object' && 'type' in item && (item as { type: string }).type !== 'tool_result'
+          )
+          if (!hasNonToolResultContent) {
+            // This is a user event with only tool results - don't count it
+            continue
+          }
+        }
+      }
+    }
+    
+    count++
+  }
+  
+  return count
+}
+
 export async function getSessionWithStats(id: string): Promise<SessionWithStats | null> {
   const session = await getSession(id)
   if (!session) return null
@@ -121,8 +152,9 @@ export async function getSessionWithStats(id: string): Promise<SessionWithStats 
     .orderBy(events.timestamp)
     .execute()
   
-  // Calculate stats
-  const event_count = sessionEvents.length
+  // Count visible events the same way as the detail page
+  const visibleEventCount = getVisibleEventCount(sessionEvents)
+  
   let duration_minutes = 0
   let last_event_at: string | undefined
   const event_types: Record<string, number> = {}
@@ -141,7 +173,7 @@ export async function getSessionWithStats(id: string): Promise<SessionWithStats 
   
   return {
     ...session,
-    event_count,
+    event_count: visibleEventCount,
     duration_minutes,
     event_types,
     last_event_at
@@ -254,7 +286,7 @@ export async function getSessionsWithStatsBatch(sessionIds: string[]): Promise<M
     if (!session) return
     
     const sessionEvents = eventsBySession.get(sessionId) || []
-    const event_count = sessionEvents.length
+    const event_count = getVisibleEventCount(sessionEvents)
     let duration_minutes = 0
     let last_event_at: string | undefined
     const event_types: Record<string, number> = {}

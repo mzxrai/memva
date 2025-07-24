@@ -126,10 +126,10 @@ export function FloatingPendingIndicator({ startTime, isVisible, isTransitioning
               'tracking-wide',
               'animate-pulse',
               'inline-block',
-              'w-20',
+              isTransitioning ? 'w-60' : 'w-24', // Wider for transition text
               'truncate'
             )}>
-              {isTransitioning ? 'Switching modes' : currentVerb}...
+              {isTransitioning ? 'Updating current session with new mode' : currentVerb}...
             </span>
             
             {startTime && (

@@ -102,7 +102,7 @@ export async function streamClaudeCodeResponse({
 
       // Check if we've been aborted BEFORE processing (only if we have the session ID)
       if (isAborted) {
-        break
+          break
       }
 
       messageCount++
@@ -135,6 +135,7 @@ export async function streamClaudeCodeResponse({
       if (!hasReceivedFirstMessage) {
         hasReceivedFirstMessage = true
       }
+
 
       // Mark if we've received an assistant message (only if not early abort)
       if (message.type === 'assistant' && !hasReceivedAssistantMessage) {

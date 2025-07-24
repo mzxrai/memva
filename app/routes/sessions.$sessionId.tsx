@@ -135,6 +135,12 @@ export default function SessionDetail() {
   const [isVisible, setIsVisible] = useState(false);
   const [currentPermissionMode, setCurrentPermissionMode] = useState<PermissionMode>(initialSettings?.permissionMode || 'acceptEdits');
   const [isUpdatingPermissions, setIsUpdatingPermissions] = useState(false);
+  const [pendingPermissionMode, setPendingPermissionMode] = useState<PermissionMode | null>(null);
+  const [isPermissionsUpdated, setIsPermissionsUpdated] = useState(false);
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const updateIndicatorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Event store actions are no longer needed for aborted sessions
   
   // Track user activity on this session page
   useSessionActivity(sessionId);
@@ -163,6 +169,19 @@ export default function SessionDetail() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [sessionId]);
+  
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      if (updateIndicatorTimeoutRef.current) {
+        clearTimeout(updateIndicatorTimeoutRef.current);
+      }
+      // No longer need to clear aborted session
+    };
+  }, []);
   
   // Autofocus input on mount
   useEffect(() => {
@@ -258,15 +277,12 @@ export default function SessionDetail() {
     return map;
   }, [processingState.permissions]);
 
-  // Cycle through permission modes
-  const cyclePermissionMode = useCallback(async () => {
-    const modes: PermissionMode[] = ['default', 'acceptEdits', 'bypassPermissions', 'plan'];
-    const currentIndex = modes.indexOf(currentPermissionMode);
-    const nextMode = modes[(currentIndex + 1) % modes.length];
-    
-    // Update UI optimistically
-    setCurrentPermissionMode(nextMode);
-    setIsUpdatingPermissions(true);
+  // Function to apply permission mode changes - simplified without abort tracking
+  const applyPermissionModeChange = useCallback(async (newMode: PermissionMode) => {
+    // Store original state for error recovery
+    const originalPermissionMode = currentPermissionMode;
+    const originalPendingMode = pendingPermissionMode;
+    const originalIsUpdating = isUpdatingPermissions;
     
     try {
       // Update session settings
@@ -275,21 +291,75 @@ export default function SessionDetail() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...(initialSettings || {}),
-          permissionMode: nextMode
+          permissionMode: newMode
         })
       });
       
       if (!response.ok) {
-        // Revert on error
-        setCurrentPermissionMode(currentPermissionMode);
+        throw new Error('Failed to update settings');
       }
-    } catch {
-      // Revert on error
-      setCurrentPermissionMode(currentPermissionMode);
-    } finally {
-      setIsUpdatingPermissions(false);
+      
+      // Trigger transition UI if there's an active job
+      if (processingState.activeJob) {
+        processingState.startTransition();
+      }
+      
+    } catch (error) {
+      console.error('Failed to apply permission mode change:', error);
+      // Revert to original state on error
+      setCurrentPermissionMode(originalPermissionMode);
+      setPendingPermissionMode(originalPendingMode);
+      setIsUpdatingPermissions(originalIsUpdating);
+      return;
     }
-  }, [currentPermissionMode, sessionId, initialSettings]);
+    
+    // Show success indicator
+    setIsUpdatingPermissions(false);
+    setIsPermissionsUpdated(true);
+    if (updateIndicatorTimeoutRef.current) {
+      clearTimeout(updateIndicatorTimeoutRef.current);
+    }
+    updateIndicatorTimeoutRef.current = setTimeout(() => {
+      setIsPermissionsUpdated(false);
+    }, 1000);
+  }, [sessionId, initialSettings, processingState, currentPermissionMode, pendingPermissionMode, isUpdatingPermissions]);
+
+  // Cycle through permission modes with debouncing
+  const cyclePermissionMode = useCallback(() => {
+    // Prevent concurrent operations
+    if (isUpdatingPermissions && !debounceTimeoutRef.current) {
+      // Already applying a change, ignore rapid calls
+      return;
+    }
+    
+    const modes: PermissionMode[] = ['default', 'acceptEdits', 'bypassPermissions', 'plan'];
+    const baseMode = pendingPermissionMode || currentPermissionMode;
+    const currentIndex = modes.indexOf(baseMode);
+    const nextMode = modes[(currentIndex + 1) % modes.length];
+    
+    // Clear any existing timeouts and reset their associated state
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = null;
+    }
+    if (updateIndicatorTimeoutRef.current) {
+      clearTimeout(updateIndicatorTimeoutRef.current);
+      updateIndicatorTimeoutRef.current = null;
+    }
+    
+    // Update UI immediately to show the selected mode
+    setCurrentPermissionMode(nextMode);
+    setPendingPermissionMode(nextMode);
+    setIsUpdatingPermissions(true);
+    setIsPermissionsUpdated(false);
+    
+    // Set debounced timeout to actually apply the change
+    debounceTimeoutRef.current = setTimeout(() => {
+      applyPermissionModeChange(nextMode);
+      setPendingPermissionMode(null);
+      debounceTimeoutRef.current = null; // Clear reference after execution
+    }, 1000);
+  }, [currentPermissionMode, pendingPermissionMode, isUpdatingPermissions, applyPermissionModeChange]);
 
   // All event processing is now handled by Zustand store selectors
   
@@ -419,6 +489,7 @@ export default function SessionDetail() {
     
     return () => unsubscribe();
   }, [processingState.isProcessing, processingState]);
+  
   
   // Track if we should auto-scroll (user is near bottom)
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
@@ -559,6 +630,17 @@ export default function SessionDetail() {
       // SHIFT+TAB to cycle permission modes
       if (e.key === 'Tab' && e.shiftKey) {
         e.preventDefault();
+        
+        // Check if permission changes are allowed
+        const canChangePermissions = !processingState.isProcessing || 
+                                    processingState.permissions.some(p => p.status === 'pending');
+        
+        if (!canChangePermissions) {
+          // Maybe show a visual indicator or log
+          console.log('[PERMISSIONS] Cannot change permissions during active processing');
+          return;
+        }
+        
         cyclePermissionMode();
       }
     };
@@ -658,6 +740,8 @@ export default function SessionDetail() {
                 <PermissionsBadge 
                   mode={currentPermissionMode}
                   isUpdating={isUpdatingPermissions}
+                  isUpdated={isPermissionsUpdated}
+                  isDisabled={processingState.isProcessing && !processingState.permissions.some(p => p.status === 'pending')}
                 />
               </div>
               <div 

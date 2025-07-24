@@ -116,27 +116,9 @@ const sigintListeners = process.listenerCount('SIGINT');
 const sigtermListeners = process.listenerCount('SIGTERM');
 
 if (sigintListeners === 0) {
-  process.on('SIGINT', async () => {
-    console.log('\n🛑 Shutting down job system...');
+  process.once('SIGINT', async () => {
+    console.log('\nShutting down...');
     
-    // Expire all pending permissions before shutdown
-    try {
-      await expireAllPendingPermissions();
-      console.log('✅ Expired pending permissions');
-    } catch (error) {
-      console.error('❌ Failed to expire pending permissions:', error);
-    }
-    
-    if (jobSystem) {
-      await jobSystem.stop();
-      console.log('✅ Job system stopped');
-    }
-    process.exit(0);
-  });
-}
-
-if (sigtermListeners === 0) {
-  process.on('SIGTERM', async () => {
     // Expire all pending permissions before shutdown
     try {
       await expireAllPendingPermissions();
@@ -147,6 +129,26 @@ if (sigtermListeners === 0) {
     if (jobSystem) {
       await jobSystem.stop();
     }
+    
+    process.exit(0);
+  });
+}
+
+if (sigtermListeners === 0) {
+  process.once('SIGTERM', async () => {
+    console.log('\nShutting down...');
+    
+    // Expire all pending permissions before shutdown
+    try {
+      await expireAllPendingPermissions();
+    } catch (error) {
+      console.error('Failed to expire pending permissions:', error);
+    }
+    
+    if (jobSystem) {
+      await jobSystem.stop();
+    }
+    
     process.exit(0);
   });
 }

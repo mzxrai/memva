@@ -1,102 +1,84 @@
 import type { JobHandler } from '../job-worker'
 import { streamClaudeCodeResponse } from '../../services/claude-code.server'
-import { getSession, updateSessionClaudeStatus } from '../../db/sessions.service'
+import { getSession, updateSessionClaudeStatus, getLatestClaudeSessionId, getSessionSettings } from '../../db/sessions.service'
 import { getJob } from '../../db/jobs.service'
+import { createEventFromMessage, storeEvent } from '../../db/events.service'
+import { getEventsForSession, findAssistantEventWithToolUseId } from '../../db/event-session.service'
+import { createJob } from '../../db/jobs.service'
+import { createSessionRunnerJob } from '../job-types'
 import type { SessionRunnerJobData } from '../job-types'
 
+// Constants
+const CANCELLATION_POLL_INTERVAL_MS = 100
+const CONTINUATION_JOB_DELAY_MS = 100
+const PERMISSION_TRANSITION_MESSAGE = (mode: string) => 
+  `The user has changed your permissions mode to: ${mode}. Please acknowledge this change and let the user know you're now operating in ${mode} mode.`
+const EXIT_PLAN_CONTINUATION_MESSAGE = 'Continue with your plan.'
+
+/**
+ * Handles Claude Code SDK job execution for a session
+ * Manages message streaming, event storage, and job transitions
+ */
 export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) => {
   try {
     const jobData = job as { id: string; type: string; data: SessionRunnerJobData }
     
-    // Validate required fields
-    if (!jobData.data.sessionId || !jobData.data.prompt) {
-      callback(new Error('Missing required fields: sessionId and prompt are required'))
+    // Validate inputs
+    const validationError = validateJobData(jobData)
+    if (validationError) {
+      callback(validationError)
       return
     }
     
     const { sessionId, prompt, userId } = jobData.data
-    
-    
-    // Validate session exists
     const session = await getSession(sessionId)
+    
     if (!session) {
       callback(new Error(`Session not found: ${sessionId}`))
       return
     }
     
-    // Validate prompt is not empty
-    if (prompt.trim().length === 0) {
-      callback(new Error('Invalid prompt: prompt cannot be empty'))
-      return
+    // Initialize job state
+    const jobState = {
+      messagesProcessed: 0,
+      hasError: false,
+      errorMessage: '',
+      isTransitionJob: false // For both exit plan and permission transitions
     }
     
-    let messagesProcessed = 0
-    let hasError = false
-    let errorMessage = ''
-    let isExitPlanModeTransition = false
-    
-    // Check if we need to create a user event
-    // If there are no events yet, this is from homepage and we need to create the user event
-    const { getEventsForSession } = await import('../../db/event-session.service')
+    // Handle initial user event for new sessions
     const existingEvents = await getEventsForSession(sessionId)
-    
     if (existingEvents.length === 0) {
-      // This is from homepage - create the user event
-      const { createEventFromMessage, storeEvent } = await import('../../db/events.service')
-      const userEvent = createEventFromMessage({
-        message: {
-          type: 'user',
-          content: prompt.trim(),
-          session_id: '' // Will be populated by Claude Code SDK
-        },
-        memvaSessionId: sessionId,
-        projectPath: session.project_path,
-        parentUuid: null,
-        timestamp: new Date().toISOString()
-      })
-      
-      await storeEvent(userEvent)
+      await createInitialUserEvent(sessionId, prompt, session.project_path)
     }
     
-    // Get the latest Claude session ID for resumption
-    // IMPORTANT: Only resume if this is NOT a new session from homepage
-    let resumeSessionId: string | undefined = undefined
+    // Setup session resumption if applicable
+    const resumeSessionId = existingEvents.length > 0 
+      ? await getLatestClaudeSessionId(sessionId) || undefined
+      : undefined
     
-    if (existingEvents.length > 0) {
-      // This is an existing conversation - get the Claude session ID to resume
-      const { getLatestClaudeSessionId } = await import('../../db/sessions.service')
-      const claudeSessionId = await getLatestClaudeSessionId(sessionId)
-      
-      // Only set resumeSessionId if we actually got a non-null value
-      if (claudeSessionId) {
-        resumeSessionId = claudeSessionId
-      }
-    }
-    
-    // Get the latest event to use as parent UUID
+    // Get parent UUID for event chaining
     const events = await getEventsForSession(sessionId)
-    const lastEvent = events.length > 0 ? events[0] : null
-    const initialParentUuid = lastEvent?.uuid || undefined
+    const initialParentUuid = events[0]?.uuid
     
-    // Create abort controller for cancellation
+    // Setup cancellation handling
     const abortController = new AbortController()
+    const transitionState = {
+      isPermissionTransition: false,
+      hasStoredAssistantMessage: false
+    }
     
-    // Set up cancellation polling
-    const pollInterval = setInterval(async () => {
-      try {
-        const currentJob = await getJob(jobData.id)
-        if (currentJob?.status === 'cancelled') {
-          abortController.abort()
-          clearInterval(pollInterval)
-        }
-      } catch (error) {
-        console.error(`[Job ${jobData.id}] Error checking cancellation:`, error)
-      }
-    }, 100) // Poll every 100ms for near-instant response
-    
-    // Get session-specific settings (with fallback to global)
-    const { getSessionSettings } = await import('../../db/sessions.service')
+    // Get session settings
     const settings = await getSessionSettings(sessionId)
+    
+    // Setup cancellation polling
+    const pollInterval = setupCancellationPolling({
+      jobId: jobData.id,
+      sessionId,
+      originalPermissionMode: settings.permissionMode,
+      abortController,
+      transitionState
+    })
     
     // Execute Claude Code SDK interaction
     try {
@@ -110,185 +92,332 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
         maxTurns: settings.maxTurns,
         permissionMode: settings.permissionMode,
         onMessage: () => {
-          messagesProcessed++
-          // Messages are automatically stored by the service
+          jobState.messagesProcessed++
         },
         onError: (error) => {
-          hasError = true
-          errorMessage = error.message
+          jobState.hasError = true
+          jobState.errorMessage = error.message
         },
         onStoredEvent: async (event) => {
-          
-          // Check if this is a tool_result event for exit_plan_mode
-          if (event.event_type === 'user' && event.data && typeof event.data === 'object') {
-            const data = event.data as {
-              type: string
-              message?: {
-                role: string
-                content?: Array<{
-                  type: string
-                  tool_use_id?: string
-                  content?: unknown
-                  is_error?: boolean
-                }>
-              }
-              parent_tool_use_id?: string | null
-              session_id?: string
-            }
-            
-            if (data.message?.content && Array.isArray(data.message.content)) {
-              for (const content of data.message.content) {
-                if (content.type === 'tool_result' && content.tool_use_id) {
-                  // Check if this tool_result corresponds to an exit_plan_mode tool use
-                  // We need to find the parent assistant event that contains the tool_use with this ID
-                  const { findAssistantEventWithToolUseId } = await import('../../db/event-session.service')
-                  const parentEvent = await findAssistantEventWithToolUseId(sessionId, content.tool_use_id)
-                  
-                  if (parentEvent && parentEvent.data && typeof parentEvent.data === 'object') {
-                    const parentData = parentEvent.data as {
-                      type: string
-                      message?: {
-                        role: string
-                        content?: Array<{
-                          type: string
-                          id?: string
-                          name?: string
-                        }>
-                      }
-                    }
-                    
-                    if (parentData.message?.content && Array.isArray(parentData.message.content)) {
-                      const toolUse = parentData.message.content.find(c => 
-                        c.type === 'tool_use' && c.id === content.tool_use_id && c.name === 'exit_plan_mode'
-                      )
-                      
-                      if (toolUse && !content.is_error) {
-                        
-                        // Signal that we should gracefully complete this session
-                        hasError = false
-                        isExitPlanModeTransition = true
-                        
-                        // Abort the current session to stop processing
-                        abortController.abort()
-                        
-                        // Schedule the creation of a new job with continuation message
-                        // We do this asynchronously to avoid blocking the current event processing
-                        setTimeout(async () => {
-                          try {
-                            
-                            // Create a hidden user event for the continuation message
-                            const continuationMessage = 'Continue with your plan.'
-                            const { createEventFromMessage, storeEvent } = await import('../../db/events.service')
-                            const { createJob } = await import('../../db/jobs.service')
-                            
-                            // Get the latest event to use as parent
-                            const { getEventsForSession } = await import('../../db/event-session.service')
-                            const latestEvents = await getEventsForSession(sessionId)
-                            const latestEvent = latestEvents[latestEvents.length - 1]
-                            
-                            // Create the continuation event (marked as not visible)
-                            const continuationEvent = createEventFromMessage({
-                              message: {
-                                type: 'user',
-                                content: continuationMessage,
-                                session_id: ''
-                              },
-                              memvaSessionId: sessionId,
-                              projectPath: session.project_path,
-                              parentUuid: latestEvent?.uuid || null,
-                              visible: false // Hidden from UI
-                            })
-                            
-                            await storeEvent(continuationEvent)
-                            
-                            // Create a new job to continue the conversation
-                            const { createSessionRunnerJob } = await import('../../workers/job-types')
-                            
-                            const jobInput = createSessionRunnerJob({
-                              sessionId,
-                              prompt: continuationMessage
-                            })
-                            
-                            await createJob(jobInput)
-                            
-                          } catch (error) {
-                            console.error(`Error creating continuation job:`, error)
-                          }
-                        }, 100) // Small delay to ensure current session completes
-                      }
-                    }
-                  }
-                }
-              }
-            }
+          // Handle permission mode transition
+          if (await handlePermissionTransition({
+            event,
+            sessionId,
+            projectPath: session.project_path,
+            transitionState,
+            abortController,
+            pollInterval,
+            jobState
+          })) {
+            return
           }
+          
+          // Handle exit plan mode transition
+          await handleExitPlanTransition({
+            event,
+            sessionId,
+            projectPath: session.project_path,
+            abortController,
+            jobState
+          })
         }
       })
       
-      if (hasError) {
-        try {
-          await updateSessionClaudeStatus(sessionId, 'error')
-        } catch (statusError) {
-          console.error('Failed to update session status to error:', statusError)
-        }
-        callback(new Error(`Claude Code SDK error: ${errorMessage}`))
-        return
-      }
-      
-      // Job completed successfully
-      try {
-        await updateSessionClaudeStatus(sessionId, 'completed')
-      } catch (statusError) {
-        console.error('Failed to update session status to completed:', statusError)
-      }
-      callback(null, {
-        success: true,
+      // Handle job completion
+      await handleJobCompletion({
+        jobState,
         sessionId,
-        messagesProcessed,
-        userId
+        userId,
+        callback
       })
       
     } catch (sdkError) {
-      // Check if this was a cancellation by checking job status
-      const currentJob = await getJob(jobData.id);
-      const isCancelled = currentJob?.status === 'cancelled' || abortController.signal.aborted;
-      
-      if (isCancelled) {
-        // Check if this is an exit_plan_mode transition
-        if (isExitPlanModeTransition) {
-          // This is expected - complete the job successfully
-          try {
-            await updateSessionClaudeStatus(sessionId, 'completed')
-          } catch (statusError) {
-            console.error('Failed to update session status to completed:', statusError)
-          }
-          callback(null, {
-            success: true,
-            sessionId,
-            messagesProcessed,
-            userId,
-            exitPlanModeTransition: true
-          })
-          return
-        }
-        
-        // Don't update status here - the stop endpoint already set it to 'completed'
-        callback(new Error('Job cancelled by user'))
-        return
-      }
-      
-      try {
-        await updateSessionClaudeStatus(sessionId, 'error')
-      } catch (statusError) {
-        console.error('Failed to update session status to error:', statusError)
-      }
-      callback(new Error(`Claude Code SDK error: ${(sdkError as Error).message}`))
+      await handleJobError({
+        error: sdkError as Error,
+        jobId: jobData.id,
+        sessionId,
+        userId,
+        jobState,
+        abortController,
+        callback
+      })
     } finally {
-      // Clean up polling
       clearInterval(pollInterval)
     }
     
   } catch (error) {
     callback(new Error(`Session runner handler error: ${(error as Error).message}`))
   }
+}
+
+// Helper Functions
+
+function validateJobData(jobData: unknown): Error | null {
+  const data = jobData as { data?: { sessionId?: string; prompt?: string } }
+  if (!data?.data?.sessionId || !data?.data?.prompt) {
+    return new Error('Missing required fields: sessionId and prompt are required')
+  }
+  
+  if (data.data.prompt.trim().length === 0) {
+    return new Error('Invalid prompt: prompt cannot be empty')
+  }
+  
+  return null
+}
+
+async function createInitialUserEvent(
+  sessionId: string,
+  prompt: string,
+  projectPath: string
+): Promise<void> {
+  const userEvent = createEventFromMessage({
+    message: {
+      type: 'user',
+      content: prompt.trim(),
+      session_id: ''
+    },
+    memvaSessionId: sessionId,
+    projectPath,
+    parentUuid: null,
+    timestamp: new Date().toISOString()
+  })
+  
+  await storeEvent(userEvent)
+}
+
+interface CancellationPollingOptions {
+  jobId: string
+  sessionId: string
+  originalPermissionMode: string
+  abortController: AbortController
+  transitionState: {
+    isPermissionTransition: boolean
+    hasStoredAssistantMessage: boolean
+  }
+}
+
+function setupCancellationPolling(options: CancellationPollingOptions): ReturnType<typeof setInterval> {
+  const { jobId, sessionId, originalPermissionMode, abortController, transitionState } = options
+  
+  return setInterval(async () => {
+    try {
+      const currentJob = await getJob(jobId)
+      if (currentJob?.status === 'cancelled') {
+        const currentSettings = await getSessionSettings(sessionId)
+        
+        if (currentSettings.permissionMode !== originalPermissionMode && !transitionState.isPermissionTransition) {
+          transitionState.isPermissionTransition = true
+          // Wait for assistant message before aborting
+        } else if (!transitionState.isPermissionTransition) {
+          abortController.abort()
+        }
+      }
+    } catch {
+      // Silently handle polling errors
+    }
+  }, CANCELLATION_POLL_INTERVAL_MS)
+}
+
+async function createContinuationJob(
+  sessionId: string,
+  projectPath: string,
+  message: string
+): Promise<void> {
+  const events = await getEventsForSession(sessionId)
+  const latestEvent = events[0]
+  
+  const continuationEvent = createEventFromMessage({
+    message: {
+      type: 'user',
+      content: message,
+      session_id: ''
+    },
+    memvaSessionId: sessionId,
+    projectPath,
+    parentUuid: latestEvent?.uuid || null,
+    visible: false
+  })
+  
+  await storeEvent(continuationEvent)
+  
+  const jobInput = createSessionRunnerJob({
+    sessionId,
+    prompt: message
+  })
+  
+  await createJob(jobInput)
+}
+
+interface PermissionTransitionOptions {
+  event: Record<string, unknown>
+  sessionId: string
+  projectPath: string
+  transitionState: {
+    isPermissionTransition: boolean
+    hasStoredAssistantMessage: boolean
+  }
+  abortController: AbortController
+  pollInterval: ReturnType<typeof setInterval>
+  jobState: {
+    isTransitionJob: boolean
+  }
+}
+
+async function handlePermissionTransition(options: PermissionTransitionOptions): Promise<boolean> {
+  const { event, sessionId, projectPath, transitionState, abortController, pollInterval, jobState } = options
+  
+  if (event.event_type === 'assistant' && 
+      transitionState.isPermissionTransition && 
+      !transitionState.hasStoredAssistantMessage) {
+    
+    transitionState.hasStoredAssistantMessage = true
+    abortController.abort()
+    clearInterval(pollInterval)
+    
+    setTimeout(async () => {
+      try {
+        const currentSettings = await getSessionSettings(sessionId)
+        const message = PERMISSION_TRANSITION_MESSAGE(currentSettings.permissionMode)
+        await createContinuationJob(sessionId, projectPath, message)
+      } catch {
+        // Log error but don't fail the transition
+      }
+    }, CONTINUATION_JOB_DELAY_MS)
+    
+    jobState.isTransitionJob = true
+    return true
+  }
+  
+  return false
+}
+
+interface ExitPlanTransitionOptions {
+  event: Record<string, unknown>
+  sessionId: string
+  projectPath: string
+  abortController: AbortController
+  jobState: {
+    hasError: boolean
+    isTransitionJob: boolean
+  }
+}
+
+async function handleExitPlanTransition(options: ExitPlanTransitionOptions): Promise<void> {
+  const { event, sessionId, projectPath, abortController, jobState } = options
+  
+  if (event.event_type !== 'user' || !event.data || typeof event.data !== 'object') {
+    return
+  }
+  
+  const data = event.data as { message?: { content?: Array<{ type: string; tool_use_id?: string; is_error?: boolean }> } }
+  if (!data.message?.content || !Array.isArray(data.message.content)) {
+    return
+  }
+  
+  for (const content of data.message.content) {
+    if (content.type === 'tool_result' && content.tool_use_id && !content.is_error) {
+      const parentEvent = await findAssistantEventWithToolUseId(sessionId, content.tool_use_id)
+      
+      if (await isExitPlanModeToolUse(parentEvent, content.tool_use_id)) {
+        jobState.hasError = false
+        jobState.isTransitionJob = true
+        abortController.abort()
+        
+        setTimeout(async () => {
+          try {
+            await createContinuationJob(sessionId, projectPath, EXIT_PLAN_CONTINUATION_MESSAGE)
+          } catch {
+            // Log error but don't fail the transition
+          }
+        }, CONTINUATION_JOB_DELAY_MS)
+        
+        break
+      }
+    }
+  }
+}
+
+async function isExitPlanModeToolUse(parentEvent: { data: unknown } | null, toolUseId: string): Promise<boolean> {
+  if (!parentEvent?.data || typeof parentEvent.data !== 'object') {
+    return false
+  }
+  
+  const parentData = parentEvent.data as { message?: { content?: Array<{ type: string; id?: string; name?: string }> } }
+  if (!parentData.message?.content || !Array.isArray(parentData.message.content)) {
+    return false
+  }
+  
+  return parentData.message.content.some((c) => 
+    c.type === 'tool_use' && c.id === toolUseId && c.name === 'exit_plan_mode'
+  )
+}
+
+interface JobCompletionOptions {
+  jobState: {
+    hasError: boolean
+    errorMessage: string
+    messagesProcessed: number
+  }
+  sessionId: string
+  userId?: string
+  callback: (error: Error | null, result?: unknown) => void
+}
+
+async function handleJobCompletion(options: JobCompletionOptions): Promise<void> {
+  const { jobState, sessionId, userId, callback } = options
+  
+  if (jobState.hasError) {
+    await updateSessionClaudeStatus(sessionId, 'error').catch(() => {})
+    callback(new Error(`Claude Code SDK error: ${jobState.errorMessage}`))
+    return
+  }
+  
+  await updateSessionClaudeStatus(sessionId, 'completed').catch(() => {})
+  callback(null, {
+    success: true,
+    sessionId,
+    messagesProcessed: jobState.messagesProcessed,
+    userId
+  })
+}
+
+interface JobErrorOptions {
+  error: Error
+  jobId: string
+  sessionId: string
+  userId?: string
+  jobState: {
+    isTransitionJob: boolean
+    messagesProcessed: number
+  }
+  abortController: AbortController
+  callback: (error: Error | null, result?: unknown) => void
+}
+
+async function handleJobError(options: JobErrorOptions): Promise<void> {
+  const { error, jobId, sessionId, userId, jobState, abortController, callback } = options
+  
+  const currentJob = await getJob(jobId)
+  const isCancelled = currentJob?.status === 'cancelled' || abortController.signal.aborted
+  
+  if (isCancelled) {
+    if (jobState.isTransitionJob) {
+      // Transition jobs complete successfully even when cancelled
+      await updateSessionClaudeStatus(sessionId, 'completed').catch(() => {})
+      callback(null, {
+        success: true,
+        sessionId,
+        messagesProcessed: jobState.messagesProcessed,
+        userId,
+        transition: true
+      })
+      return
+    }
+    
+    callback(new Error('Job cancelled by user'))
+    return
+  }
+  
+  await updateSessionClaudeStatus(sessionId, 'error').catch(() => {})
+  callback(new Error(`Claude Code SDK error: ${error.message}`))
 }

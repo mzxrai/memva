@@ -99,7 +99,7 @@ const shouldDisplayEvent = (event: Event): boolean => {
 
 // Helper to compute display events (filters out system events and empty tool results)
 const computeDisplayEvents = (sortedEvents: Event[]): Event[] => {
-  return sortedEvents.filter(shouldDisplayEvent);
+  return sortedEvents.filter(event => shouldDisplayEvent(event));
 }
 
 // Helper to extract tool results from events
@@ -220,14 +220,17 @@ export const useEventStore = create<EventStore & EventSelectors>()(
           new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
         
+        // No longer need to track aborted sessions client-side
+        
         // Helper function for binary search to find insertion point
+        // Uses < instead of <= to ensure stable ordering for identical timestamps
         const binarySearchInsertIndex = (arr: Event[], targetTime: number): number => {
           let left = 0;
           let right = arr.length;
           
           while (left < right) {
             const mid = Math.floor((left + right) / 2);
-            if (new Date(arr[mid].timestamp).getTime() <= targetTime) {
+            if (new Date(arr[mid].timestamp).getTime() < targetTime) {
               left = mid + 1;
             } else {
               right = mid;

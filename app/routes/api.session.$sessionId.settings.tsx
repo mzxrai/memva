@@ -3,6 +3,8 @@ import { getSession, updateSessionSettings, getSessionSettings } from "../db/ses
 import type { SettingsConfig } from "../types/settings"
 import { PERMISSION_MODES } from "../types/settings"
 
+
+
 // GET /api/session/:sessionId/settings
 export async function loader({ params }: Route.LoaderArgs) {
   const session = await getSession(params.sessionId)

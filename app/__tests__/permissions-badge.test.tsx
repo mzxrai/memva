@@ -29,9 +29,11 @@ describe('PermissionsBadge Component', () => {
     render(<PermissionsBadge mode="plan" isUpdating={true} />)
     
     const badge = screen.getByRole('status', { name: /permissions mode/i })
-    // Check for updating text or indicator
+    // Check for plan text
     expect(badge).toHaveTextContent('Plan')
-    expect(badge).toHaveTextContent('Updating...')
+    // Check for spinner element
+    const spinner = badge.querySelector('.animate-spin')
+    expect(spinner).toBeInTheDocument()
   })
 
   it('should have proper accessibility attributes', () => {
