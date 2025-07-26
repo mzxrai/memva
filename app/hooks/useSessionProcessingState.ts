@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { Job, PermissionRequest } from '../db/schema';
 import usePermissionPolling from './usePermissionPolling';
+import { useEventStore } from '../stores/event-store';
 
 interface SessionProcessingState {
   // Core state
@@ -60,6 +61,9 @@ export function useSessionProcessingState({
   // Only poll for permissions during active session runs
   const shouldPollPermissions = state.isProcessing || state.isTransitioning || !!state.activeJob || optimisticProcessing !== null;
   
+  // Create a ref to hold the stopProcessing function
+  const stopProcessingRef = useRef<(() => void) | null>(null);
+  
   // Poll for permissions
   const { 
     permissions, 
@@ -70,7 +74,13 @@ export function useSessionProcessingState({
   } = usePermissionPolling({ 
     enabled: shouldPollPermissions,
     sessionId,
-    pollingInterval
+    pollingInterval,
+    onPermissionsCleared: useCallback(() => {
+      // When all permissions are cleared and there's no active job, stop processing
+      if (!state.activeJob && stopProcessingRef.current) {
+        stopProcessingRef.current();
+      }
+    }, [state.activeJob])
   });
 
   // Poll for active jobs
@@ -91,7 +101,7 @@ export function useSessionProcessingState({
       // Also keep polling for grace period after startProcessing was called
       // This ensures we catch new jobs even if we get null responses initially
       const timeSinceStart = Date.now() - lastProcessingStartRef.current;
-      const inGracePeriod = timeSinceStart < GRACE_PERIOD_MS;
+      const inGracePeriod = lastProcessingStartRef.current > 0 && timeSinceStart < GRACE_PERIOD_MS;
       
       return (shouldPoll || inGracePeriod) ? pollingInterval : false;
     },
@@ -101,6 +111,27 @@ export function useSessionProcessingState({
   });
   
   const activeJob = activeJobData?.job || null;
+
+  // Check if we're in context summarization state by looking at recent events
+  const isInContextSummarization = useEventStore(state => {
+    const events = Array.from(state.events.values());
+    const recentEvents = events.filter(e => 
+      new Date(e.timestamp).getTime() > Date.now() - 30000 // Last 30 seconds
+    );
+    
+    // Look for context limit or summarizing events
+    return recentEvents.some(e => {
+      if (e.event_type !== 'system' || !e.data || typeof e.data !== 'object') return false;
+      const data = e.data as { subtype?: string };
+      return data.subtype === 'context_limit_reached' || 
+             data.subtype === 'summarizing_context';
+    }) && !recentEvents.some(e => {
+      // Check if summarization is complete
+      if (e.event_type !== 'system' || !e.data || typeof e.data !== 'object') return false;
+      const data = e.data as { subtype?: string };
+      return data.subtype === 'context_summary';
+    });
+  });
 
   // Update state based on active job
   useEffect(() => {
@@ -133,8 +164,14 @@ export function useSessionProcessingState({
           }
         }
       } else if (!hasActiveJob) {
-        // No active job - check if we have pending permissions
-        if (pendingPermissionCount > 0) {
+        // No active job - check if we're in optimistic processing period
+        if (optimisticProcessing) {
+          // We're in optimistic processing - maintain processing state
+          newState.isProcessing = true;
+          if (!newState.processingStartTime) {
+            newState.processingStartTime = optimisticProcessing;
+          }
+        } else if (pendingPermissionCount > 0) {
           // We have pending permissions but no job - keep processing state
           if (!prev.isProcessing) {
             newState.isProcessing = true;
@@ -143,24 +180,25 @@ export function useSessionProcessingState({
               newState.processingStartTime = currentTime;
             }
           }
+        } else if (isInContextSummarization) {
+          // We're in context summarization - maintain processing state
+          newState.isProcessing = true;
+          if (!newState.processingStartTime) {
+            newState.processingStartTime = currentTime;
+          }
         } else {
-          // No job and no permissions - check if we're in grace period
-          const timeSinceStart = Date.now() - lastProcessingStartRef.current;
-          const inGracePeriod = timeSinceStart < GRACE_PERIOD_MS;
-          
-          if (inGracePeriod) {
-            // Keep processing state during grace period
-          } else {
-            // Not in grace period - ensure clean state
-            if (prev.isProcessing && !newState.isTransitioning) {
-              // Just finished processing
-              newState.isProcessing = false;
-              newState.activeJob = null;
-              newState.processingStartTime = null;
-            } else if (!prev.isProcessing && prev.processingStartTime) {
-              // Ensure processingStartTime is cleared when not processing
-              newState.processingStartTime = null;
-            }
+          // No job, no optimistic processing, no permissions, and not summarizing - immediately clear processing state
+          // Don't wait for grace period when permissions are handled
+          if (prev.isProcessing && !newState.isTransitioning) {
+            // Just finished processing
+            newState.isProcessing = false;
+            newState.activeJob = null;
+            newState.processingStartTime = null;
+            // Clear the grace period tracking to prevent it from re-enabling
+            lastProcessingStartRef.current = 0;
+          } else if (!prev.isProcessing && prev.processingStartTime) {
+            // Ensure processingStartTime is cleared when not processing
+            newState.processingStartTime = null;
           }
         }
         
@@ -172,7 +210,7 @@ export function useSessionProcessingState({
 
       return newState;
     });
-  }, [activeJob, optimisticProcessing, pendingPermissionCount]);
+  }, [activeJob, optimisticProcessing, pendingPermissionCount, isInContextSummarization]);
 
   // Clear optimistic processing after a timeout
   useEffect(() => {
@@ -239,6 +277,11 @@ export function useSessionProcessingState({
       clearTimeout(transitionTimeoutRef.current);
     }
   }, []);
+  
+  // Update the ref whenever stopProcessing changes
+  useEffect(() => {
+    stopProcessingRef.current = stopProcessing;
+  }, [stopProcessing]);
 
   // Force refetch active job
   const refetchActiveJob = useCallback(() => {
@@ -256,7 +299,7 @@ export function useSessionProcessingState({
 
   // Compute derived state
   const hasPendingPermissions = pendingPermissionCount > 0;
-  const showSpinner = state.isProcessing || state.isTransitioning || optimisticProcessing !== null || hasPendingPermissions;
+  const showSpinner = state.isProcessing || state.isTransitioning || optimisticProcessing !== null || hasPendingPermissions || isInContextSummarization;
   
   // Disable input when processing OR when submitting
   const isInputDisabled = showSpinner || isSubmitting;
@@ -266,11 +309,14 @@ export function useSessionProcessingState({
     if (hasPendingPermissions) {
       return "Awaiting permission... (ESC to deny)";
     }
+    if (isInContextSummarization) {
+      return "Creating conversation summary...";
+    }
     if (showSpinner || isSubmitting) {
       return "Processing... (ESC to stop)";
     }
     return "";
-  }, [hasPendingPermissions, showSpinner, isSubmitting]);
+  }, [hasPendingPermissions, showSpinner, isSubmitting, isInContextSummarization]);
 
   return {
     // Core state
