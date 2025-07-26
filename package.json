@@ -1,6 +1,6 @@
 {
   "name": "memva",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Session manager for coding agents",
   "type": "module",
   "bin": {
@@ -24,7 +24,8 @@
     "public/**/*",
     "cli.js",
     "package.json",
-    "README.md"
+    "README.md",
+    "screenshot.png"
   ],
   "scripts": {
     "prepublishOnly": "npm run build",
