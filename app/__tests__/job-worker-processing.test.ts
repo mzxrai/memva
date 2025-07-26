@@ -35,7 +35,10 @@ describe('Job Worker Processing', () => {
       worker.registerHandler('test-job', testHandler)
       
       // Create a job in the database
-      await createJob({ type: 'test-job', data: { message: 'test' } })
+      await createJob({ 
+        type: 'test-job', 
+        data: { message: 'test' } 
+      })
       
       // Start the worker and wait for job processing
       await worker.start()

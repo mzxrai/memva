@@ -35,6 +35,7 @@ interface ToolCallDisplayProps {
   permission?: PermissionRequest
   onApprovePermission?: (id: string) => void
   onDenyPermission?: (id: string) => void
+  onApprovePermissionWithSettings?: (id: string, permissionMode: 'default' | 'acceptEdits') => void
   isProcessingPermission?: boolean
   className?: string
   isStreaming?: boolean
@@ -217,6 +218,7 @@ export const ToolCallDisplay = memo(({
   permission, 
   onApprovePermission, 
   onDenyPermission, 
+  onApprovePermissionWithSettings,
   isProcessingPermission = false,
   className, 
   isStreaming = false, 
@@ -414,12 +416,13 @@ export const ToolCallDisplay = memo(({
       </div>
       
       {/* Inline permission request */}
-      {permission && permission.status === 'pending' && onApprovePermission && onDenyPermission && (
+      {permission && onApprovePermission && onDenyPermission && (
         <div className="mt-2 mb-2">
           <CompactInlinePermission
             request={permission}
             onApprove={onApprovePermission}
             onDeny={onDenyPermission}
+            onApproveWithSettings={onApprovePermissionWithSettings}
             isProcessing={isProcessingPermission}
             isExitPlanMode={toolCall.name === 'exit_plan_mode'}
           />
@@ -524,13 +527,14 @@ export const ToolCallDisplay = memo(({
         />
       )}
       
-      {/* Edit/MultiEdit tool result section */}
+      {/* Edit/MultiEdit tool preview/result section - show when permission pending OR result available */}
       {(toolCall.name === 'Edit' || toolCall.name === 'MultiEdit') && (
         <EditToolDisplay 
           toolCall={toolCall}
           hasResult={hasResult}
           result={result}
           lineInfo={lineInfo}
+          showPreview={!!permission}
         />
       )}
       

@@ -83,6 +83,20 @@ body {
   animation: fade-in 0.3s ease-out;
 }
 
+.animate-fade-in-fast {
+  animation: fade-in 0.15s ease-out;
+}
+
+/* Opacity only fade in */
+@keyframes fadeInOpacity {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* Smooth pulse animation for star */
 @keyframes smooth-pulse {
   0%, 100% {
@@ -117,5 +131,19 @@ body {
 .message-container {
   content-visibility: auto;
   contain-intrinsic-size: auto 150px;
+}
+
+/* Light bounce animation for tooltip */
+@keyframes bounce-light {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.animate-bounce-light {
+  animation: bounce-light 2s ease-in-out infinite;
 }
 

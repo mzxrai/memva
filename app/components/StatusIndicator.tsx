@@ -2,7 +2,7 @@ import type { Session } from '../db/schema'
 import clsx from 'clsx'
 
 interface StatusIndicatorProps {
-  session: Session
+  session: Session & { pendingPermissionsCount?: number }
 }
 
 type StatusConfig = {
@@ -25,6 +25,12 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
     pulse: true,
     dotClass: 'bg-emerald-500 animate-pulse',
   },
+  approval_requested: {
+    displayText: 'Approval Requested',
+    dotColor: 'bg-amber-500',
+    pulse: true,
+    dotClass: 'bg-amber-500 animate-pulse',
+  },
   waiting_for_input: {
     displayText: '',
     dotColor: '',
@@ -43,7 +49,13 @@ const STATUS_CONFIG: Record<string, StatusConfig> = {
 }
 
 export default function StatusIndicator({ session }: StatusIndicatorProps) {
-  const status = session.claude_status || 'not_started'
+  let status = session.claude_status || 'not_started'
+  
+  // Override status to approval_requested if processing and has pending permissions
+  if (status === 'processing' && session.pendingPermissionsCount && session.pendingPermissionsCount > 0) {
+    status = 'approval_requested'
+  }
+  
   const config = STATUS_CONFIG[status] || {
     displayText: 'Unknown',
     dotColor: 'bg-zinc-400',
@@ -78,6 +90,7 @@ export default function StatusIndicator({ session }: StatusIndicatorProps) {
           'font-medium',
           status === 'error' ? 'text-red-500' : 
           status === 'processing' ? 'text-emerald-500' :
+          status === 'approval_requested' ? 'text-amber-500' :
           'text-zinc-500'
         )}>
           {config.badgeText || config.displayText}

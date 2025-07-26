@@ -1,27 +1,26 @@
 import type { Route } from "./+types/home";
-import { Link, Form, redirect } from "react-router";
-import { createSession, type SessionWithStats } from "../db/sessions.service";
-import { RiFolder3Line, RiTimeLine, RiPulseLine, RiSettings3Line } from "react-icons/ri";
-import StatusIndicator from "../components/StatusIndicator";
-import MessageCarousel from "../components/MessageCarousel";
-import RelativeTime from "../components/RelativeTime";
+import { redirect, Link, useFetcher } from "react-router";
+import { createSession } from "../db/sessions.service";
+import { RiSettings3Line } from "react-icons/ri";
 import DirectorySelector from "../components/DirectorySelector";
 import SettingsModal from "../components/SettingsModal";
+import SessionCard from "../components/SessionCard";
 import clsx from "clsx";
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useMemo, useRef, type FormEvent } from "react";
 import { useHomepageData } from "../hooks/useHomepageData";
 import { useAutoResizeTextarea } from "../hooks/useAutoResizeTextarea";
 import { useTextareaSubmit } from "../hooks/useTextareaSubmit";
 import { colors, typography, transition, iconSize } from "../constants/design";
 import { useImageUpload } from "../hooks/useImageUpload";
 import { ImagePreview } from "../components/ImagePreview";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { SessionGridSkeleton } from "../components/SessionCardSkeleton";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function meta(): Array<{ title?: string; name?: string; content?: string }> {
   return [
-    { title: "Memva - Session Manager" },
-    { name: "description", content: "Manage your Claude Code sessions efficiently" },
+    { title: "Memva | Session manager" },
+    { name: "description", content: "Manage your agent sessions efficiently" },
   ];
 }
 
@@ -33,7 +32,7 @@ export async function loader() {
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const title = formData.get('title') as string;
-  const prompt = formData.get('prompt') as string;
+  const prompt = formData.get('prompt') as string || title;
   const projectPath = formData.get('project_path') as string;
   
   if (!title?.trim()) {
@@ -88,6 +87,23 @@ export async function action({ request }: Route.ActionArgs) {
   const { formatPromptWithImages } = await import('../utils/image-prompt-formatting');
   const finalPrompt = formatPromptWithImages(prompt.trim(), imagePaths);
   
+  // Store user message as an event
+  const { storeEvent, createEventFromMessage } = await import('../db/events.service');
+  
+  const userEvent = createEventFromMessage({
+    message: {
+      type: 'user',
+      content: finalPrompt,
+      session_id: '' // Will be populated by Claude Code SDK
+    },
+    memvaSessionId: session.id,
+    projectPath: projectPath.trim(),
+    parentUuid: null,
+    timestamp: new Date().toISOString()
+  });
+  
+  await storeEvent(userEvent);
+  
   // Create session-runner job
   const { createJob } = await import('../db/jobs.service');
   const { createSessionRunnerJob } = await import('../workers/job-types');
@@ -102,54 +118,68 @@ export async function action({ request }: Route.ActionArgs) {
   return redirect(`/sessions/${session.id}`);
 }
 
-function isSessionWithStats(session: SessionWithStats | { id: string }): session is SessionWithStats {
-  return 'event_count' in session && typeof session.event_count === 'number';
-}
 
-// Helper function to shorten path for display
-function shortenPath(path: string): string {
-  // If already shortened, return as-is
-  if (path === '~' || path.startsWith('~/')) {
-    return path;
-  }
+// Helper function to shorten path for display - pure function, no side effects
+function shortenPath(path: string, homedir?: string): string {
+  // Don't process empty paths
+  if (!path) return path;
   
   // For testing, use the mocked home directory
   const isTest = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
-  const homedir = isTest ? '/Users/testuser' : (typeof window !== 'undefined' ? localStorage.getItem('user-homedir') || '/Users/mbm-premva' : '/Users/mbm-premva');
+  if (isTest) {
+    const testHomedir = '/Users/testuser';
+    if (path.startsWith(testHomedir)) {
+      path = '~' + path.slice(testHomedir.length);
+    }
+  }
   
-  // Replace home directory with ~
-  if (path.startsWith(homedir)) {
-    path = '~' + path.slice(homedir.length);
+  // If homedir is provided and path starts with it, shorten it
+  if (homedir && path.startsWith(homedir)) {
+    // Use ~ for Unix-like systems, but keep full path for Windows
+    const isWindowsPath = path.includes('\\') || /^[A-Za-z]:/.test(path);
+    if (!isWindowsPath) {
+      path = '~' + path.slice(homedir.length);
+    }
   }
   
   // If path is too long, show last 2-3 segments
-  const segments = path.split('/').filter(Boolean);
-  if (segments.length > 3 && path.startsWith('~/')) {
-    return `~/.../` + segments.slice(-2).join('/');
+  const segments = path.split(/[/\\]/).filter(Boolean); // Handle both / and \ separators
+  const isWindowsPath = path.includes('\\') || /^[A-Za-z]:/.test(path);
+  
+  // Always shorten long paths
+  if (segments.length > 3) {
+    if (path.startsWith('~/')) {
+      // Unix-style with tilde: ~/.../last/two
+      return `~/.../` + segments.slice(-2).join('/');
+    } else if (isWindowsPath) {
+      // Windows: C:\...\last\two
+      const drive = segments[0];
+      return drive + '\\...\\' + segments.slice(-2).join('\\');
+    } else {
+      // Unix-style without tilde: /.../last/two
+      return '/' + segments.slice(0, 1).join('/') + '/.../' + segments.slice(-2).join('/');
+    }
   }
   
   return path;
 }
 
 export default function Home() {
-  const { sessions, isLoading } = useHomepageData();
+  const queryClient = useQueryClient();
+  const fetcher = useFetcher();
+  const { sessions, isLoading, archivedCount } = useHomepageData();
   const [sessionTitle, setSessionTitle] = useState("");
-  // Initialize with last directory to prevent layout shift
-  const [currentDirectory, setCurrentDirectory] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('memva-last-directory');
-      // If we have a stored value, use it immediately to prevent shift
-      return stored || ''
-    }
-    return ''
-  });
+  // Don't access localStorage during initial render to prevent hydration errors
+  const [currentDirectory, setCurrentDirectory] = useState<string>('');
+  const [displayDirectory, setDisplayDirectory] = useState<string>(''); // Client-only shortened path
+  const [userHomedir, setUserHomedir] = useState<string>(''); // Cache home directory
+  const [isDirectoryLoaded, setIsDirectoryLoaded] = useState(false);
   const [isDirectoryModalOpen, setIsDirectoryModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Use custom hooks for textarea functionality
   const { textareaRef } = useAutoResizeTextarea(sessionTitle, { maxRows: 5 });
-  const handleKeyDown = useTextareaSubmit(sessionTitle);
   
   // Use image upload hook
   const {
@@ -161,58 +191,169 @@ export default function Home() {
     removeImage,
   } = useImageUpload();
   
-  // Sort sessions by latest user message timestamp
-  const sortedSessions = [...sessions].sort((a, b) => {
-    // If neither has a user message, maintain original order
-    if (!a.latest_user_message_at && !b.latest_user_message_at) {
-      return 0;
-    }
-    // Sessions with user messages come first
-    if (!a.latest_user_message_at) return 1;
-    if (!b.latest_user_message_at) return -1;
-    // Sort by timestamp (most recent first)
-    return new Date(b.latest_user_message_at).getTime() - new Date(a.latest_user_message_at).getTime();
-  });
-
-  // Track when we've initially loaded to enable animations only on updates
+  // Track previous sort order to detect reordering
+  const previousOrderRef = useRef<string[]>([]);
+  const [orderChanged, setOrderChanged] = useState(false);
+  
+  // Memoize sorted sessions to prevent unnecessary re-sorts
+  const sortedSessions = useMemo(() => {
+    return [...sessions].sort((a, b) => {
+      // If neither has a user message, maintain original order
+      if (!a.latest_user_message_at && !b.latest_user_message_at) {
+        return 0;
+      }
+      // Sessions with user messages come first
+      if (!a.latest_user_message_at) return 1;
+      if (!b.latest_user_message_at) return -1;
+      // Sort by timestamp (most recent first)
+      return new Date(b.latest_user_message_at).getTime() - new Date(a.latest_user_message_at).getTime();
+    });
+  }, [sessions]);
+  
+  // Detect if order has changed - only in effect to avoid recalc on every render
   useEffect(() => {
-    if (!isLoading && sessions.length > 0 && !hasInitiallyLoaded) {
-      setHasInitiallyLoaded(true);
+    const currentOrder = sortedSessions.map(s => s.id);
+    const hasOrderChanged = previousOrderRef.current.length > 0 && 
+      JSON.stringify(previousOrderRef.current) !== JSON.stringify(currentOrder);
+    
+    if (hasOrderChanged) {
+      setOrderChanged(true);
+      // Reset after animation completes
+      setTimeout(() => setOrderChanged(false), 800);
     }
-  }, [isLoading, sessions.length, hasInitiallyLoaded]);
+    
+    previousOrderRef.current = currentOrder;
+  }, [sortedSessions]);
 
-  // Verify directory on mount if needed
+  // Invalidate query on mount to get fresh data immediately
   useEffect(() => {
-    const verifyDirectory = async () => {
-      const lastDir = localStorage.getItem('memva-last-directory');
-      if (!lastDir) {
-        // Only fetch if we don't have a stored directory
+    queryClient.invalidateQueries({ queryKey: ['homepage-sessions'] });
+  }, [queryClient]);
+
+
+  // Load directory from localStorage after mount to prevent hydration errors
+  useEffect(() => {
+    const loadDirectory = async () => {
+      // Get homedir once for shortening paths
+      const homedir = localStorage.getItem('userHomedir') || '';
+      setUserHomedir(homedir);
+      
+      // First check localStorage
+      const lastDir = localStorage.getItem('memvaLastDirectory');
+      if (lastDir) {
+        setCurrentDirectory(lastDir);
+        setDisplayDirectory(shortenPath(lastDir, homedir)); // Set shortened version for display
+        setIsDirectoryLoaded(true);
+      } else {
+        // Fetch current directory if nothing stored
         try {
           const response = await fetch('/api/filesystem?action=current');
           const data = await response.json();
           setCurrentDirectory(data.currentDirectory);
-          localStorage.setItem('memva-last-directory', data.currentDirectory);
+          setDisplayDirectory(shortenPath(data.currentDirectory, homedir)); // Set shortened version for display
+          localStorage.setItem('memvaLastDirectory', data.currentDirectory);
+          setIsDirectoryLoaded(true);
         } catch (error) {
           console.error('Failed to get current directory:', error);
-          // Keep the default '~' instead of changing to '/'
+          // If we can't get the current directory, show an empty state
+          // The user can still click to set a directory
+          setCurrentDirectory('');
+          setDisplayDirectory('Select directory');
+          setIsDirectoryLoaded(true);
         }
       }
     };
-    verifyDirectory();
+    loadDirectory();
   }, []);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    // Always require a prompt for new sessions
-    if (!sessionTitle.trim()) {
-      e.preventDefault();
+  const handleProgrammaticSubmit = async () => {
+    if (!sessionTitle.trim() || isSubmitting) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      // For large prompts, use direct API call to bypass React Router overhead
+      const promptSize = new Blob([sessionTitle]).size;
+      const isLargePrompt = promptSize > 50000; // 50KB threshold
+      
+      if (isLargePrompt) {
+        // Use direct fetch API for large prompts
+        const formData = new FormData();
+        formData.set('title', sessionTitle);
+        formData.set('prompt', sessionTitle);
+        formData.set('project_path', currentDirectory);
+        
+        // Add image data
+        images.forEach((image, index) => {
+          formData.set(`image-data-${index}`, image.preview);
+          formData.set(`image-name-${index}`, image.file.name);
+        });
+        
+        const response = await fetch('/api/sessions', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // Navigate immediately using window.location for instant redirect
+          window.location.href = result.redirectUrl;
+        } else {
+          console.error('Session creation error:', result.error);
+          setIsSubmitting(false);
+        }
+      } else {
+        // Normal flow for smaller prompts using React Router
+        const formData = new FormData();
+        formData.set('title', sessionTitle);
+        formData.set('prompt', sessionTitle);
+        formData.set('project_path', currentDirectory);
+        
+        // Add image data
+        images.forEach((image, index) => {
+          formData.set(`image-data-${index}`, image.preview);
+          formData.set(`image-name-${index}`, image.file.name);
+        });
+        
+        fetcher.submit(formData, { method: 'post' });
+      }
+    } catch (error) {
+      console.error('Session creation error:', error);
+      setIsSubmitting(false);
     }
   };
+  
+  // Effect to handle redirect after successful submission
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data && !fetcher.data.error) {
+      // Action returned successfully, navigate was handled by the action
+      setIsSubmitting(false);
+    } else if (fetcher.state === 'idle' && fetcher.data?.error) {
+      // Handle error
+      setIsSubmitting(false);
+      console.error('Session creation error:', fetcher.data.error);
+    }
+  }, [fetcher.state, fetcher.data]);
+  
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    handleProgrammaticSubmit();
+  };
+  
+  // Define handleKeyDown after handleProgrammaticSubmit is available
+  const handleKeyDown = useTextareaSubmit(sessionTitle, handleProgrammaticSubmit);
 
   const handleDirectorySelect = (directory: string) => {
     setCurrentDirectory(directory);
-    localStorage.setItem('memva-last-directory', directory);
+    setDisplayDirectory(shortenPath(directory, userHomedir)); // Update display version with homedir
+    localStorage.setItem('memvaLastDirectory', directory);
     setIsDirectoryModalOpen(false);
   };
+
+  const hasNoSessions = sortedSessions.length === 0;
+  // Only center AFTER we've loaded data and confirmed no sessions
+  const shouldCenter = hasNoSessions && !isLoading;
 
   return (
     <div className="min-h-screen bg-zinc-950">
@@ -236,20 +377,16 @@ export default function Home() {
         <RiSettings3Line className={iconSize.md} />
       </button>
 
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* New Session Bar */}
-        <div className="mb-8">
-          {!currentDirectory ? (
-            // Skeleton loader for input bar
+      <div className={clsx(
+        shouldCenter ? "flex items-center justify-center min-h-screen pb-20" : "container mx-auto px-4 py-8 max-w-7xl"
+      )}>
+        <div className={shouldCenter ? "w-full max-w-5xl mx-auto px-4" : "w-full"}>
+          {/* New Session Bar */}
+          <div className={shouldCenter ? "" : "mb-8"}>
+          {!isDirectoryLoaded ? (
+            // Empty container to reserve space
             <div className="p-4 bg-zinc-900/50 backdrop-blur-sm border border-zinc-800 rounded-xl">
-              <div className="flex items-start gap-2">
-                <div className="flex-shrink-0 px-3 py-3">
-                  <div className="h-5 w-24 bg-zinc-800 rounded animate-pulse" />
-                </div>
-                <div className="flex-1">
-                  <div className="h-12 bg-zinc-800/50 border border-zinc-700 rounded-lg animate-pulse" />
-                </div>
-              </div>
+              <div className="h-12" />
             </div>
           ) : (
             <>
@@ -260,12 +397,12 @@ export default function Home() {
               </div>
             )}
             
-            <Form 
-            method="post" 
+            <form 
             onSubmit={handleSubmit}
             className={clsx(
               "p-4 bg-zinc-900/50 backdrop-blur-sm border rounded-xl",
-              isDragging ? "border-zinc-500" : "border-zinc-800"
+              isDragging ? "border-zinc-500" : "border-zinc-800",
+              isSubmitting && "opacity-50 pointer-events-none"
             )}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -273,23 +410,52 @@ export default function Home() {
           >
             <div className="flex items-start gap-2">
               {/* Terminal-style directory prefix */}
-              <button
-                type="button"
-                onClick={() => setIsDirectoryModalOpen(true)}
-                className={clsx(
-                  "flex-shrink-0 px-3 py-3",
-                  typography.font.mono,
-                  typography.size.sm,
-                  colors.text.secondary,
-                  "hover:text-zinc-300",
-                  "transition-colors duration-150",
-                  "cursor-pointer"
+              <div className="relative group">
+                <button
+                  type="button"
+                  onClick={() => setIsDirectoryModalOpen(true)}
+                  className={clsx(
+                    "flex-shrink-0 px-3 py-3",
+                    typography.font.mono,
+                    typography.size.sm,
+                    colors.text.secondary,
+                    "hover:text-zinc-300",
+                    "transition-colors duration-150",
+                    "cursor-pointer"
+                  )}
+                  title="Click to change directory"
+                >
+                  <span>{displayDirectory}</span>
+                  <span className="text-zinc-500 ml-1">$</span>
+                </button>
+                
+                {/* Tooltip for empty state */}
+                {shouldCenter && sessionTitle.trim() === '' && (
+                  <div className={clsx(
+                    "absolute -top-6 left-2",
+                    "px-3 py-1.5",
+                    "bg-zinc-900/90 backdrop-blur-sm",
+                    "border border-zinc-800",
+                    "rounded-lg",
+                    "text-zinc-500",
+                    typography.size.xs,
+                    "whitespace-nowrap",
+                    "pointer-events-none",
+                    "animate-bounce-light",
+                    "shadow-sm"
+                  )}>
+                    Select your working directory
+                    {/* Arrow using pseudo-element style */}
+                    <div className={clsx(
+                      "absolute -bottom-[5px] left-4",
+                      "w-2 h-2",
+                      "bg-zinc-900/90",
+                      "border-r border-b border-zinc-800",
+                      "transform rotate-45"
+                    )} />
+                  </div>
                 )}
-                title="Click to change directory"
-              >
-                <span>{shortenPath(currentDirectory)}</span>
-                <span className="text-zinc-500 ml-1">$</span>
-              </button>
+              </div>
               
               {/* Session input */}
               <textarea
@@ -298,39 +464,22 @@ export default function Home() {
                 value={sessionTitle}
                 onChange={(e) => setSessionTitle(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Start a new Claude Code session: ask, brainstorm, build"
+                placeholder="Start a new session: ask, brainstorm, build"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
+                autoFocus
+                disabled={isSubmitting}
                 rows={1}
-                className="flex-1 px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem] resize-none leading-normal"
+                className="flex-1 px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem] resize-none leading-normal disabled:opacity-50"
                 style={{ minHeight: '48px', overflowY: 'hidden' }}
               />
             </div>
-            <input type="hidden" name="prompt" value={sessionTitle} />
-            <input type="hidden" name="project_path" value={currentDirectory} />
-            
-            {/* Hidden inputs for image data */}
-            {images.map((image, index) => (
-              <div key={image.id}>
-                <input
-                  type="hidden"
-                  name={`image-data-${index}`}
-                  value={image.preview}
-                  data-testid={`image-data-${index}`}
-                />
-                <input
-                  type="hidden"
-                  name={`image-name-${index}`}
-                  value={image.file.name}
-                />
-              </div>
-            ))}
-          </Form>
+          </form>
           </>
           )}
-        </div>
+          </div>
 
         {/* Directory Selector Modal */}
         <DirectorySelector
@@ -347,116 +496,44 @@ export default function Home() {
         />
 
         {/* Sessions Grid */}
-        {isLoading && !hasInitiallyLoaded ? (
-          <SessionGridSkeleton count={6} />
-        ) : sortedSessions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 px-4">
-            <div className="text-center max-w-md">
-              <div className="mb-6 text-zinc-700">
-                <RiPulseLine className="w-16 h-16 mx-auto" />
-              </div>
-              <h2 className="text-xl font-medium text-zinc-300 mb-2">No sessions yet</h2>
-              <p className="text-zinc-500">
-                Start working with Claude Code to see your sessions here
-              </p>
-            </div>
-          </div>
-        ) : (
+        {!hasNoSessions && (
+          isLoading ? (
+            <SessionGridSkeleton count={6} />
+          ) : (
           <motion.div 
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-            layout={hasInitiallyLoaded}
+            layout
           >
             <AnimatePresence mode="popLayout">
               {sortedSessions.map((session) => (
-                <motion.div
+                <SessionCard
                   key={session.id}
-                  layout={hasInitiallyLoaded}
-                  initial={hasInitiallyLoaded ? { opacity: 0, scale: 0.8 } : false}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  transition={{
-                    layout: hasInitiallyLoaded ? {
-                      type: "spring",
-                      stiffness: 100,
-                      damping: 20,
-                      mass: 1.5,
-                    } : undefined,
-                    opacity: { duration: 0.4 },
-                    scale: { duration: 0.4 }
-                  }}
-                  layoutId={session.id}
-                >
-                  <Link
-                    to={`/sessions/${session.id}`}
-                    className={clsx(
-                      "group relative block p-6 h-full",
-                      "bg-zinc-900/50 backdrop-blur-sm",
-                      "border border-zinc-800",
-                      "rounded-xl",
-                      "hover:bg-zinc-900/70",
-                      "hover:border-zinc-700",
-                      "hover:shadow-lg hover:shadow-zinc-950/50",
-                      "transform hover:scale-[1.02]",
-                      "transition-all duration-150",
-                      "cursor-pointer",
-                      "h-[280px]",
-                      "grid grid-rows-[minmax(3rem,_1fr)_1.5rem_1.5rem_1.5rem_4rem]",
-                      "gap-3"
-                    )}
-                  >
-                {/* Status Indicator */}
-                <div className="absolute top-4 right-4">
-                  <StatusIndicator session={session} />
-                </div>
-
-                {/* Title */}
-                <h3 className="text-lg font-medium text-zinc-100 pr-20 min-h-[3rem] line-clamp-2">
-                  {session.title || "Untitled Session"}
-                </h3>
-
-                {/* Project Path */}
-                <div className="flex items-center gap-2 text-sm text-zinc-400">
-                  <RiFolder3Line className="w-4 h-4 text-zinc-500" />
-                  <span className="font-mono text-xs truncate">
-                    {session.project_path}
-                  </span>
-                </div>
-
-                {/* Last Event Time */}
-                <div className="flex items-center gap-2 text-sm text-zinc-500">
-                  <RiTimeLine className="w-4 h-4" />
-                  <RelativeTime 
-                    timestamp={isSessionWithStats(session) && session.last_event_at
-                      ? session.last_event_at
-                      : session.updated_at
-                    } 
-                  />
-                </div>
-
-                {/* Event Count */}
-                <div className="text-sm text-zinc-400">
-                  {(() => {
-                    const count = isSessionWithStats(session) ? session.event_count : 0;
-                    return `${count} event${count !== 1 ? "s" : ""}`;
-                  })()}
-                </div>
-
-                {/* Message Carousel - fixed height to prevent layout shift */}
-                <div className="h-16">
-                  <MessageCarousel 
-                    sessionId={session.id} 
-                    latestMessage={session.latestMessage}
-                  />
-                </div>
-
-                    {/* Hover Gradient */}
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-zinc-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                  </Link>
-                </motion.div>
+                  session={session}
+                  enableLayoutAnimation={orderChanged}
+                />
               ))}
             </AnimatePresence>
           </motion.div>
+          )
         )}
+        
+          {/* View Archived Link */}
+          {archivedCount > 0 && (
+            <div className={clsx(
+              shouldCenter ? "mt-6 text-center" : "mt-6"
+            )}>
+              <Link
+                to="/archived"
+                className={clsx(
+                  "text-sm text-zinc-500 hover:text-zinc-400",
+                  "transition-colors duration-150"
+                )}
+              >
+                View archived sessions
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

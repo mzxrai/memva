@@ -10,6 +10,7 @@ interface EditToolDisplayProps {
   hasResult: boolean
   result?: unknown
   lineInfo: { startLine: number; showLineNumbers: boolean } | null
+  showPreview?: boolean // Allow showing preview even without result (e.g., during permission)
 }
 
 // Reconstructs the original and final file content from MultiEdit operations
@@ -51,28 +52,36 @@ function reconstructFileFromMultiEdit(edits: Array<{ old_string: string; new_str
   }
 }
 
-export const EditToolDisplay = memo(({ toolCall, hasResult, result, lineInfo }: EditToolDisplayProps) => {
+export const EditToolDisplay = memo(({ toolCall, hasResult, result, lineInfo, showPreview = false }: EditToolDisplayProps) => {
   const [showFullDiff, setShowFullDiff] = useState(false)
   
-  // Only show for Edit/MultiEdit tools with results
+  // Show for Edit/MultiEdit tools
   const isEditTool = toolCall.name === 'Edit' || toolCall.name === 'MultiEdit'
 
-  if (!isEditTool || !hasResult || !result) {
+  if (!isEditTool) {
     return null
   }
 
-  // Expect result format: {content: string, is_error: boolean}
-  if (typeof result !== 'object' || result === null) {
+  // Don't render if we don't have a result yet, unless showPreview is true
+  if (!showPreview && (!hasResult || !result)) {
     return null
   }
 
-  const sdkResult = result as { content?: string, is_error?: boolean }
+  // Check for errors in the result (but only if we have a result)
+  if (!showPreview && result !== undefined) {
+    if (typeof result !== 'object' || result === null) {
+      return null
+    }
 
-  if (sdkResult.content === undefined) {
-    return null
+    const sdkResult = result as { content?: string, is_error?: boolean }
+
+    if (sdkResult.content === undefined) {
+      return null
+    }
   }
 
-  const isError = sdkResult.is_error === true
+  const sdkResult = (result as { content?: string, is_error?: boolean }) || {}
+  const isError = result && sdkResult.is_error === true
 
   // Handle error display
   if (isError) {
@@ -150,19 +159,6 @@ export const EditToolDisplay = memo(({ toolCall, hasResult, result, lineInfo }: 
 
   // Handle single Edit tool
   if ('old_string' in input && 'new_string' in input) {
-    console.log('EditToolDisplay debug:', {
-      toolCall: toolCall.name,
-      toolId: toolCall.id,
-      hasResult,
-      lineInfo,
-      startLine: lineInfo?.startLine,
-      showLineNumbers: lineInfo?.showLineNumbers,
-      defaultingTo1: !lineInfo?.startLine,
-      oldString: (input.old_string as string).substring(0, 50) + '...',
-      newString: (input.new_string as string).substring(0, 50) + '...',
-      resultPreview: sdkResult.content?.substring(0, 100) + '...'
-    })
-    
     return (
       <DiffViewer
         oldString={input.old_string as string}

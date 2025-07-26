@@ -1,15 +1,17 @@
 import { formatDistanceToNow } from "date-fns";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 
 interface RelativeTimeProps {
   timestamp: string;
 }
 
-export default function RelativeTime({ timestamp }: RelativeTimeProps) {
+const RelativeTime = memo(function RelativeTime({ timestamp }: RelativeTimeProps) {
   const [timeString, setTimeString] = useState<string>("");
 
   useEffect(() => {
-    setTimeString(formatDistanceToNow(new Date(timestamp), { addSuffix: true }));
+    // Only update if timestamp actually changed
+    const formatted = formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+    setTimeString(formatted);
   }, [timestamp]);
 
   // Return nothing during SSR
@@ -18,4 +20,6 @@ export default function RelativeTime({ timestamp }: RelativeTimeProps) {
   }
 
   return <span>{timeString}</span>;
-}
+});
+
+export default RelativeTime;

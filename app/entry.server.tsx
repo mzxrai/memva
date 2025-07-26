@@ -7,6 +7,7 @@ import { ServerRouter } from "react-router";
 import { JobSystem } from "./workers/index";
 import { createJob } from "./db/jobs.service";
 import { createMaintenanceJob } from "./workers/job-types";
+import { expireAllPendingPermissions } from "./db/permissions.service";
 
 // WARNING: This is a workaround for a memory leak in @anthropic-ai/claude-code SDK
 // The SDK adds exit listeners to the process without cleaning them up, causing
@@ -17,7 +18,6 @@ import { createMaintenanceJob } from "./workers/job-types";
 // 
 // Increasing from default 10 to 30 to handle typical usage patterns
 if (typeof process !== 'undefined' && process.setMaxListeners) {
-  console.warn('[WORKAROUND] Increasing process max listeners to 30 due to Claude Code SDK memory leak');
   process.setMaxListeners(30);
 }
 
@@ -34,15 +34,12 @@ async function initializeJobSystem() {
     
     try {
       await jobSystem.start();
-      console.log('✅ Job system started successfully');
-      console.log('📋 Registered handlers:', jobSystem.getRegisteredHandlers());
       
       // Schedule initial maintenance job to clean up expired permissions
       try {
         await createJob(createMaintenanceJob({
           operation: 'cleanup-expired-permissions'
         }));
-        console.log('🧹 Scheduled initial permission cleanup job');
       } catch (error) {
         console.error('❌ Failed to schedule maintenance job:', error);
       }
@@ -119,21 +116,49 @@ const sigintListeners = process.listenerCount('SIGINT');
 const sigtermListeners = process.listenerCount('SIGTERM');
 
 if (sigintListeners === 0) {
-  process.on('SIGINT', async () => {
-    console.log('\n🛑 Shutting down job system...');
+  process.once('SIGINT', async () => {
+    console.log('\n🛑 Received SIGINT - Starting graceful shutdown...');
+    
+    // Expire all pending permissions before shutdown
+    try {
+      console.log('📋 Expiring pending permissions...');
+      await expireAllPendingPermissions();
+      console.log('✅ Permissions expired successfully');
+    } catch (error) {
+      console.error('❌ Failed to expire pending permissions:', error);
+    }
+    
     if (jobSystem) {
+      console.log('🔧 Stopping job system...');
       await jobSystem.stop();
       console.log('✅ Job system stopped');
     }
+    
+    console.log('👋 Shutdown complete');
     process.exit(0);
   });
 }
 
 if (sigtermListeners === 0) {
-  process.on('SIGTERM', async () => {
-    if (jobSystem) {
-      await jobSystem.stop();
+  process.once('SIGTERM', async () => {
+    console.log('\n🛑 Received SIGTERM - Starting graceful shutdown...');
+    
+    // Expire all pending permissions before shutdown
+    try {
+      console.log('📋 Expiring pending permissions...');
+      await expireAllPendingPermissions();
+      console.log('✅ Permissions expired successfully');
+    } catch (error) {
+      console.error('❌ Failed to expire pending permissions:', error);
     }
+    
+    if (jobSystem) {
+      console.log('🔧 Stopping job system...');
+      await jobSystem.stop();
+      console.log('✅ Job system stopped');
+    }
+    
+    console.log('👋 Shutdown complete');
     process.exit(0);
   });
 }

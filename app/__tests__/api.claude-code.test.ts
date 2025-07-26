@@ -8,26 +8,16 @@ import type { Route } from '../routes/+types/api.claude-code.$sessionId'
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
 
-// Define the mock function
-const mockStreamClaudeCodeResponse = vi.fn()
-
-// Mock the claude-code.server module
-vi.mock('../services/claude-code.server', () => ({
-  streamClaudeCodeResponse: vi.fn()
+// Mock the claude-cli.server module
+vi.mock('../services/claude-cli.server', () => ({
+  streamClaudeCliResponse: vi.fn().mockResolvedValue({ lastSessionId: 'mock-session-id' })
 }))
 
 import { action } from '../routes/api.claude-code.$sessionId'
-import { streamClaudeCodeResponse } from '../services/claude-code.server'
+import { streamClaudeCliResponse } from '../services/claude-cli.server'
 
-// Set up the mock implementation after imports
-vi.mocked(streamClaudeCodeResponse).mockImplementation(async (options) => {
-  // Capture the settings passed to the function
-  mockStreamClaudeCodeResponse(options)
-  
-  // The real implementation would store events via onStoredEvent callback
-  // For tests, we don't need to simulate streaming delays - just return immediately
-  return { lastSessionId: 'mock-session-id' }
-})
+// Get the mocked function for assertions
+const mockStreamClaudeCliResponse = vi.mocked(streamClaudeCliResponse)
 
 describe('Claude Code API Route', () => {
   let testDb: TestDatabase
@@ -35,6 +25,9 @@ describe('Claude Code API Route', () => {
   beforeEach(() => {
     testDb = setupInMemoryDb()
     setTestDatabase(testDb)
+    
+    // Clear mocks before each test
+    mockStreamClaudeCliResponse.mockClear()
   })
 
   afterEach(() => {
@@ -96,7 +89,7 @@ describe('Claude Code API Route', () => {
     expect(await response.text()).toBe('Method not allowed')
   })
 
-  it('should return streaming response for valid request', async () => {
+  it('should process valid request and call Claude Code service', async () => {
     // Create a session using factory
     const session = testDb.createSession({
       title: 'Test Session',
@@ -117,12 +110,9 @@ describe('Claude Code API Route', () => {
     
     expect(response).toBeInstanceOf(Response)
     expect(response.status).toBe(200)
-    expect(response.headers.get('Content-Type')).toBe('text/event-stream')
-    expect(response.headers.get('Cache-Control')).toBe('no-cache')
-    expect(response.headers.get('Connection')).toBe('keep-alive')
     
-    // Verify that streamClaudeCodeResponse was called
-    expect(streamClaudeCodeResponse).toHaveBeenCalled()
+    // Verify that streamClaudeCliResponse was called
+    expect(mockStreamClaudeCliResponse).toHaveBeenCalled()
   })
 
   it('should handle session with previous events', async () => {
@@ -166,11 +156,10 @@ describe('Claude Code API Route', () => {
     
     expect(response).toBeInstanceOf(Response)
     expect(response.status).toBe(200)
-    expect(response.headers.get('Content-Type')).toBe('text/event-stream')
     
-    // Verify that streamClaudeCodeResponse was called with resume capability
-    expect(streamClaudeCodeResponse).toHaveBeenCalled()
-    const callArgs = vi.mocked(streamClaudeCodeResponse).mock.calls[vi.mocked(streamClaudeCodeResponse).mock.calls.length - 1][0]
+    // Verify that streamClaudeCliResponse was called with resume capability
+    expect(mockStreamClaudeCliResponse).toHaveBeenCalled()
+    const callArgs = mockStreamClaudeCliResponse.mock.calls[mockStreamClaudeCliResponse.mock.calls.length - 1][0]
     expect(callArgs.resumeSessionId).toBe('claude-session-1') // Should resume the existing session
   })
 
@@ -203,9 +192,9 @@ describe('Claude Code API Route', () => {
     expect(response.status).toBe(200)
     
     
-    // Check that streamClaudeCodeResponse was called with session settings
-    expect(mockStreamClaudeCodeResponse).toHaveBeenCalled()
-    const callOptions = mockStreamClaudeCodeResponse.mock.calls[0][0]
+    // Check that streamClaudeCliResponse was called with session settings
+    expect(mockStreamClaudeCliResponse).toHaveBeenCalled()
+    const callOptions = mockStreamClaudeCliResponse.mock.calls[0][0]
     expect(callOptions.maxTurns).toBe(300)
     expect(callOptions.permissionMode).toBe('bypassPermissions')
   })
@@ -232,9 +221,9 @@ describe('Claude Code API Route', () => {
     expect(response.status).toBe(200)
     
     
-    // Check that streamClaudeCodeResponse was called with global defaults
-    expect(mockStreamClaudeCodeResponse).toHaveBeenCalled()
-    const callOptions = mockStreamClaudeCodeResponse.mock.calls[mockStreamClaudeCodeResponse.mock.calls.length - 1][0]
+    // Check that streamClaudeCliResponse was called with global defaults
+    expect(mockStreamClaudeCliResponse).toHaveBeenCalled()
+    const callOptions = mockStreamClaudeCliResponse.mock.calls[mockStreamClaudeCliResponse.mock.calls.length - 1][0]
     expect(callOptions.maxTurns).toBe(200)
     expect(callOptions.permissionMode).toBe('acceptEdits')
   })

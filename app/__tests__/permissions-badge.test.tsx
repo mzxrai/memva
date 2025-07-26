@@ -29,9 +29,11 @@ describe('PermissionsBadge Component', () => {
     render(<PermissionsBadge mode="plan" isUpdating={true} />)
     
     const badge = screen.getByRole('status', { name: /permissions mode/i })
-    // Check for updating text or indicator
+    // Check for plan text
     expect(badge).toHaveTextContent('Plan')
-    expect(badge).toHaveTextContent('Updating...')
+    // Check for spinner element
+    const spinner = badge.querySelector('.animate-spin')
+    expect(spinner).toBeInTheDocument()
   })
 
   it('should have proper accessibility attributes', () => {
@@ -46,5 +48,48 @@ describe('PermissionsBadge Component', () => {
     
     // Should show ⇧TAB hint
     expect(screen.getByText('⇧TAB')).toBeInTheDocument()
+  })
+
+  it('should show disabled tooltip when isDisabled is true', () => {
+    render(<PermissionsBadge mode="plan" isDisabled={true} />)
+    
+    const badge = screen.getByRole('status')
+    expect(badge).toHaveAttribute('title', 'Cannot change permissions during active processing')
+  })
+
+  it('should show mode description tooltip when isDisabled is false', () => {
+    render(<PermissionsBadge mode="plan" isDisabled={false} />)
+    
+    const badge = screen.getByRole('status')
+    expect(badge).toHaveAttribute('title', 'Agent plans actions before executing')
+  })
+
+  it('should include disabled state in aria-label when disabled', () => {
+    render(<PermissionsBadge mode="acceptEdits" isDisabled={true} />)
+    
+    const badge = screen.getByRole('status')
+    expect(badge).toHaveAttribute('aria-label', 'Permissions mode: Accept Edits (changes disabled during processing)')
+  })
+
+  it('should show mode description in tooltip when not disabled', () => {
+    render(<PermissionsBadge mode="plan" isDisabled={false} />)
+    
+    const badge = screen.getByRole('status')
+    expect(badge).toHaveAttribute('title', 'Agent plans actions before executing')
+  })
+
+  it('should show mode description for all permission modes', () => {
+    const modes = [
+      { mode: 'default' as const, description: 'Standard behavior - prompts for permissions' },
+      { mode: 'plan' as const, description: 'Agent plans actions before executing' },
+      { mode: 'acceptEdits' as const, description: 'Automatically accept file edits' },
+      { mode: 'bypassPermissions' as const, description: 'Bypass all permission checks' }
+    ]
+
+    modes.forEach(({ mode, description }) => {
+      const { container } = render(<PermissionsBadge mode={mode} isDisabled={false} />)
+      const badge = container.querySelector('[role="status"]')
+      expect(badge).toHaveAttribute('title', description)
+    })
   })
 })

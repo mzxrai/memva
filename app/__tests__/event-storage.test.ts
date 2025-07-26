@@ -9,14 +9,52 @@ setupDatabaseMocks(vi)
 import { action } from '../routes/api.claude-code.$sessionId'
 import type { Route } from '../routes/+types/api.claude-code.$sessionId'
 
-// Mock only external dependencies like Claude Code SDK
-vi.mock('@anthropic-ai/claude-code', () => ({
-  query: vi.fn().mockImplementation(function* () {
-    // Mock Claude Code SDK returning messages
-    yield { type: 'system', content: 'Session started', session_id: 'mock-session-id' }
-    yield { type: 'user', content: 'Test prompt', session_id: 'mock-session-id' }
-    yield { type: 'assistant', content: 'Test response', session_id: 'mock-session-id' }
-    yield { type: 'result', content: '', session_id: 'mock-session-id' }
+// Mock the claude-cli.server module to avoid spawning actual processes
+vi.mock('../services/claude-cli.server', () => ({
+  streamClaudeCliResponse: vi.fn().mockImplementation(async ({ 
+    onMessage, 
+    onStoredEvent,
+    memvaSessionId,
+    projectPath,
+    initialParentUuid
+  }) => {
+    // Import the actual createEventFromMessage and storeEvent functions
+    const { createEventFromMessage, storeEvent } = await import('../db/events.service')
+    
+    // Simulate Claude Code messages
+    const messages = [
+      { type: 'system' as const, subtype: 'error' as const, content: 'Session started', session_id: 'mock-session-id' },
+      { type: 'user' as const, content: 'Test prompt', session_id: 'mock-session-id' },
+      { type: 'assistant' as const, content: 'Test response', session_id: 'mock-session-id' },
+      { type: 'result' as const, content: '', session_id: 'mock-session-id' }
+    ]
+    
+    let lastEventUuid = initialParentUuid || null
+    
+    for (const message of messages) {
+      // Call onMessage callback
+      onMessage(message)
+      
+      // Store event if memvaSessionId is provided
+      if (memvaSessionId) {
+        const event = createEventFromMessage({
+          message,
+          memvaSessionId,
+          projectPath,
+          parentUuid: lastEventUuid,
+          timestamp: new Date().toISOString()
+        })
+        
+        await storeEvent(event)
+        lastEventUuid = event.uuid
+        
+        if (onStoredEvent) {
+          onStoredEvent(event)
+        }
+      }
+    }
+    
+    return { lastSessionId: 'mock-session-id' }
   })
 }))
 

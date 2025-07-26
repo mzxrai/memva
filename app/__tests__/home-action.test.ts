@@ -6,6 +6,29 @@ import { sessions } from '../db/schema'
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
 
+// Mock the job service before importing action
+vi.mock('../db/jobs.service', () => ({
+  createJob: vi.fn().mockResolvedValue({ id: 'test-job-id' })
+}))
+
+// Mock the job types module
+vi.mock('../workers/job-types', () => ({
+  createSessionRunnerJob: vi.fn().mockReturnValue({
+    type: 'session-runner',
+    payload: { sessionId: 'test', prompt: 'test' }
+  })
+}))
+
+// Mock the image storage module
+vi.mock('../services/image-storage.server', () => ({
+  saveImageToDisk: vi.fn().mockResolvedValue('/path/to/image.png')
+}))
+
+// Mock the image formatting module
+vi.mock('../utils/image-prompt-formatting', () => ({
+  formatPromptWithImages: vi.fn((prompt) => prompt)
+}))
+
 import { action } from '../routes/home'
 
 describe('Home Action', () => {
@@ -26,6 +49,7 @@ describe('Home Action', () => {
     const formData = new FormData()
     formData.append('title', 'New Session Title')
     formData.append('prompt', 'Test prompt')
+    formData.append('project_path', '/Users/mbm-premva/dev/memva')
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
@@ -58,6 +82,7 @@ describe('Home Action', () => {
     const formData = new FormData()
     formData.append('title', '  Session With Spaces  ')
     formData.append('prompt', 'Test prompt')
+    formData.append('project_path', '/Users/mbm-premva/dev/memva')
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
@@ -141,6 +166,7 @@ describe('Home Action', () => {
     const formData = new FormData()
     formData.append('title', 'Test Session')
     formData.append('prompt', 'Test prompt')
+    formData.append('project_path', '/Users/mbm-premva/dev/memva')
     
     const mockRequest = {
       formData: vi.fn().mockResolvedValue(formData)
@@ -170,6 +196,7 @@ describe('Home Action', () => {
     const formData1 = new FormData()
     formData1.append('title', 'First Session')
     formData1.append('prompt', 'First prompt')
+    formData1.append('project_path', '/Users/mbm-premva/dev/memva')
     
     const mockRequest1 = {
       formData: vi.fn().mockResolvedValue(formData1)
@@ -181,6 +208,7 @@ describe('Home Action', () => {
     const formData2 = new FormData()
     formData2.append('title', 'Second Session')
     formData2.append('prompt', 'Second prompt')
+    formData2.append('project_path', '/Users/mbm-premva/dev/memva')
     
     const mockRequest2 = {
       formData: vi.fn().mockResolvedValue(formData2)

@@ -10,7 +10,7 @@ interface DirectorySelectorProps {
   onClose: () => void
 }
 
-const RECENT_DIRS_KEY = 'memva-recent-directories'
+const RECENT_DIRS_KEY = 'memvaRecentDirectories'
 const MAX_RECENT_DIRS = 10
 
 export default function DirectorySelector({
@@ -105,6 +105,11 @@ export default function DirectorySelector({
       const data = await response.json()
       setIsValid(data.valid)
       
+      // Show error if validation failed
+      if (!data.valid) {
+        setShowError(true)
+      }
+      
       // Auto-save if valid and autoSave is true
       if (data.valid && autoSave) {
         // Update recent directories - use lowercase comparison for deduplication on case-insensitive filesystems
@@ -130,7 +135,7 @@ export default function DirectorySelector({
         localStorage.setItem(RECENT_DIRS_KEY, JSON.stringify(newRecent))
         
         // Also update last used directory
-        localStorage.setItem('memva-last-directory', data.resolvedPath)
+        localStorage.setItem('memvaLastDirectory', data.resolvedPath)
         
         // DON'T call onSelect during auto-save - just update the state
         // onSelect should only be called when explicitly closing the modal

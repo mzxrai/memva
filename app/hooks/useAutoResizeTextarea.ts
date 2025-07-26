@@ -34,12 +34,19 @@ export function useAutoResizeTextarea(
     textarea.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
   }, [maxRows, minRows]);
 
-  // Adjust height when value changes
+  // Immediate height adjustment when value changes
   useEffect(() => {
-    adjustHeight();
+    // Use requestAnimationFrame for smooth updates
+    const frameId = requestAnimationFrame(() => {
+      adjustHeight();
+    });
+
+    return () => {
+      cancelAnimationFrame(frameId);
+    };
   }, [value, adjustHeight]);
 
-  // Adjust height on mount
+  // Adjust height on mount (no debounce needed)
   useEffect(() => {
     adjustHeight();
   }, [adjustHeight]);

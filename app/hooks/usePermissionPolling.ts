@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import type { PermissionRequest } from '../db/schema'
 
 interface UsePermissionPollingOptions {
   enabled?: boolean
   pollingInterval?: number
   sessionId?: string
+  onPermissionsCleared?: () => void
 }
 
 interface UsePermissionPollingReturn {
@@ -18,7 +20,8 @@ interface UsePermissionPollingReturn {
 }
 
 export default function usePermissionPolling(options: UsePermissionPollingOptions = {}): UsePermissionPollingReturn {
-  const { enabled = true, pollingInterval = 500, sessionId } = options
+  const { enabled = true, pollingInterval = 1000, sessionId, onPermissionsCleared } = options
+  const queryClient = useQueryClient()
   
   const [permissions, setPermissions] = useState<PermissionRequest[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -39,7 +42,22 @@ export default function usePermissionPolling(options: UsePermissionPollingOption
       }
       
       const data = await response.json() as { permissions: PermissionRequest[] }
-      setPermissions(data.permissions)
+      const newPermissions = data.permissions || []
+      
+      // Only update state if permissions have actually changed
+      setPermissions(prev => {
+        // Quick length check first
+        if (prev.length !== newPermissions.length) {
+          return newPermissions
+        }
+        
+        // Deep comparison of permission IDs
+        const prevIds = prev.map(p => p.id).sort()
+        const newIds = newPermissions.map(p => p.id).sort()
+        const hasChanged = prevIds.some((id, index) => id !== newIds[index])
+        
+        return hasChanged ? newPermissions : prev
+      })
       setError(null)
     } catch (err) {
       console.error('Failed to fetch permissions:', err)
@@ -51,6 +69,12 @@ export default function usePermissionPolling(options: UsePermissionPollingOption
 
   const approve = useCallback(async (requestId: string) => {
     try {
+      // Check if this will be the last permission
+      const willBeLastPermission = permissions.filter(p => p.status === 'pending').length === 1;
+      
+      // Optimistically remove the approved permission from state
+      setPermissions(prev => prev.filter(p => p.id !== requestId))
+      
       setIsProcessing(true)
       const response = await fetch(`/api/permissions/${requestId}`, {
         method: 'POST',
@@ -59,20 +83,37 @@ export default function usePermissionPolling(options: UsePermissionPollingOption
       })
       
       if (!response.ok) {
-        throw new Error('Failed to approve permission')
+        const error = await response.json()
+        // Revert optimistic update on error
+        await fetchPermissions()
+        throw new Error(error.error || 'Failed to approve permission')
       }
       
-      await fetchPermissions() // Refetch after update
+      // Invalidate homepage data to update session status
+      queryClient.invalidateQueries({ queryKey: ['homepage-sessions'] })
+      
+      // If this was the last permission, notify the parent
+      if (willBeLastPermission && onPermissionsCleared) {
+        onPermissionsCleared()
+      }
+      
+      // Don't refetch after successful approval - we already updated optimistically
     } catch (err) {
       console.error('Failed to approve permission:', err)
       throw err
     } finally {
       setIsProcessing(false)
     }
-  }, [fetchPermissions])
+  }, [fetchPermissions, queryClient, permissions, onPermissionsCleared])
 
   const deny = useCallback(async (requestId: string) => {
     try {
+      // Check if this will be the last permission
+      const willBeLastPermission = permissions.filter(p => p.status === 'pending').length === 1;
+      
+      // Optimistically remove the denied permission from state
+      setPermissions(prev => prev.filter(p => p.id !== requestId))
+      
       setIsProcessing(true)
       const response = await fetch(`/api/permissions/${requestId}`, {
         method: 'POST',
@@ -81,17 +122,29 @@ export default function usePermissionPolling(options: UsePermissionPollingOption
       })
       
       if (!response.ok) {
-        throw new Error('Failed to deny permission')
+        const error = await response.json()
+        // Revert optimistic update on error
+        await fetchPermissions()
+        throw new Error(error.error || 'Failed to deny permission')
       }
       
-      await fetchPermissions() // Refetch after update
+      // Invalidate homepage data to update session status
+      queryClient.invalidateQueries({ queryKey: ['homepage-sessions'] })
+      
+      // If this was the last permission, notify the parent
+      if (willBeLastPermission && onPermissionsCleared) {
+        onPermissionsCleared()
+      }
+      
+      // Don't refetch after successful denial - we already updated optimistically
+      // This prevents the UI from showing stale data while the backend processes
     } catch (err) {
       console.error('Failed to deny permission:', err)
       throw err
     } finally {
       setIsProcessing(false)
     }
-  }, [fetchPermissions])
+  }, [fetchPermissions, queryClient, permissions, onPermissionsCleared])
 
   useEffect(() => {
     if (!enabled) return
@@ -107,7 +160,7 @@ export default function usePermissionPolling(options: UsePermissionPollingOption
     }
   }, [enabled, pollingInterval, fetchPermissions])
 
-  const pendingCount = permissions.length
+  const pendingCount = permissions?.length || 0
 
   return {
     permissions,

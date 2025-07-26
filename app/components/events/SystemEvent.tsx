@@ -11,8 +11,16 @@ interface SystemEventProps {
 }
 
 export function SystemEvent({ event }: SystemEventProps) {
+  // Extract subtype first to check all cases consistently
+  let subtype = ''
+  if ('subtype' in event) {
+    subtype = event.subtype as string
+  } else if ('data' in event && typeof event.data === 'object' && event.data && 'subtype' in event.data) {
+    subtype = (event.data as Record<string, unknown>).subtype as string
+  }
+
   // Check if this is an init subtype - if so, don't render
-  if ('subtype' in event && event.subtype === 'init') {
+  if (subtype === 'init') {
     return null
   }
 
@@ -33,6 +41,16 @@ export function SystemEvent({ event }: SystemEventProps) {
     content = 'System message'
   }
 
+  // For context limit related events, render empty div to maintain layout
+  // These events are needed for UI state but shouldn't display content
+  if (subtype === 'prompt_too_long' || 
+      subtype === 'context_limit_reached' || 
+      subtype === 'summarizing_context' || 
+      subtype === 'context_summary') {
+    return <div style={{ display: 'none' }} />
+  }
+
+  // Default system event rendering
   return (
     <BaseEventWrapper
       timestamp={event.timestamp}

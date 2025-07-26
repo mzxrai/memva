@@ -1,25 +1,31 @@
 import type { PermissionRequest } from '../../db/schema'
 import { colors, typography, iconSize } from '../../constants/design'
-import { RiShieldLine, RiCheckLine, RiCloseLine } from 'react-icons/ri'
+import { RiShieldLine, RiCheckLine, RiCloseLine, RiTimeLine } from 'react-icons/ri'
 import clsx from 'clsx'
+import { PermissionStatus } from '../../types/permissions'
 
 interface InlinePermissionRequestProps {
   request: PermissionRequest
   onApprove: (requestId: string) => void
   onDeny: (requestId: string) => void
   isProcessing?: boolean
+  canAnswer?: boolean
 }
 
 export default function InlinePermissionRequest({ 
   request, 
   onApprove, 
   onDeny,
-  isProcessing = false
+  isProcessing = false,
+  canAnswer = true
 }: InlinePermissionRequestProps) {
-  const isPending = request.status === 'pending'
-  const isApproved = request.status === 'approved'
-  const isDenied = request.status === 'denied'
-  const isTimeout = request.status === 'timeout'
+  const isPending = request.status === PermissionStatus.PENDING
+  const isApproved = request.status === PermissionStatus.APPROVED
+  const isDenied = request.status === PermissionStatus.DENIED
+  const isTimeout = request.status === PermissionStatus.TIMEOUT
+  const isExpired = request.status === PermissionStatus.EXPIRED
+  const isSuperseded = request.status === PermissionStatus.SUPERSEDED
+  const isCancelled = request.status === PermissionStatus.CANCELLED
 
   const formatToolInput = () => {
     const input = request.input as Record<string, unknown>
@@ -98,7 +104,7 @@ export default function InlinePermissionRequest({
         </div>
         
         <div className="flex items-center gap-2 flex-shrink-0">
-          {isPending && (
+          {isPending && canAnswer && (
             <>
               <button
                 onClick={() => onDeny(request.id)}
@@ -135,6 +141,15 @@ export default function InlinePermissionRequest({
             </>
           )}
           
+          {isPending && !canAnswer && (
+            <span className={clsx(
+              "text-xs font-medium px-2.5 py-1 rounded",
+              "bg-zinc-800 text-zinc-500"
+            )}>
+              No longer answerable
+            </span>
+          )}
+          
           {isApproved && (
             <span className={clsx(
               "text-xs font-medium px-2.5 py-1 rounded",
@@ -163,6 +178,35 @@ export default function InlinePermissionRequest({
               "bg-zinc-800 text-zinc-500"
             )}>
               Timed out
+            </span>
+          )}
+          
+          {isExpired && (
+            <span className={clsx(
+              "text-xs font-medium px-2.5 py-1 rounded",
+              "bg-zinc-800 text-zinc-500",
+              "flex items-center gap-1"
+            )}>
+              <RiTimeLine className="w-3.5 h-3.5" />
+              Expired
+            </span>
+          )}
+          
+          {isSuperseded && (
+            <span className={clsx(
+              "text-xs font-medium px-2.5 py-1 rounded",
+              "bg-zinc-800 text-zinc-500"
+            )}>
+              Superseded
+            </span>
+          )}
+          
+          {isCancelled && (
+            <span className={clsx(
+              "text-xs font-medium px-2.5 py-1 rounded",
+              "bg-zinc-800 text-zinc-500"
+            )}>
+              Cancelled
             </span>
           )}
         </div>

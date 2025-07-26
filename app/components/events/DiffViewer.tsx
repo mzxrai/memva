@@ -72,9 +72,139 @@ function createUnifiedDiff(oldString: string, newString: string, startLineNumber
   return diffLines
 }
 
+/**
+ * Groups diff lines into hunks with context
+ */
+interface Hunk {
+  startIndex: number
+  endIndex: number
+  hasChanges: boolean
+}
+
+function createHunks(diffLines: DiffLine[], contextLines: number = 3): Hunk[] {
+  const hunks: Hunk[] = []
+  let currentHunk: Hunk | null = null
+  
+  for (let i = 0; i < diffLines.length; i++) {
+    const line = diffLines[i]
+    const isChange = line.type !== 'unchanged'
+    
+    if (isChange) {
+      // If we don't have a current hunk, or the last hunk is too far away, start a new one
+      const hunkStart = Math.max(0, i - contextLines)
+      
+      if (!currentHunk || currentHunk.endIndex < hunkStart - 1) {
+        // Start new hunk with context before
+        currentHunk = {
+          startIndex: hunkStart,
+          endIndex: i,
+          hasChanges: true
+        }
+        hunks.push(currentHunk)
+      }
+      
+      // Extend current hunk to include this change
+      currentHunk.endIndex = i
+    } else if (currentHunk && i <= currentHunk.endIndex + contextLines) {
+      // This is a context line after changes, extend the hunk
+      currentHunk.endIndex = i
+    }
+  }
+  
+  return hunks
+}
+
+/**
+ * Selects which hunks to display based on line budget
+ */
+function selectHunksToDisplay(
+  diffLines: DiffLine[], 
+  hunks: Hunk[], 
+  maxLines: number
+): { displayLines: DiffLine[], hiddenChangesAfter: number } {
+  if (!hunks.length || !maxLines) {
+    return { displayLines: diffLines, hiddenChangesAfter: 0 }
+  }
+  
+  const result: DiffLine[] = []
+  let remainingBudget = maxLines
+  let lastIncludedIndex = -1
+  let hiddenChangesAfter = 0
+  
+  for (let hunkIndex = 0; hunkIndex < hunks.length; hunkIndex++) {
+    const hunk = hunks[hunkIndex]
+    const hunkSize = hunk.endIndex - hunk.startIndex + 1
+    
+    if (hunkSize <= remainingBudget) {
+      // Include this entire hunk
+      for (let i = hunk.startIndex; i <= hunk.endIndex; i++) {
+        result.push(diffLines[i])
+      }
+      remainingBudget -= hunkSize
+      lastIncludedIndex = hunk.endIndex
+    } else if (remainingBudget > 0 && hunkIndex === 0) {
+      // For the first hunk, include as much as we can
+      for (let i = hunk.startIndex; i < hunk.startIndex + remainingBudget; i++) {
+        result.push(diffLines[i])
+      }
+      lastIncludedIndex = hunk.startIndex + remainingBudget - 1
+      remainingBudget = 0
+      
+      // Count remaining changes in this partial hunk
+      for (let i = lastIncludedIndex + 1; i <= hunk.endIndex; i++) {
+        if (diffLines[i].type !== 'unchanged') {
+          hiddenChangesAfter++
+        }
+      }
+    } else {
+      // Can't include this hunk, count its changes
+      for (let i = hunk.startIndex; i <= hunk.endIndex; i++) {
+        if (diffLines[i].type !== 'unchanged') {
+          hiddenChangesAfter++
+        }
+      }
+    }
+    
+    if (remainingBudget === 0) {
+      // Count changes in remaining hunks
+      for (let j = hunkIndex + 1; j < hunks.length; j++) {
+        const remainingHunk = hunks[j]
+        for (let i = remainingHunk.startIndex; i <= remainingHunk.endIndex; i++) {
+          if (diffLines[i].type !== 'unchanged') {
+            hiddenChangesAfter++
+          }
+        }
+      }
+      break
+    }
+  }
+  
+  return { displayLines: result, hiddenChangesAfter }
+}
+
 export function DiffViewer({ oldString, newString, fileName, className, startLineNumber, showLineNumbers = true, maxLines, renderExpandButton }: DiffViewerProps) {
   const diffLines = createUnifiedDiff(oldString, newString, startLineNumber)
-  const displayLines = maxLines && maxLines < diffLines.length ? diffLines.slice(0, maxLines) : diffLines
+  
+  // Use smart hunk selection when truncating
+  let displayLines: DiffLine[]
+  let hiddenChangesAfter = 0
+  
+  if (maxLines && maxLines < diffLines.length) {
+    const hunks = createHunks(diffLines)
+    
+    // If there are no changes, fall back to simple truncation
+    if (hunks.length === 0) {
+      displayLines = diffLines.slice(0, maxLines)
+      hiddenChangesAfter = 0
+    } else {
+      const result = selectHunksToDisplay(diffLines, hunks, maxLines)
+      displayLines = result.displayLines
+      hiddenChangesAfter = result.hiddenChangesAfter
+    }
+  } else {
+    displayLines = diffLines
+  }
+  
   const isTruncated = maxLines && diffLines.length > maxLines
   
   return (
@@ -164,6 +294,20 @@ export function DiffViewer({ oldString, newString, fileName, className, startLin
           </tbody>
         </table>
       </div>
+      
+      {/* Visual indicator for hidden changes */}
+      {hiddenChangesAfter > 0 && (
+        <div className={clsx(
+          'px-4 py-2 border-t border-zinc-700',
+          colors.background.tertiary,
+          typography.font.mono,
+          'text-xs',
+          colors.text.tertiary,
+          'text-center'
+        )}>
+          ↓ {hiddenChangesAfter} more changed line{hiddenChangesAfter !== 1 ? 's' : ''} below
+        </div>
+      )}
       
       {/* Expand/collapse button at bottom */}
       {renderExpandButton && (isTruncated || (!maxLines && diffLines.length > 10)) && (

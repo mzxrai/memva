@@ -21,8 +21,20 @@ export async function loader({ request }: LoaderArgs) {
         return Response.json({ error: 'Path parameter is required' }, { status: 400 })
       }
 
-      const resolvedPath = path.resolve(pathParam || process.cwd())
-      const normalizedPath = path.normalize(resolvedPath)
+      let expandedPath: string
+      
+      // Handle tilde expansion like in the expand action
+      if (pathParam.startsWith('~')) {
+        const homedir = os.homedir()
+        const relativePath = pathParam.slice(2) // Remove ~/ or just ~
+        expandedPath = path.resolve(homedir, relativePath)
+      } else if (path.isAbsolute(pathParam)) {
+        expandedPath = path.resolve(pathParam)
+      } else {
+        expandedPath = path.resolve(process.cwd(), pathParam)
+      }
+      
+      const normalizedPath = path.normalize(expandedPath)
 
       try {
         // Use realpath to get the actual case of the directory on disk

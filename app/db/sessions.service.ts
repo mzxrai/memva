@@ -1,4 +1,4 @@
-import { db, sessions, events, type Session, type NewSession } from './index'
+import { db, sessions, events, type Session, type NewSession, type Event } from './index'
 import { eq, desc, and, ne, inArray } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 import { getSettings } from './settings.service'
@@ -24,11 +24,23 @@ export type ListSessionsOptions = {
   limit?: number
 }
 
+export type TokenStats = {
+  total_tokens: number
+  input_tokens: number
+  output_tokens: number
+  cache_read_tokens: number
+  cache_creation_tokens: number
+  context_percentage: number
+  cache_efficiency: number
+  context_used: number
+}
+
 export type SessionWithStats = Session & {
   event_count: number
   duration_minutes: number
   event_types: Record<string, number>
   last_event_at?: string
+  token_stats?: TokenStats
 }
 
 export async function createSession(input: CreateSessionInput): Promise<Session> {
@@ -37,9 +49,16 @@ export async function createSession(input: CreateSessionInput): Promise<Session>
   // Get global settings to copy to the new session
   const globalSettings = await getSettings()
   
+  // Truncate title to prevent performance issues with huge prompts
+  const MAX_TITLE_LENGTH = 100
+  let truncatedTitle = input.title || null
+  if (truncatedTitle && truncatedTitle.length > MAX_TITLE_LENGTH) {
+    truncatedTitle = truncatedTitle.substring(0, MAX_TITLE_LENGTH - 3) + '...'
+  }
+  
   const newSession: NewSession = {
     id: uuidv4(),
-    title: input.title || null,
+    title: truncatedTitle,
     created_at: now,
     updated_at: now,
     status: 'active',
@@ -64,7 +83,15 @@ export async function updateSession(id: string, input: UpdateSessionInput): Prom
     updated_at: new Date().toISOString()
   }
   
-  if (input.title !== undefined) updates.title = input.title
+  // Truncate title to prevent performance issues
+  const MAX_TITLE_LENGTH = 100
+  if (input.title !== undefined) {
+    let truncatedTitle = input.title
+    if (truncatedTitle && truncatedTitle.length > MAX_TITLE_LENGTH) {
+      truncatedTitle = truncatedTitle.substring(0, MAX_TITLE_LENGTH - 3) + '...'
+    }
+    updates.title = truncatedTitle
+  }
   if (input.status !== undefined) updates.status = input.status
   if (input.metadata !== undefined) updates.metadata = input.metadata
   
@@ -109,6 +136,37 @@ export async function listSessions(options: ListSessionsOptions = {}): Promise<S
   return finalQuery.execute()
 }
 
+// Helper function to count visible events the same way as the detail page
+function getVisibleEventCount(sessionEvents: Event[]): number {
+  let count = 0
+  
+  for (const event of sessionEvents) {
+    // Skip invisible events (system and result events are already marked visible: false)
+    if (event.visible === false) continue
+    
+    // Skip user events that contain only tool_result content
+    if (event.event_type === 'user' && event.data && typeof event.data === 'object') {
+      const data = event.data as Record<string, unknown>
+      if ('message' in data && typeof data.message === 'object' && data.message) {
+        const message = data.message as Record<string, unknown>
+        if ('content' in message && Array.isArray(message.content)) {
+          const hasNonToolResultContent = message.content.some((item: unknown) => 
+            item && typeof item === 'object' && 'type' in item && (item as { type: string }).type !== 'tool_result'
+          )
+          if (!hasNonToolResultContent) {
+            // This is a user event with only tool results - don't count it
+            continue
+          }
+        }
+      }
+    }
+    
+    count++
+  }
+  
+  return count
+}
+
 export async function getSessionWithStats(id: string): Promise<SessionWithStats | null> {
   const session = await getSession(id)
   if (!session) return null
@@ -121,8 +179,9 @@ export async function getSessionWithStats(id: string): Promise<SessionWithStats 
     .orderBy(events.timestamp)
     .execute()
   
-  // Calculate stats
-  const event_count = sessionEvents.length
+  // Count visible events the same way as the detail page
+  const visibleEventCount = getVisibleEventCount(sessionEvents)
+  
   let duration_minutes = 0
   let last_event_at: string | undefined
   const event_types: Record<string, number> = {}
@@ -139,12 +198,16 @@ export async function getSessionWithStats(id: string): Promise<SessionWithStats 
     event_types[event.event_type] = (event_types[event.event_type] || 0) + 1
   }
   
+  // Get token stats
+  const token_stats = await getSessionTokenStats(id)
+  
   return {
     ...session,
-    event_count,
+    event_count: visibleEventCount,
     duration_minutes,
     event_types,
-    last_event_at
+    last_event_at,
+    token_stats: token_stats || undefined
   }
 }
 
@@ -163,7 +226,6 @@ export async function getLatestClaudeSessionId(memvaSessionId: string): Promise<
     .execute()
   
   const sessionId = result[0]?.session_id || null
-  console.log(`[getLatestClaudeSessionId] For memva session ${memvaSessionId}, found Claude session: ${sessionId}`)
   return sessionId
 }
 
@@ -205,10 +267,6 @@ export async function updateSessionClaudeStatus(sessionId: string, status: strin
     })
     .where(eq(sessions.id, sessionId))
     .execute()
-  
-  // Emit status change event for SSE
-  const { sessionStatusEmitter } = await import('../services/session-status-emitter.server')
-  sessionStatusEmitter.emitStatusChange(sessionId, status)
 }
 
 export async function getSessionsWithStatsBatch(sessionIds: string[]): Promise<Map<string, SessionWithStats>> {
@@ -259,7 +317,7 @@ export async function getSessionsWithStatsBatch(sessionIds: string[]): Promise<M
     if (!session) return
     
     const sessionEvents = eventsBySession.get(sessionId) || []
-    const event_count = sessionEvents.length
+    const event_count = getVisibleEventCount(sessionEvents)
     let duration_minutes = 0
     let last_event_at: string | undefined
     const event_types: Record<string, number> = {}
@@ -324,4 +382,86 @@ export async function getSessionSettings(sessionId: string): Promise<SettingsCon
   }
   
   return await getSettings()
+}
+
+export async function countArchivedSessions(): Promise<number> {
+  const result = await db
+    .select({ count: sessions.id })
+    .from(sessions)
+    .where(eq(sessions.status, 'archived'))
+    .execute()
+  
+  return result.length
+}
+
+export async function getSessionTokenStats(sessionId: string): Promise<TokenStats | null> {
+  // Get the latest result event which contains the current Claude session's token usage
+  const resultEvents = await db
+    .select({
+      data: events.data,
+      timestamp: events.timestamp
+    })
+    .from(events)
+    .where(
+      and(
+        eq(events.memva_session_id, sessionId),
+        eq(events.event_type, 'result')
+      )
+    )
+    .orderBy(desc(events.timestamp))
+    .limit(1)
+    .execute()
+  
+  if (resultEvents.length === 0) {
+    return null
+  }
+  
+  const latestResult = resultEvents[0]
+  
+  if (latestResult.data && typeof latestResult.data === 'object') {
+    const data = latestResult.data as Record<string, unknown>
+    const usage = data.usage as {
+      input_tokens?: number
+      cache_read_input_tokens?: number
+      cache_creation_input_tokens?: number
+      output_tokens?: number
+    } | undefined
+    
+    if (!usage) {
+      return null
+    }
+    
+    const totalInputTokens = usage.input_tokens || 0
+    const totalCacheReadTokens = usage.cache_read_input_tokens || 0
+    const totalCacheCreationTokens = usage.cache_creation_input_tokens || 0
+    const totalOutputTokens = usage.output_tokens || 0
+    
+    // Context usage: what actually counts against Claude's limit (excluding cache creation)
+    const contextUsed = totalInputTokens + totalOutputTokens + totalCacheReadTokens
+    
+    // Total tokens for activity tracking (includes cache creation)
+    const totalTokens = contextUsed + totalCacheCreationTokens
+    
+    // Estimate percentage of context window used (200k limit)
+    const contextPercentage = Math.min(100, (contextUsed / 200000) * 100)
+    
+    // Calculate cache efficiency
+    const totalInputIncludingCache = totalInputTokens + totalCacheReadTokens
+    const cacheEfficiency = totalInputIncludingCache > 0 
+      ? (totalCacheReadTokens / totalInputIncludingCache) * 100 
+      : 0
+    
+    return {
+      total_tokens: totalTokens,
+      input_tokens: totalInputTokens,
+      output_tokens: totalOutputTokens,
+      cache_read_tokens: totalCacheReadTokens,
+      cache_creation_tokens: totalCacheCreationTokens,
+      context_percentage: Math.round(contextPercentage * 100) / 100,
+      cache_efficiency: Math.round(cacheEfficiency * 100) / 100,
+      context_used: contextUsed
+    }
+  }
+  
+  return null
 }

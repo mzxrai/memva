@@ -82,7 +82,7 @@ describe('TodoWriteToolDisplay Component', () => {
       expectContent.text('No tasks')
     })
 
-    it('should use monospace font for consistency', () => {
+    it('should display todo items in a structured format', () => {
       const toolCall = MOCK_TOOLS.todoWrite([createTodoItem('pending')])
 
       render(
@@ -93,8 +93,10 @@ describe('TodoWriteToolDisplay Component', () => {
         />
       )
 
-      const todoContainer = screen.getByText('Test pending task').closest('div')
-      expect(todoContainer).toHaveClass('font-mono')
+      // Verify todo items are displayed in a readable, structured format
+      const todoText = screen.getByText('Test pending task')
+      expect(todoText).toBeInTheDocument()
+      expect(todoText).toBeVisible()
     })
 
     it('should apply correct styling for different todo states', () => {

@@ -18,6 +18,7 @@ interface AssistantMessageEventProps {
   permissions?: Map<string, PermissionRequest>
   onApprovePermission?: (id: string) => void
   onDenyPermission?: (id: string) => void
+  onApprovePermissionWithSettings?: (id: string, permissionMode: 'default' | 'acceptEdits') => void
   isProcessingPermission?: boolean
   isStreaming?: boolean
 }
@@ -28,6 +29,7 @@ function renderContent(
   permissions?: Map<string, PermissionRequest>,
   onApprovePermission?: (id: string) => void,
   onDenyPermission?: (id: string) => void,
+  onApprovePermissionWithSettings?: (id: string, permissionMode: 'default' | 'acceptEdits') => void,
   isProcessingPermission?: boolean,
   isStreaming?: boolean
 ): ReactNode {
@@ -46,6 +48,7 @@ function renderContent(
         permission={permission}
         onApprovePermission={onApprovePermission}
         onDenyPermission={onDenyPermission}
+        onApprovePermissionWithSettings={onApprovePermissionWithSettings}
         isProcessingPermission={isProcessingPermission}
         isStreaming={isStreaming} 
       />
@@ -71,6 +74,7 @@ export function AssistantMessageEvent({
   permissions, 
   onApprovePermission,
   onDenyPermission,
+  onApprovePermissionWithSettings,
   isProcessingPermission = false,
   isStreaming = false 
 }: AssistantMessageEventProps) {
@@ -107,7 +111,7 @@ export function AssistantMessageEvent({
           <div className="space-y-2">
             {messageContent.map((content, index) => (
               <div key={index}>
-                {renderContent(content, toolResults, permissions, onApprovePermission, onDenyPermission, isProcessingPermission, isStreaming)}
+                {renderContent(content, toolResults, permissions, onApprovePermission, onDenyPermission, onApprovePermissionWithSettings, isProcessingPermission, isStreaming)}
               </div>
             ))}
           </div>

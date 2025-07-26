@@ -13,6 +13,7 @@ interface EventRendererProps {
   permissions?: Map<string, PermissionRequest>
   onApprovePermission?: (id: string) => void
   onDenyPermission?: (id: string) => void
+  onApprovePermissionWithSettings?: (id: string, permissionMode: 'default' | 'acceptEdits') => void
   isProcessingPermission?: boolean
   isStreaming?: boolean
 }
@@ -23,6 +24,7 @@ export const EventRenderer = memo(({
   permissions, 
   onApprovePermission,
   onDenyPermission,
+  onApprovePermissionWithSettings,
   isProcessingPermission = false,
   isStreaming = false 
 }: EventRendererProps) => {
@@ -40,6 +42,7 @@ export const EventRenderer = memo(({
         permissions={permissions} 
         onApprovePermission={onApprovePermission}
         onDenyPermission={onDenyPermission}
+        onApprovePermissionWithSettings={onApprovePermissionWithSettings}
         isProcessingPermission={isProcessingPermission}
         isStreaming={isStreaming} 
       />

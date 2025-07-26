@@ -11,43 +11,71 @@ setupDatabaseMocks(vi)
 import { action } from '../routes/api.claude-code.$sessionId'
 import type { Route } from '../routes/+types/api.claude-code.$sessionId'
 
-// Mock Claude Code SDK
-vi.mock('@anthropic-ai/claude-code', () => ({
-  query: vi.fn().mockImplementation(({ options }) => {
-    const abortController = options?.abortController
+// Mock claude-cli.server
+vi.mock('../services/claude-cli.server', () => ({
+  streamClaudeCliResponse: vi.fn().mockImplementation(async ({ 
+    onMessage, 
+    onStoredEvent,
+    memvaSessionId,
+    projectPath,
+    initialParentUuid,
+    resumeSessionId
+  }) => {
+    const { createEventFromMessage, storeEvent } = await import('../db/events.service')
     
-    return (async function* () {
-      const events = [
-        {
-          type: 'system',
-          content: 'Starting...',
-          session_id: 'mock-session-id'
-        },
-        {
-          type: 'user',
-          content: 'User message',
-          session_id: 'mock-session-id'
-        },
-        {
-          type: 'assistant',
-          content: 'Assistant response',
-          session_id: 'mock-session-id'
-        },
-        {
-          type: 'result',
-          content: 'Complete',
-          session_id: 'mock-session-id'
-        }
-      ]
-      
-      for (const event of events) {
-        // Respect abort signal to prevent execution after test cleanup
-        if (abortController?.signal.aborted) {
-          break
-        }
-        yield event
+    // Use resumeSessionId if provided, otherwise use a new mock session
+    const sessionId = resumeSessionId || 'mock-session-id'
+    
+    const messages = [
+      {
+        type: 'system' as const,
+        subtype: 'error' as const,
+        content: 'Starting...',
+        session_id: sessionId
+      },
+      {
+        type: 'user' as const,
+        content: 'User message',
+        session_id: sessionId
+      },
+      {
+        type: 'assistant' as const,
+        content: 'Assistant response',
+        session_id: sessionId
+      },
+      {
+        type: 'result' as const,
+        content: 'Complete',
+        session_id: sessionId
       }
-    })()
+    ]
+    
+    let lastEventUuid = initialParentUuid || null
+    
+    for (const message of messages) {
+      // Call onMessage callback
+      onMessage(message)
+      
+      // Store event if memvaSessionId is provided
+      if (memvaSessionId) {
+        const event = createEventFromMessage({
+          message,
+          memvaSessionId,
+          projectPath,
+          parentUuid: lastEventUuid,
+          timestamp: new Date().toISOString()
+        })
+        
+        await storeEvent(event)
+        lastEventUuid = event.uuid
+        
+        if (onStoredEvent) {
+          onStoredEvent(event)
+        }
+      }
+    }
+    
+    return { lastSessionId: sessionId }
   })
 }))
 

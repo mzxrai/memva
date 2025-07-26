@@ -1,8 +1,33 @@
 {
   "name": "memva",
-  "private": true,
+  "version": "0.1.1",
+  "description": "Session manager for coding agents",
   "type": "module",
+  "bin": {
+    "memva": "./cli.js"
+  },
+  "keywords": [
+    "session-manager",
+    "ai",
+    "coding-assistant",
+    "claude code",
+    "claude",
+    "anthropic",
+    "development-tools"
+  ],
+  "author": "Premva Inc. <chiefnerd@premva.com>",
+  "license": "MIT",
+  "private": false,
+  "files": [
+    "build/**/*",
+    "app/**/*",
+    "public/**/*",
+    "cli.js",
+    "package.json",
+    "README.md"
+  ],
   "scripts": {
+    "prepublishOnly": "npm run build",
     "build": "react-router build",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
@@ -18,6 +43,7 @@
     "@react-router/node": "^7.5.3",
     "@react-router/serve": "^7.5.3",
     "@tanstack/react-query": "^5.83.0",
+    "@tanstack/react-virtual": "^3.13.12",
     "@types/better-queue": "^3.8.6",
     "@types/diff": "^7.0.2",
     "@types/react-syntax-highlighter": "^15.5.13",
@@ -30,6 +56,7 @@
     "drizzle-orm": "^0.44.2",
     "framer-motion": "^12.23.6",
     "isbot": "^5.1.27",
+    "open": "^10.1.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-icons": "^5.5.0",
@@ -38,7 +65,9 @@
     "react-syntax-highlighter": "^15.6.1",
     "remark-gfm": "^4.0.1",
     "strip-ansi": "^7.1.0",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "zod": "^4.0.5",
+    "zustand": "^5.0.6"
   },
   "devDependencies": {
     "@react-router/dev": "^7.5.3",

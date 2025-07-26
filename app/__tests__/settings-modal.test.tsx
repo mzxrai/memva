@@ -17,11 +17,16 @@ describe('SettingsModal Component', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('should render with proper accessibility when open', () => {
+  it('should render with proper accessibility when open', async () => {
     render(<SettingsModal isOpen={true} onClose={() => {}} />)
     
-    expectSemanticMarkup.heading(2, 'Default Settings for New Sessions')
-    expect(screen.getByRole('spinbutton', { name: 'Max Turns' })).toBeInTheDocument()
+    // Wait for the component to load
+    await waitFor(() => {
+      expect(screen.getByLabelText(/max turns/i)).toBeInTheDocument()
+    })
+    
+    expectSemanticMarkup.heading(2, 'Default settings for new sessions')
+    expect(screen.getByRole('spinbutton', { name: /max turns/i })).toBeInTheDocument()
     
     const dialog = screen.getByRole('dialog')
     expect(dialog).toHaveAttribute('aria-modal', 'true')
@@ -148,17 +153,22 @@ describe('SettingsModal Component', () => {
   })
 
   describe('Modal Modes', () => {
-    it('should render global mode with correct title and helper text', () => {
+    it('should render global mode with correct title', async () => {
       render(<SettingsModal isOpen={true} onClose={() => {}} mode="global" />)
       
-      expectSemanticMarkup.heading(2, 'Default Settings for New Sessions')
-      expect(screen.getByText('These are the defaults for new sessions, but can be overridden within each individual session.')).toBeInTheDocument()
+      // Wait for content to load
+      await waitFor(() => {
+        expect(screen.getByLabelText(/max turns/i)).toBeInTheDocument()
+      })
+      
+      expectSemanticMarkup.heading(2, 'Default settings for new sessions')
+      // Helper text was removed from the UI
     })
 
     it('should render session mode with correct title', () => {
       render(<SettingsModal isOpen={true} onClose={() => {}} mode="session" sessionId="test-session-123" />)
       
-      expectSemanticMarkup.heading(2, 'Session Settings')
+      expectSemanticMarkup.heading(2, 'Session settings')
       expect(screen.queryByText('These settings will be used as defaults for all new sessions')).not.toBeInTheDocument()
     })
 

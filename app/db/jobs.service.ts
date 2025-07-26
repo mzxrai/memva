@@ -196,6 +196,7 @@ export async function getActiveJobForSession(sessionId: string): Promise<Job | n
         sql`json_extract(${jobs.data}, '$.sessionId') = ${sessionId}`
       )
     )
+    .orderBy(desc(jobs.created_at))
     .limit(1)
     .execute()
   

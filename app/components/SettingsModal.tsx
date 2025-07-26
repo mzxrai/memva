@@ -31,7 +31,7 @@ const PERMISSION_MODES: Array<{ value: PermissionMode; label: string; descriptio
   { 
     value: 'plan', 
     label: 'Plan Mode', 
-    description: 'Claude plans actions before executing them' 
+    description: 'Agent plans actions before executing them' 
   }
 ]
 
@@ -197,7 +197,7 @@ export default function SettingsModal({
               id="settings-modal-title"
               className={clsx(typography.size.lg, typography.weight.semibold, colors.text.primary)}
             >
-              {mode === 'session' ? 'Session Settings' : 'Default Settings for New Sessions'}
+              {mode === 'session' ? 'Session settings' : 'Default settings for new sessions'}
             </h2>
           </div>
           <button
@@ -242,10 +242,10 @@ export default function SettingsModal({
           </div>
         ) : (
         <div className="space-y-6">
-          {/* Helper Text for Global Mode */}
-          {mode === 'global' && (
-            <p className={clsx(typography.size.sm, colors.text.secondary, 'pb-2')}>
-              These are the defaults for new sessions, but can be overridden within each individual session.
+          {/* Helper Text */}
+          {mode === 'session' && (
+            <p className={clsx(typography.size.sm, colors.text.secondary, '-mt-2')}>
+              Your settings for this session override any global settings.
             </p>
           )}
           
@@ -293,7 +293,7 @@ export default function SettingsModal({
               Permission Mode
             </label>
             <p className={clsx(typography.size.xs, colors.text.tertiary, 'mb-3')}>
-              Controls how Claude Code handles file operations and permissions
+              Controls how the agent handles file operations and permissions
             </p>
             <div className="space-y-2">
               {PERMISSION_MODES.map((mode) => (
@@ -315,6 +315,7 @@ export default function SettingsModal({
                         typography.weight.medium,
                         mode.value === 'plan' ? 'text-emerald-400' :
                         mode.value === 'bypassPermissions' ? 'text-amber-400' :
+                        mode.value === 'acceptEdits' ? 'text-blue-400' :
                         colors.text.primary
                       )}>
                         {mode.label}

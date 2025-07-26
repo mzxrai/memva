@@ -6,6 +6,54 @@ import { waitForCondition } from '../../../test-utils/async-testing'
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
 
+// Mock claude-cli.server to avoid spawning actual processes
+vi.mock('../../../services/claude-cli.server', () => ({
+  streamClaudeCliResponse: vi.fn().mockImplementation(async ({ 
+    onMessage, 
+    onStoredEvent,
+    memvaSessionId,
+    projectPath,
+    initialParentUuid
+  }) => {
+    const { createEventFromMessage, storeEvent } = await import('../../../db/events.service')
+    
+    // Simulate successful Claude Code messages
+    const messages = [
+      { type: 'system' as const, subtype: 'error' as const, content: 'Session started', session_id: 'mock-session-id' },
+      { type: 'user' as const, content: 'User message', session_id: 'mock-session-id' },
+      { type: 'assistant' as const, content: 'Assistant response', session_id: 'mock-session-id' },
+      { type: 'result' as const, content: '', session_id: 'mock-session-id' }
+    ]
+    
+    let lastEventUuid = initialParentUuid || null
+    
+    for (const message of messages) {
+      // Call onMessage callback
+      onMessage(message)
+      
+      // Store event if memvaSessionId is provided
+      if (memvaSessionId) {
+        const event = createEventFromMessage({
+          message,
+          memvaSessionId,
+          projectPath,
+          parentUuid: lastEventUuid,
+          timestamp: new Date().toISOString()
+        })
+        
+        await storeEvent(event)
+        lastEventUuid = event.uuid
+        
+        if (onStoredEvent) {
+          onStoredEvent(event)
+        }
+      }
+    }
+    
+    return { lastSessionId: 'mock-session-id' }
+  })
+}))
+
 import { sessionRunnerHandler } from '../session-runner.handler'
 import { getSession } from '../../../db/sessions.service'
 

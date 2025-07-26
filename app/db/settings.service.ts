@@ -28,7 +28,8 @@ export async function getSettings(): Promise<SettingsConfig> {
   // Merge with defaults to handle missing fields
   return {
     maxTurns: config.maxTurns ?? DEFAULT_CONFIG.maxTurns,
-    permissionMode: config.permissionMode ?? DEFAULT_CONFIG.permissionMode
+    permissionMode: config.permissionMode ?? DEFAULT_CONFIG.permissionMode,
+    defaultDirectory: config.defaultDirectory
   }
 }
 

@@ -1,4 +1,6 @@
-import type { Session, Event, NewSession, NewEvent } from '../db/schema'
+import type { Session, Event, NewSession, NewEvent, Job, NewJob, Settings } from '../db/schema'
+import type { SessionWithStats } from '../db/sessions.service'
+import type { SettingsConfig } from '../types/settings'
 
 /**
  * Test data factories for creating consistent mock data across tests.
@@ -36,6 +38,18 @@ export function createMockNewSession(overrides?: Partial<NewSession>): NewSessio
   }
 }
 
+export function createMockSessionWithStats(overrides?: Partial<SessionWithStats>): SessionWithStats {
+  const base = createMockSession(overrides)
+  return {
+    ...base,
+    event_count: 0,
+    duration_minutes: 0,
+    event_types: {},
+    last_event_at: undefined,
+    ...overrides
+  }
+}
+
 // Event Factory
 export function createMockEvent(overrides?: Partial<Event>): Event {
   return {
@@ -49,6 +63,7 @@ export function createMockEvent(overrides?: Partial<Event>): Event {
     project_name: 'test-project',
     data: { type: 'user', content: 'Test message' },
     memva_session_id: null,
+    visible: true,
     ...overrides
   }
 }
@@ -212,5 +227,127 @@ export function createMockPermissionRequest(overrides: Partial<{
     created_at: now.toISOString(),
     expires_at: expiresAt.toISOString(),
     ...overrides
+  }
+}
+
+// Job Factory
+export function createMockJob(overrides?: Partial<Job>): Job {
+  const now = new Date().toISOString()
+  const defaultData: Record<string, unknown> = { sessionId: 'test-session-123', prompt: 'Test prompt' }
+  return {
+    id: `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    type: 'session-runner',
+    data: defaultData,
+    status: 'pending',
+    priority: 5,
+    attempts: 0,
+    max_attempts: 3,
+    error: null,
+    result: null,
+    scheduled_at: null,
+    started_at: null,
+    completed_at: null,
+    created_at: now,
+    updated_at: now,
+    ...overrides
+  }
+}
+
+export function createMockNewJob(overrides?: Partial<NewJob>): NewJob {
+  const now = new Date().toISOString()
+  const defaultData: Record<string, unknown> = { sessionId: 'test-session-123', prompt: 'Test prompt' }
+  return {
+    id: `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    type: 'session-runner',
+    data: defaultData,
+    status: 'pending',
+    priority: 5,
+    attempts: 0,
+    max_attempts: 3,
+    error: null,
+    result: null,
+    scheduled_at: null,
+    started_at: null,
+    completed_at: null,
+    created_at: now,
+    updated_at: now,
+    ...overrides
+  }
+}
+
+// Settings Factory
+export function createMockSettings(overrides?: Partial<Settings>): Settings {
+  const now = new Date().toISOString()
+  return {
+    id: 'singleton',
+    config: {
+      maxTurns: 30,
+      permissionMode: 'default'
+    },
+    created_at: now,
+    updated_at: now,
+    ...overrides
+  }
+}
+
+export function createMockSettingsConfig(overrides?: Partial<SettingsConfig>): SettingsConfig {
+  return {
+    maxTurns: 30,
+    permissionMode: 'default',
+    ...overrides
+  }
+}
+
+// Form Data Factory
+export function createMockFormData(data: Record<string, string | File> = {}): FormData {
+  const formData = new FormData()
+  Object.entries(data).forEach(([key, value]) => {
+    formData.append(key, value)
+  })
+  return formData
+}
+
+// Image/File Factories
+export function createMockFile(options: {
+  name?: string
+  type?: string
+  size?: number
+  content?: string
+} = {}): File {
+  const {
+    name = 'test-image.png',
+    type = 'image/png',
+    content = 'fake-image-content'
+  } = options
+  
+  const blob = new Blob([content], { type })
+  return new File([blob], name, { type, lastModified: Date.now() })
+}
+
+export function createMockImageData(overrides: {
+  id?: string
+  file?: File
+  preview?: string
+} = {}) {
+  return {
+    id: overrides.id || crypto.randomUUID(),
+    file: overrides.file || createMockFile(),
+    preview: overrides.preview || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+  }
+}
+
+// Directory/Path Factories
+export function createMockDirectoryData(overrides: {
+  path?: string
+  name?: string
+  isDirectory?: boolean
+  children?: Array<{ path: string; name: string; isDirectory: boolean }>
+} = {}) {
+  const path = overrides.path || '/test/project'
+  return {
+    path,
+    name: overrides.name || path.split('/').pop() || 'project',
+    isDirectory: overrides.isDirectory !== false,
+    children: overrides.children || []
   }
 }

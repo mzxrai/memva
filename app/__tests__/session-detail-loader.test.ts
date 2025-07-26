@@ -10,10 +10,7 @@ setupDatabaseMocks(vi)
 import { loader } from '../routes/sessions.$sessionId'
 import { sessions } from '../db/schema'
 
-// Mock event session service
-vi.mock('../db/event-session.service', () => ({
-  getEventsForSession: vi.fn()
-}))
+// Events are now loaded via React Query, not in the loader
 
 describe('SessionDetail Loader Integration Tests', () => {
   let testDb: TestDatabase
@@ -36,8 +33,7 @@ describe('SessionDetail Loader Integration Tests', () => {
       project_path: '/Users/test/project'
     })
 
-    const { getEventsForSession } = await import('../db/event-session.service')
-    vi.mocked(getEventsForSession).mockResolvedValue([])
+    // No need to mock events - they're loaded separately now
 
     // Call the loader
     const result = await loader({ 
@@ -49,12 +45,12 @@ describe('SessionDetail Loader Integration Tests', () => {
     expect(result.session?.id).toBe(session.id)
     expect(result.session?.title).toBe('Test Session')
     expect(result.session?.project_path).toBe('/Users/test/project')
-    expect(result.events).toEqual([])
+    // Events are loaded separately via React Query
+    expect(result.settings).toBeDefined()
   })
 
   it('should return null for non-existent session', async () => {
-    const { getEventsForSession } = await import('../db/event-session.service')
-    vi.mocked(getEventsForSession).mockResolvedValue([])
+    // No need to mock events - they're loaded separately now
 
     // Call loader with non-existent session ID
     const result = await loader({ 
@@ -63,7 +59,8 @@ describe('SessionDetail Loader Integration Tests', () => {
     } as any)
 
     expect(result.session).toBe(null)
-    expect(result.events).toEqual([])
+    // Events are loaded separately via React Query
+    expect(result.settings).toBeDefined()
   })
 
   it('should load session with events', async () => {
@@ -100,9 +97,8 @@ describe('SessionDetail Loader Integration Tests', () => {
 
     expect(result.session).not.toBeNull()
     expect(result.session?.id).toBe(session.id)
-    expect(result.events).toHaveLength(2)
-    expect(result.events[0].event_type).toBe('user')
-    expect(result.events[1].event_type).toBe('assistant')
+    // Events are loaded separately via React Query
+    expect(result.settings).toBeDefined()
   })
 
   it('should handle sessions with different statuses', async () => {
@@ -118,8 +114,7 @@ describe('SessionDetail Loader Integration Tests', () => {
       .where(eq(sessions.id, archivedSession.id))
       .run()
 
-    const { getEventsForSession } = await import('../db/event-session.service')
-    vi.mocked(getEventsForSession).mockResolvedValue([])
+    // No need to mock events - they're loaded separately now
 
     // Call the loader
     const result = await loader({ 
@@ -148,8 +143,7 @@ describe('SessionDetail Loader Integration Tests', () => {
       .where(eq(sessions.id, sessionWithMetadata.id))
       .run()
 
-    const { getEventsForSession } = await import('../db/event-session.service')
-    vi.mocked(getEventsForSession).mockResolvedValue([])
+    // No need to mock events - they're loaded separately now
 
     // Call the loader
     const result = await loader({ 

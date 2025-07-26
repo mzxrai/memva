@@ -1,11 +1,24 @@
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
 import * as schema from './schema'
+import { join } from 'path'
+import { homedir } from 'os'
+import { mkdirSync } from 'fs'
 
 let db: ReturnType<typeof drizzle> | null = null
 let sqlite: Database.Database | null = null
 
+// Store database in user's home directory under .memva
+const MEMVA_DIR = join(homedir(), '.memva')
+
 function getDatabasePath(): string {
+  // Ensure .memva directory exists
+  try {
+    mkdirSync(MEMVA_DIR, { recursive: true })
+  } catch {
+    // Ignore if directory already exists
+  }
+
   // Use test database when running tests
   if (process.env.VITEST) {
     return './memva-test.db'
@@ -13,11 +26,11 @@ function getDatabasePath(): string {
   
   // Use production database in production
   if (process.env.NODE_ENV === 'production') {
-    return './memva-prod.db'
+    return join(MEMVA_DIR, 'memva-prod.db')
   }
   
   // Default to development database
-  return './memva-dev.db'
+  return join(MEMVA_DIR, 'memva.db')
 }
 
 export function getDatabase(dbPath?: string) {
@@ -27,7 +40,6 @@ export function getDatabase(dbPath?: string) {
 
   // Use environment-based path if no explicit path provided
   const finalDbPath = dbPath || getDatabasePath()
-  console.log(`[Database] Using database: ${finalDbPath}`)
 
   // Create SQLite connection
   sqlite = new Database(finalDbPath)
@@ -74,7 +86,8 @@ function initializeSchema() {
       parent_uuid TEXT,
       cwd TEXT NOT NULL,
       project_name TEXT NOT NULL,
-      data TEXT NOT NULL
+      data TEXT NOT NULL,
+      visible INTEGER DEFAULT 1
     )
   `)
   
@@ -119,6 +132,8 @@ function initializeSchema() {
     CREATE INDEX IF NOT EXISTS idx_event_type ON events(event_type);
     CREATE INDEX IF NOT EXISTS idx_parent_uuid ON events(parent_uuid);
     CREATE INDEX IF NOT EXISTS idx_memva_session_id ON events(memva_session_id);
+    CREATE INDEX IF NOT EXISTS idx_visible ON events(visible);
+    CREATE INDEX IF NOT EXISTS idx_session_visible ON events(session_id, visible);
     CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
     CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at);
     CREATE INDEX IF NOT EXISTS idx_sessions_claude_status ON sessions(claude_status);
@@ -203,6 +218,17 @@ function runMigrations() {
       CREATE INDEX IF NOT EXISTS idx_permission_requests_created_at ON permission_requests(created_at);
     `)
   }
+  
+  // Check if visible column exists in events table
+  const eventsVisibleColumn = eventsColumns.some((col: unknown) => 
+    typeof col === 'object' && col !== null && 'name' in col && (col as { name: string }).name === 'visible'
+  )
+  
+  if (!eventsVisibleColumn) {
+    console.log('Migrating: Adding visible column to events table')
+    sqlite.exec(`ALTER TABLE events ADD COLUMN visible INTEGER DEFAULT 1`)
+  }
+  
 }
 
 export function closeDatabase() {

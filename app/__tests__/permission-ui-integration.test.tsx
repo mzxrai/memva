@@ -1,20 +1,80 @@
 import { vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
 import { expectSemanticMarkup, expectContent } from '../test-utils/component-testing'
+import type { ReactNode } from 'react'
 
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
 
+// Import MSW server for HTTP mocking
+import { server } from '../test-utils/msw-server'
+import { http, HttpResponse } from 'msw'
+import usePermissionPolling from '../hooks/usePermissionPolling'
+
 describe('Permission UI Integration', () => {
   let testDb: TestDatabase
+  let queryClient: QueryClient
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  )
 
   beforeEach(() => {
     vi.useFakeTimers()
     testDb = setupInMemoryDb()
     setTestDatabase(testDb)
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, gcTime: 0 },
+      },
+    })
+    
+    // Override MSW handler to return permissions from test database
+    server.use(
+      http.get('/api/permissions', ({ request }) => {
+        const url = new URL(request.url)
+        const status = url.searchParams.get('status')
+        
+        // Get permissions from test database
+        const { eq } = require('drizzle-orm')
+        
+        const permissions = status === 'pending' 
+          ? testDb.db.select().from(testDb.schema.permissionRequests)
+              .where(eq(testDb.schema.permissionRequests.status, 'pending'))
+              .all()
+          : testDb.db.select().from(testDb.schema.permissionRequests).all()
+        return HttpResponse.json({ permissions })
+      }),
+      
+      // Handle POST for permissions
+      http.post('/api/permissions/:id', async ({ params, request }) => {
+        const body = await request.json() as { decision: string }
+        const { eq } = require('drizzle-orm')
+        
+        // Update permission in test database
+        testDb.db.update(testDb.schema.permissionRequests)
+          .set({ 
+            status: body.decision === 'allow' ? 'approved' : 'denied',
+            decision: body.decision,
+            decided_at: new Date().toISOString()
+          })
+          .where(eq(testDb.schema.permissionRequests.id, params.id))
+          .run()
+          
+        return HttpResponse.json({
+          id: params.id,
+          status: body.decision === 'allow' ? 'approved' : 'denied',
+          decision: body.decision,
+          decided_at: new Date().toISOString()
+        })
+      })
+    )
   })
 
   afterEach(() => {
@@ -25,7 +85,7 @@ describe('Permission UI Integration', () => {
 
   describe('usePermissionPolling Hook Integration', () => {
     it('should integrate with UI components to show permissions', async () => {
-      const { default: usePermissionPolling } = await import('../hooks/usePermissionPolling')
+      // usePermissionPolling is already imported at the top
       const { createPermissionRequest } = await import('../db/permissions.service')
       
       const session = testDb.createSession({ title: 'Test Session', project_path: '/test' })
@@ -38,7 +98,7 @@ describe('Permission UI Integration', () => {
         input: { command: 'npm install' }
       })
       
-      const { result } = renderHook(() => usePermissionPolling())
+      const { result } = renderHook(() => usePermissionPolling(), { wrapper })
       
       // Wait for initial fetch
       await act(async () => {
@@ -51,7 +111,7 @@ describe('Permission UI Integration', () => {
     })
 
     it('should update UI when permissions are approved', async () => {
-      const { default: usePermissionPolling } = await import('../hooks/usePermissionPolling')
+      // usePermissionPolling is already imported at the top
       const { createPermissionRequest } = await import('../db/permissions.service')
       
       const session = testDb.createSession({ title: 'Test Session', project_path: '/test' })
@@ -63,7 +123,7 @@ describe('Permission UI Integration', () => {
         input: { file_path: '/test.txt', content: 'Hello' }
       })
       
-      const { result } = renderHook(() => usePermissionPolling())
+      const { result } = renderHook(() => usePermissionPolling(), { wrapper })
       
       // Wait for initial fetch
       await act(async () => {
@@ -185,12 +245,12 @@ describe('Permission UI Integration', () => {
 
   describe('Real-time Updates', () => {
     it('should update UI when new permissions arrive', async () => {
-      const { default: usePermissionPolling } = await import('../hooks/usePermissionPolling')
+      // usePermissionPolling is already imported at the top
       const { createPermissionRequest } = await import('../db/permissions.service')
       
       const session = testDb.createSession({ title: 'Test Session', project_path: '/test' })
       
-      const { result } = renderHook(() => usePermissionPolling({ pollingInterval: 500 }))
+      const { result } = renderHook(() => usePermissionPolling({ pollingInterval: 500 }), { wrapper })
       
       // Wait for initial fetch
       await act(async () => {
@@ -218,16 +278,30 @@ describe('Permission UI Integration', () => {
     })
 
     it('should handle rapid permission changes', async () => {
-      const { default: usePermissionPolling } = await import('../hooks/usePermissionPolling')
+      // usePermissionPolling is already imported at the top
       const { createPermissionRequest } = await import('../db/permissions.service')
+      const { createJob } = await import('../db/jobs.service')
       
-      const session = testDb.createSession({ title: 'Test Session', project_path: '/test' })
+      const session1 = testDb.createSession({ title: 'Test Session 1', project_path: '/test1' })
+      const session2 = testDb.createSession({ title: 'Test Session 2', project_path: '/test2' })
       
-      const { result } = renderHook(() => usePermissionPolling({ pollingInterval: 100 }))
+      // Create jobs so we can answer permissions
+      await createJob({
+        type: 'session-runner',
+        data: { sessionId: session1.id },
+        priority: 1
+      })
+      await createJob({
+        type: 'session-runner',
+        data: { sessionId: session2.id },
+        priority: 1
+      })
+      
+      const { result } = renderHook(() => usePermissionPolling({ pollingInterval: 100 }), { wrapper })
       
       // Create multiple permissions rapidly
       await createPermissionRequest({
-        session_id: session.id,
+        session_id: session1.id,
         tool_name: 'Bash',
         tool_use_id: 'tool-1',
         input: { command: 'echo 1' }
@@ -240,9 +314,9 @@ describe('Permission UI Integration', () => {
       
       expect(result.current.permissions).toHaveLength(1)
       
-      // Add more
+      // Add more from different session
       await createPermissionRequest({
-        session_id: session.id,
+        session_id: session2.id,
         tool_name: 'Write',
         tool_use_id: 'tool-2',
         input: { file_path: '/test.txt', content: 'data' }
@@ -262,7 +336,7 @@ describe('Permission UI Integration', () => {
       })
       
       expect(result.current.permissions).toHaveLength(1)
-      expect(result.current.permissions[0].tool_name).toBe('Write')
+      expect(result.current.pendingCount).toBe(1)
     })
   })
 })

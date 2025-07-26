@@ -8,9 +8,11 @@ import {
 } from "react-router";
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useBackNavigation } from "./hooks/useBackNavigation";
 
 import type { Route } from "./+types/root";
 import "./app.css";
+import "./styles/animations.css";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -58,6 +60,8 @@ const queryClient = new QueryClient({
 });
 
 export default function App() {
+  useBackNavigation();
+  
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />

@@ -7,6 +7,60 @@ import { waitForCondition } from '../test-utils/async-testing'
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
 
+// Mock claude-cli.server to avoid spawning actual processes
+vi.mock('../services/claude-cli.server', () => ({
+  streamClaudeCliResponse: vi.fn().mockImplementation(async ({ 
+    prompt,
+    onMessage, 
+    onStoredEvent,
+    memvaSessionId,
+    projectPath,
+    initialParentUuid
+  }) => {
+    const { createEventFromMessage, storeEvent } = await import('../db/events.service')
+    
+    // Simulate Claude Code messages
+    const messages = []
+    
+    // Check if prompt is valid
+    if (!prompt || prompt.trim() === '') {
+      throw new Error('Invalid prompt: prompt cannot be empty')
+    }
+    
+    messages.push({ type: 'system' as const, subtype: 'error' as const, content: 'Session started', session_id: 'mock-session-id' })
+    messages.push({ type: 'user' as const, content: prompt, session_id: 'mock-session-id' })
+    messages.push({ type: 'assistant' as const, content: 'Mock response', session_id: 'mock-session-id' })
+    messages.push({ type: 'result' as const, content: '', session_id: 'mock-session-id' })
+    
+    let lastEventUuid = initialParentUuid || null
+    
+    for (const message of messages) {
+      // Call onMessage callback
+      onMessage(message)
+      
+      // Store event if memvaSessionId is provided
+      if (memvaSessionId) {
+        const event = createEventFromMessage({
+          message,
+          memvaSessionId,
+          projectPath,
+          parentUuid: lastEventUuid,
+          timestamp: new Date().toISOString()
+        })
+        
+        await storeEvent(event)
+        lastEventUuid = event.uuid
+        
+        if (onStoredEvent) {
+          onStoredEvent(event)
+        }
+      }
+    }
+    
+    return { lastSessionId: 'mock-session-id' }
+  })
+}))
+
 describe('Session Runner Handler', () => {
   let testDb: TestDatabase
 

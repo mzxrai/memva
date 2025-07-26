@@ -13,6 +13,15 @@ vi.mock('react-router', () => ({
   Form: ({ children, method, onSubmit, ...props }: any) => (
     <form method={method} onSubmit={onSubmit} {...props}>{children}</form>
   ),
+  Link: ({ to, children, ...props }: any) => (
+    <a href={to} {...props}>{children}</a>
+  ),
+  useNavigate: vi.fn(() => vi.fn()),
+  useFetcher: () => ({
+    submit: vi.fn(),
+    state: 'idle',
+    data: null
+  }),
   redirect: vi.fn(),
 }))
 
@@ -42,16 +51,47 @@ vi.mock('../hooks/useHomepageData', () => ({
   useHomepageData: () => ({ sessions: [] })
 }))
 
+// Import React Query
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
 // Now import the component
 import Home from '../routes/home'
 
 describe('Homepage Image Upload', () => {
   let testDb: TestDatabase
+  let queryClient: QueryClient
 
   beforeEach(() => {
     testDb = setupInMemoryDb()
     setTestDatabase(testDb)
     vi.clearAllMocks()
+    
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+      },
+    })
+    
+    // Mock localStorage with a default directory to ensure input renders
+    const localStorageMock = {
+      getItem: vi.fn((key: string) => {
+        if (key === 'memvaLastDirectory') {
+          return '/Users/testuser';
+        }
+        return null;
+      }),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+      clear: vi.fn(),
+      length: 0,
+      key: vi.fn(() => null)
+    }
+    Object.defineProperty(window, 'localStorage', {
+      value: localStorageMock,
+      writable: true
+    })
     
     // Mock FileReader for image preview generation
     global.FileReader = vi.fn(() => ({
@@ -79,9 +119,13 @@ describe('Homepage Image Upload', () => {
   })
 
   it('should show image previews when images are dropped on form container', async () => {
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
     
-    const textarea = screen.getByPlaceholderText(/Start a new Claude Code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new session/i)
     expect(textarea).toBeInTheDocument()
     
     // Find the container div that has the drop handlers
@@ -141,9 +185,13 @@ describe('Homepage Image Upload', () => {
   })
 
   it('should handle drag over events on form container', () => {
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
     
-    const textarea = screen.getByPlaceholderText(/Start a new Claude Code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new session/i)
     const dropContainer = textarea.parentElement
     
     // Create mock dragover event with preventDefault spy
@@ -161,9 +209,13 @@ describe('Homepage Image Upload', () => {
   })
 
   it('should handle drag leave events on form container', () => {
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
     
-    const textarea = screen.getByPlaceholderText(/Start a new Claude Code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new session/i)
     const dropContainer = textarea.parentElement
     
     // Create mock drag events
@@ -189,9 +241,13 @@ describe('Homepage Image Upload', () => {
   })
 
   it('should remove image when X button is clicked', async () => {
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
     
-    const textarea = screen.getByPlaceholderText(/Start a new Claude Code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new session/i)
     const dropContainer = textarea.parentElement
     
     // Drop an image
@@ -243,10 +299,14 @@ describe('Homepage Image Upload', () => {
     })
   })
 
-  it('should include hidden image paths in form submission', async () => {
-    render(<Home />)
+  it('should correctly handle multiple uploaded images', async () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
     
-    const textarea = screen.getByPlaceholderText(/Start a new Claude Code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new session/i)
     
     // Create mock image files
     const mockImages = [
@@ -278,37 +338,31 @@ describe('Homepage Image Upload', () => {
       dataTransfer: dataTransfer as any
     })
     
-    // Wait for previews
+    // Wait for previews and verify both images are shown
     await waitFor(() => {
       expect(screen.getByRole('region', { name: /image previews/i })).toBeInTheDocument()
     })
     
-    // Check for hidden inputs with image data by querying the DOM
-    const form = document.querySelector('form')
-    expect(form).toBeInTheDocument()
+    // Verify that both image names are displayed
+    expect(screen.getByText('test1.jpg')).toBeInTheDocument()
+    expect(screen.getByText('test2.png')).toBeInTheDocument()
     
-    if (!form) {
-      throw new Error('Form not found')
-    }
-    const hiddenInputs = Array.from(form.querySelectorAll('input[type="hidden"][name^="image-data-"]'))
-    const nameInputs = Array.from(form.querySelectorAll('input[type="hidden"][name^="image-name-"]'))
+    // Verify that both images are rendered
+    const images = screen.getAllByRole('img')
+    expect(images).toHaveLength(2)
     
-    // In StrictMode, there might be duplicates, so check for unique input names
-    const dataInputNames = hiddenInputs.map(input => input.getAttribute('name'))
-    const nameInputNames = nameInputs.map(input => input.getAttribute('name'))
-    
-    // Since StrictMode causes duplicate renders, we might have duplicate inputs
-    // Just verify that we have the expected input names somewhere in the array
-    expect(dataInputNames).toContain('image-data-0')
-    expect(dataInputNames).toContain('image-data-1')
-    expect(nameInputNames).toContain('image-name-0')
-    expect(nameInputNames).toContain('image-name-1')
+    // The images are stored in component state and will be included
+    // in form submission programmatically (not as hidden inputs)
   })
 
   it('should only accept image files', async () => {
-    render(<Home />)
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Home />
+      </QueryClientProvider>
+    )
     
-    const textarea = screen.getByPlaceholderText(/Start a new Claude Code session/i)
+    const textarea = screen.getByPlaceholderText(/start a new session/i)
     const dropContainer = textarea.parentElement
     
     // Drop mixed file types

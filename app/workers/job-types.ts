@@ -5,7 +5,8 @@ export const JOB_TYPES = {
   SESSION_RUNNER: 'session-runner',
   MAINTENANCE: 'maintenance', 
   DATABASE_VACUUM: 'database-vacuum',
-  DATABASE_BACKUP: 'database-backup'
+  DATABASE_BACKUP: 'database-backup',
+  CONTEXT_SUMMARIZATION: 'context-summarization'
 } as const
 
 export type JobType = typeof JOB_TYPES[keyof typeof JOB_TYPES]
@@ -32,6 +33,12 @@ export type DatabaseVacuumJobData = Record<string, never> // Empty object
 
 export type DatabaseBackupJobData = {
   backupPath: string
+}
+
+export type ContextSummarizationJobData = {
+  sessionId: string
+  userId?: string
+  claudeSessionId?: string
 }
 
 // Job Creation Input Types
@@ -71,6 +78,14 @@ export function createDatabaseBackupJob(data: DatabaseBackupJobData): JobInput {
     type: JOB_TYPES.DATABASE_BACKUP,
     data,
     priority: 2 // Low priority
+  }
+}
+
+export function createContextSummarizationJob(data: ContextSummarizationJobData): JobInput {
+  return {
+    type: JOB_TYPES.CONTEXT_SUMMARIZATION,
+    data,
+    priority: 9 // Very high priority - user is blocked
   }
 }
 
