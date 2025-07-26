@@ -77,9 +77,6 @@ export function createEventFromMessage({
     // Check if this is a system event with a subtype we want to show
     if (message.type === 'system' && 'subtype' in message) {
       const visibleSubtypes = [
-        'context_limit_reached',
-        'summarizing_context', 
-        'context_summary',
         'error'
       ]
       if (!visibleSubtypes.includes(message.subtype as string)) {

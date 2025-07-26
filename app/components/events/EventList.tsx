@@ -125,7 +125,7 @@ export const EventList = memo(function EventList({
   }, [displayEvents]);
   
   return (
-    <div className="container mx-auto max-w-7xl py-4">
+    <>
       {processedEvents.map((item) => {
         if (item.type === 'contextLimit') {
           return (
@@ -153,6 +153,6 @@ export const EventList = memo(function EventList({
           );
         }
       })}
-    </div>
+    </>
   );
 });

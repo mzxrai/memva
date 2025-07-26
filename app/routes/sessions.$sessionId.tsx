@@ -5,7 +5,7 @@ import { useSessionProcessingState } from "../hooks/useSessionProcessingState";
 import { useEventStore } from "../stores/event-store";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { RiFolder3Line, RiSettings3Line } from "react-icons/ri";
-import { LazyEventRenderer } from "../components/events/LazyEventRenderer";
+import { EventList } from "../components/events/EventList";
 import { FloatingPendingIndicator } from "../components/FloatingPendingIndicator";
 import { getSession, getSessionSettings } from "../db/sessions.service";
 import { useSessionActivity } from "../hooks/useMessageTracking";
@@ -709,19 +709,15 @@ export default function SessionDetail() {
           </div>
         ) : (
           <div className="container mx-auto max-w-7xl py-4">
-            {displayEvents.map((event) => (
-              <LazyEventRenderer
-                key={event.uuid}
-                event={event}
-                toolResults={toolResults}
-                permissions={permissionsByToolId}
-                onApprovePermission={processingState.approvePermission}
-                onDenyPermission={processingState.denyPermission}
-                onApprovePermissionWithSettings={approveWithSettings}
-                isProcessingPermission={processingState.isProcessingPermission}
-                isStreaming={false}
-              />
-            ))}
+            <EventList
+              displayEvents={displayEvents}
+              toolResults={toolResults}
+              permissionsByToolId={permissionsByToolId}
+              onApprovePermission={processingState.approvePermission}
+              onDenyPermission={processingState.denyPermission}
+              onApprovePermissionWithSettings={approveWithSettings}
+              isProcessingPermission={processingState.isProcessingPermission}
+            />
           </div>
         )}
       </div>
