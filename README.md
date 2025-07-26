@@ -25,9 +25,13 @@ This starts the web server on port 7823 and opens Memva in your browser. You're 
 
 - Node.js 18+
 
+## Tested Platforms
+
+- macOS 15.5
+
 ## Data Storage
 
-- Database: `~/.memva/memva-prod.db`
+- Database: `~/.memva/memva-prod.db` (SQLite)
 - Images: `~/.memva/tmp/`
 
 ## License
