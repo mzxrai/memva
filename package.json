@@ -24,7 +24,8 @@
     "public/**/*",
     "cli.js",
     "package.json",
-    "README.md"
+    "README.md",
+    "screenshot.png"
   ],
   "scripts": {
     "prepublishOnly": "npm run build",
