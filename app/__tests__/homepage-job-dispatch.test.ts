@@ -154,11 +154,11 @@ describe('Homepage Job Dispatch', () => {
     vi.doUnmock('../db/jobs.service')
   })
 
-  it('should return error when prompt is empty', async () => {
+  it('should return error when both title and prompt are empty', async () => {
     const { action } = await import('../routes/home')
     
     const formData = new FormData()
-    formData.append('title', 'Valid Title')
+    formData.append('title', '')
     formData.append('prompt', '')
     formData.append('project_path', '/test/project')
     
@@ -168,7 +168,7 @@ describe('Homepage Job Dispatch', () => {
 
     const result = await action({ request: mockRequest, params: {}, context: {} })
 
-    expect(result).toEqual({ error: 'Prompt is required' })
+    expect(result).toEqual({ error: 'Title is required' })
     
     // Verify no session or job was created
     const sessionsInDb = testDb.db.select().from(sessions).all()

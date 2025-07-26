@@ -52,6 +52,12 @@ vi.mock('react-router', () => ({
       {children}
     </a>
   ),
+  useNavigate: vi.fn(() => vi.fn()),
+  useFetcher: vi.fn(() => ({
+    submit: vi.fn(),
+    state: 'idle',
+    data: null
+  })),
   redirect: vi.fn()
 }))
 
