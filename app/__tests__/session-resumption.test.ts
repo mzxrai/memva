@@ -28,22 +28,23 @@ vi.mock('../services/claude-cli.server', () => ({
     
     const messages = [
       {
-        type: 'system',
+        type: 'system' as const,
+        subtype: 'error' as const,
         content: 'Starting...',
         session_id: sessionId
       },
       {
-        type: 'user',
+        type: 'user' as const,
         content: 'User message',
         session_id: sessionId
       },
       {
-        type: 'assistant',
+        type: 'assistant' as const,
         content: 'Assistant response',
         session_id: sessionId
       },
       {
-        type: 'result',
+        type: 'result' as const,
         content: 'Complete',
         session_id: sessionId
       }

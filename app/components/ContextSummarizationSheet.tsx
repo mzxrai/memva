@@ -7,13 +7,6 @@ import { useEventStore } from '../stores/event-store'
 interface ContextSummarizationSheetProps {
   isVisible: boolean
   onMinimize?: () => void
-  onCancel?: () => void
-}
-
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
 }
 
 function getStatusMessage(elapsedSeconds: number): string {
@@ -25,17 +18,16 @@ function getStatusMessage(elapsedSeconds: number): string {
   return 'Almost complete...'
 }
 
+
 export function ContextSummarizationSheet({ 
   isVisible, 
-  onMinimize,
-  onCancel 
+  onMinimize
 }: ContextSummarizationSheetProps) {
   const [elapsedTime, setElapsedTime] = useState(0)
   const [isMinimized, setIsMinimized] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
-  const intervalRef = useRef<ReturnType<typeof setInterval>>()
-  const startTimeRef = useRef<number>()
-  const successTimeoutRef = useRef<ReturnType<typeof setTimeout>>()
+  const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined)
+  const startTimeRef = useRef<number | undefined>(undefined)
   
   // Check if summarization completed
   const isSummarizationComplete = useEventStore(state => {
@@ -55,10 +47,6 @@ export function ContextSummarizationSheet({
   useEffect(() => {
     if (isVisible && isSummarizationComplete && !showSuccess) {
       setShowSuccess(true)
-      // Hide success after 2 seconds
-      successTimeoutRef.current = setTimeout(() => {
-        setShowSuccess(false)
-      }, 2000)
     }
   }, [isVisible, isSummarizationComplete, showSuccess])
 
@@ -93,9 +81,6 @@ export function ContextSummarizationSheet({
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
-      }
-      if (successTimeoutRef.current) {
-        clearTimeout(successTimeoutRef.current)
       }
     }
   }, [isVisible, showSuccess, elapsedTime])
@@ -142,7 +127,7 @@ export function ContextSummarizationSheet({
             className="pointer-events-auto w-full group"
             aria-label="Expand summarization progress"
           >
-            <div className="bg-zinc-900/95 backdrop-blur-xl border-t border-zinc-800 rounded-t-lg shadow-2xl">
+            <div className="bg-zinc-950 border border-zinc-800 rounded-lg shadow-lg">
               <div className="h-1 bg-zinc-800 overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-amber-500/0 via-amber-500 to-amber-500/0 w-1/3 animate-shimmer" />
               </div>
@@ -150,7 +135,7 @@ export function ContextSummarizationSheet({
                 <div className="flex items-center gap-2">
                   <RiLoader4Line className="w-3 h-3 text-amber-500 animate-spin" />
                   <span className={clsx(typography.size.xs, 'text-zinc-400')}>
-                    Creating summary... {formatTime(elapsedTime)}
+                    Creating summary...
                   </span>
                 </div>
                 <RiArrowDownSLine className="w-4 h-4 text-zinc-500 rotate-180" />
@@ -167,7 +152,7 @@ export function ContextSummarizationSheet({
     <div className="fixed bottom-0 left-0 right-0 pb-44 z-40 pointer-events-none animate-in slide-in-from-bottom-10 duration-300">
       <div className="container mx-auto max-w-7xl px-4">
         <div className="pointer-events-auto">
-          <div className="bg-zinc-900/95 backdrop-blur-xl border border-zinc-800/50 rounded-2xl shadow-2xl">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-xl shadow-lg">
             {/* Header */}
             <div className="px-5 py-4 border-b border-zinc-800/50">
               <div className="flex items-center justify-between">
@@ -204,14 +189,6 @@ export function ContextSummarizationSheet({
 
                 {/* Progress visualization */}
                 <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className={clsx(typography.size.xs, 'text-zinc-500')}>
-                      Processing
-                    </span>
-                    <span className={clsx(typography.size.xs, typography.font.mono, 'text-zinc-400')}>
-                      {formatTime(elapsedTime)}
-                    </span>
-                  </div>
                   
                   {/* Animated progress bar */}
                   <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
@@ -220,22 +197,13 @@ export function ContextSummarizationSheet({
                 </div>
 
                 {/* Additional info */}
-                <div className="pt-2 flex items-center justify-between">
-                  <p className={clsx(typography.size.xs, 'text-zinc-600')}>
-                    Your conversation exceeded Claude's context limit
+                <div className="pt-2 space-y-2">
+                  <p className={clsx(typography.size.xs, 'text-zinc-500')}>
+                    Your conversation exceeded Claude's context limit.
                   </p>
-                  {onCancel && (
-                    <button
-                      onClick={onCancel}
-                      className={clsx(
-                        typography.size.xs,
-                        'text-zinc-500 hover:text-zinc-400 transition-colors',
-                        'px-2 py-1 rounded hover:bg-zinc-800/50'
-                      )}
-                    >
-                      Cancel
-                    </button>
-                  )}
+                  <p className={clsx(typography.size.xs, 'text-zinc-500')}>
+                    Once summarization is complete, we'll automatically continue the conversation here.
+                  </p>
                 </div>
               </div>
             </div>

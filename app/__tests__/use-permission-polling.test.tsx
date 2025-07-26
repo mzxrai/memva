@@ -11,7 +11,6 @@ setupDatabaseMocks(vi)
 // Import MSW server for HTTP mocking
 import { server } from '../test-utils/msw-server'
 import { http, HttpResponse } from 'msw'
-import usePermissionPolling from '../hooks/usePermissionPolling'
 
 describe('usePermissionPolling', () => {
   let testDb: TestDatabase

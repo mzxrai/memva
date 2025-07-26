@@ -35,7 +35,7 @@ export async function groupEventsBySession(events: Event[]): Promise<Record<stri
 }
 
 // Claude Code integration functions
-type ExtendedMessage = SDKMessage | {
+export type ExtendedMessage = SDKMessage | {
   type: 'user_cancelled'
   content: string
   session_id: string
@@ -49,6 +49,14 @@ type ExtendedMessage = SDKMessage | {
   content: string
   session_id?: string
   metadata?: Record<string, unknown>
+} | {
+  type: 'assistant'
+  content: string | Record<string, unknown>
+  session_id: string
+} | {
+  type: 'result'
+  content: string
+  session_id: string
 }
 
 interface CreateEventOptions {
@@ -77,6 +85,9 @@ export function createEventFromMessage({
     // Check if this is a system event with a subtype we want to show
     if (message.type === 'system' && 'subtype' in message) {
       const visibleSubtypes = [
+        'context_limit_reached',
+        'summarizing_context',
+        'context_summary',
         'error'
       ]
       if (!visibleSubtypes.includes(message.subtype as string)) {

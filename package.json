@@ -16,7 +16,7 @@
     "development-tools"
   ],
   "author": "Premva Inc. <chiefnerd@premva.com>",
-  "license": "SEE LICENSE IN LICENSE.txt",
+  "license": "MIT",
   "private": false,
   "files": [
     "build/**/*",
@@ -24,8 +24,7 @@
     "public/**/*",
     "cli.js",
     "package.json",
-    "README.md",
-    "LICENSE.txt"
+    "README.md"
   ],
   "scripts": {
     "prepublishOnly": "npm run build",

@@ -25,17 +25,17 @@ vi.mock('../services/claude-cli.server', () => ({
     
     // Always start with user message
     messages.push({ 
-      type: 'user', 
+      type: 'user' as const, 
       content: prompt,
       session_id: 'mock-session-id'
     })
     
-    messages.push({ type: 'system', content: 'Session started', session_id: 'mock-session-id' })
+    messages.push({ type: 'system' as const, subtype: 'error' as const, content: 'Session started', session_id: 'mock-session-id' })
     
     // Different assistant responses based on prompt
     if (prompt.includes('tool')) {
       messages.push({
-        type: 'assistant',
+        type: 'assistant' as const,
         content: {
           role: 'assistant',
           content: [{
@@ -48,7 +48,7 @@ vi.mock('../services/claude-cli.server', () => ({
         session_id: 'mock-session-id'
       })
       messages.push({
-        type: 'user',
+        type: 'user' as const,
         content: {
           role: 'user', 
           content: [{
@@ -61,7 +61,7 @@ vi.mock('../services/claude-cli.server', () => ({
       })
     } else if (prompt.includes('thinking')) {
       messages.push({
-        type: 'assistant',
+        type: 'assistant' as const,
         content: {
           role: 'assistant',
           content: [{
@@ -75,7 +75,7 @@ vi.mock('../services/claude-cli.server', () => ({
     
     // Always end with assistant response
     messages.push({
-      type: 'assistant',
+      type: 'assistant' as const,
       content: {
         role: 'assistant',
         content: [{
@@ -86,7 +86,7 @@ vi.mock('../services/claude-cli.server', () => ({
       session_id: 'mock-session-id'
     })
     
-    messages.push({ type: 'result', content: 'Complete', session_id: 'mock-session-id' })
+    messages.push({ type: 'result' as const, content: 'Complete', session_id: 'mock-session-id' })
     
     // Process all messages
     let lastEventUuid = initialParentUuid || null

@@ -1,5 +1,5 @@
 import type { Route } from "./+types/home";
-import { Form, redirect, Link, useNavigate, useFetcher } from "react-router";
+import { redirect, Link, useFetcher } from "react-router";
 import { createSession } from "../db/sessions.service";
 import { RiSettings3Line } from "react-icons/ri";
 import DirectorySelector from "../components/DirectorySelector";
@@ -166,7 +166,6 @@ function shortenPath(path: string, homedir?: string): string {
 
 export default function Home() {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const fetcher = useFetcher();
   const { sessions, isLoading, archivedCount } = useHomepageData();
   const [sessionTitle, setSessionTitle] = useState("");

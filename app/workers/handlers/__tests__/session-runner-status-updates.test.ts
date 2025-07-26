@@ -19,10 +19,10 @@ vi.mock('../../../services/claude-cli.server', () => ({
     
     // Simulate successful Claude Code messages
     const messages = [
-      { type: 'system', content: 'Session started', session_id: 'mock-session-id' },
-      { type: 'user', content: 'User message', session_id: 'mock-session-id' },
-      { type: 'assistant', content: 'Assistant response', session_id: 'mock-session-id' },
-      { type: 'result', content: '', session_id: 'mock-session-id' }
+      { type: 'system' as const, subtype: 'error' as const, content: 'Session started', session_id: 'mock-session-id' },
+      { type: 'user' as const, content: 'User message', session_id: 'mock-session-id' },
+      { type: 'assistant' as const, content: 'Assistant response', session_id: 'mock-session-id' },
+      { type: 'result' as const, content: '', session_id: 'mock-session-id' }
     ]
     
     let lastEventUuid = initialParentUuid || null

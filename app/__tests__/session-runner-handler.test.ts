@@ -27,10 +27,10 @@ vi.mock('../services/claude-cli.server', () => ({
       throw new Error('Invalid prompt: prompt cannot be empty')
     }
     
-    messages.push({ type: 'system', content: 'Session started', session_id: 'mock-session-id' })
-    messages.push({ type: 'user', content: prompt, session_id: 'mock-session-id' })
-    messages.push({ type: 'assistant', content: 'Mock response', session_id: 'mock-session-id' })
-    messages.push({ type: 'result', content: '', session_id: 'mock-session-id' })
+    messages.push({ type: 'system' as const, subtype: 'error' as const, content: 'Session started', session_id: 'mock-session-id' })
+    messages.push({ type: 'user' as const, content: prompt, session_id: 'mock-session-id' })
+    messages.push({ type: 'assistant' as const, content: 'Mock response', session_id: 'mock-session-id' })
+    messages.push({ type: 'result' as const, content: '', session_id: 'mock-session-id' })
     
     let lastEventUuid = initialParentUuid || null
     

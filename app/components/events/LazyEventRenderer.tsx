@@ -59,6 +59,17 @@ export function LazyEventRenderer(props: LazyEventRendererProps) {
   const [hasBeenVisible, setHasBeenVisible] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   
+  // Check if this is a context-related system event that shouldn't render
+  if (props.event.event_type === 'system' && props.event.data) {
+    const data = props.event.data as { subtype?: string };
+    if (data.subtype === 'prompt_too_long' || 
+        data.subtype === 'context_limit_reached' || 
+        data.subtype === 'summarizing_context' || 
+        data.subtype === 'context_summary') {
+      return null;
+    }
+  }
+  
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -88,7 +99,6 @@ export function LazyEventRenderer(props: LazyEventRendererProps) {
     <div 
       ref={containerRef}
       className="message-container"
-      // Minimum height to prevent layout shift
       style={{ minHeight: '60px' }}
     >
       {hasBeenVisible ? (

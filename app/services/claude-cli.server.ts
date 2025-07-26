@@ -235,8 +235,9 @@ export async function streamClaudeCliResponse({
 
           // Update the Claude session ID in the database
           if (memvaSessionId && lastSessionId && lastSessionId !== resumeSessionId) {
+            const sessionIdToUpdate = lastSessionId
             import('../db/sessions.service').then(({ updateClaudeSessionId }) => {
-              updateClaudeSessionId(memvaSessionId, lastSessionId!)
+              updateClaudeSessionId(memvaSessionId, sessionIdToUpdate)
             })
             resumeSessionId = lastSessionId
           }
@@ -244,7 +245,7 @@ export async function streamClaudeCliResponse({
 
         // ONLY check result messages with is_error=true to avoid false positives
         // (e.g. user asking Claude about handling "prompt is too long" errors!)
-        if (message.type === 'result' && message.is_error === true && message.result) {
+        if (message.type === 'result' && message.is_error === true && 'result' in message && message.result) {
           const resultText = typeof message.result === 'string' ? message.result : ''
           if (resultText.toLowerCase().includes('too long') || 
               resultText.toLowerCase().includes('context') ||
@@ -332,7 +333,12 @@ export async function streamClaudeCliResponse({
 
     // Wait for process to complete
     await new Promise<void>((resolve, reject) => {
-      childProcess!.on('close', (code) => {
+      if (!childProcess) {
+        reject(new Error('Child process not initialized'))
+        return
+      }
+      
+      childProcess.on('close', (code) => {
         // Check if we detected a context limit error FIRST
         if (contextLimitError) {
           reject(contextLimitError)
@@ -349,7 +355,7 @@ export async function streamClaudeCliResponse({
         }
       })
 
-      childProcess!.on('error', (error) => {
+      childProcess.on('error', (error) => {
         // Check context limit error here too
         if (contextLimitError) {
           reject(contextLimitError)

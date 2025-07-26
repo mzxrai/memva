@@ -41,7 +41,7 @@ vi.mock('../hooks/useAutoResizeTextarea', () => ({
 }))
 
 vi.mock('../hooks/useTextareaSubmit', () => ({
-  useTextareaSubmit: vi.fn((value, onSubmit) => vi.fn())
+  useTextareaSubmit: vi.fn(() => vi.fn())
 }))
 
 vi.mock('../hooks/useImageUpload', () => ({

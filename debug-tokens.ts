@@ -88,7 +88,10 @@ async function debugTokens(sessionId: string) {
     if (!eventsBySession.has(sessionId)) {
       eventsBySession.set(sessionId, [])
     }
-    eventsBySession.get(sessionId)!.push(event)
+    const sessionEvents = eventsBySession.get(sessionId)
+    if (sessionEvents) {
+      sessionEvents.push(event)
+    }
   }
   
   console.log('=== LAST EVENT PER CLAUDE SESSION ===\n')
