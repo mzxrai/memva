@@ -234,16 +234,29 @@ export async function expirePermissionsAfterUserMessage(sessionId: string, messa
 
 // Mark all pending permissions as expired (for graceful shutdown)
 export async function expireAllPendingPermissions(): Promise<void> {
-  const result = await db.update(permissionRequests)
-    .set({ 
-      status: PermissionStatus.EXPIRED,
-      decided_at: new Date().toISOString()
-    })
-    .where(eq(permissionRequests.status, PermissionStatus.PENDING))
-    .run()
+  console.log('🔒 Expiring all pending permissions...');
   
-  if (result.changes > 0) {
-    console.debug(`Expired ${result.changes} pending permission requests`)
+  try {
+    const pendingPermissions = db
+      .select()
+      .from(permissionRequests)
+      .where(eq(permissionRequests.status, PermissionStatus.PENDING))
+      .all();
+    
+    console.log(`Found ${pendingPermissions.length} pending permissions to expire`);
+    
+    const result = db.update(permissionRequests)
+      .set({ 
+        status: PermissionStatus.EXPIRED,
+        decided_at: new Date().toISOString()
+      })
+      .where(eq(permissionRequests.status, PermissionStatus.PENDING))
+      .run();
+    
+    console.log(`✅ Expired ${result.changes} pending permission requests`);
+  } catch (error) {
+    console.error('❌ Failed to expire permissions:', error);
+    throw error;
   }
 }
 

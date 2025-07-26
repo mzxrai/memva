@@ -59,8 +59,17 @@ export async function action({ request, params }: Route.ActionArgs) {
       )
     }
 
+    // Check how many pending permissions exist BEFORE updating this one
+    const pendingPermissionsBefore = await getPermissionRequests({ 
+      session_id: permission.session_id, 
+      status: 'pending' 
+    })
+    
     // Update the permission
     const updated = await updatePermissionDecision(id, { decision })
+    
+    // Calculate remaining permissions (subtract 1 from the count before update)
+    const remainingPermissionsCount = pendingPermissionsBefore.length - 1
     
     // If permission was denied, handle the denial
     if (decision === 'deny') {
@@ -106,8 +115,17 @@ export async function action({ request, params }: Route.ActionArgs) {
       // We can schedule a delayed cancellation to ensure cleanup
       const activeJob = await getActiveJobForSession(permission.session_id)
       
-      if (activeJob) {
-        // Schedule cancellation after a delay to allow Claude to process the denial
+      // If there are no remaining pending permissions and we denied this one,
+      // we should update the status immediately
+      if (remainingPermissionsCount === 0) {
+        if (activeJob) {
+          // Cancel the job immediately since all permissions are handled
+          await cancelJob(activeJob.id)
+        }
+        // Update session status to completed since no more permissions are pending
+        await updateSessionClaudeStatus(permission.session_id, 'completed')
+      } else if (activeJob) {
+        // There are still pending permissions, so just schedule a delayed cleanup
         setTimeout(async () => {
           try {
             const currentJob = await getJob(activeJob.id)

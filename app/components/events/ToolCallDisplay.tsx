@@ -527,13 +527,14 @@ export const ToolCallDisplay = memo(({
         />
       )}
       
-      {/* Edit/MultiEdit tool result section */}
+      {/* Edit/MultiEdit tool preview/result section - show when permission pending OR result available */}
       {(toolCall.name === 'Edit' || toolCall.name === 'MultiEdit') && (
         <EditToolDisplay 
           toolCall={toolCall}
           hasResult={hasResult}
           result={result}
           lineInfo={lineInfo}
+          showPreview={!!permission}
         />
       )}
       

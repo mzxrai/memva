@@ -1,7 +1,9 @@
 import { renderHook, act } from '@testing-library/react'
 import { vi } from 'vitest'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+import type { ReactNode } from 'react'
 
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
@@ -9,14 +11,27 @@ setupDatabaseMocks(vi)
 // Import MSW server for HTTP mocking
 import { server } from '../test-utils/msw-server'
 import { http, HttpResponse } from 'msw'
+import usePermissionPolling from '../hooks/usePermissionPolling'
 
 describe('usePermissionPolling', () => {
   let testDb: TestDatabase
+  let queryClient: QueryClient
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  )
 
   beforeEach(() => {
     vi.useFakeTimers()
     testDb = setupInMemoryDb()
     setTestDatabase(testDb)
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, gcTime: 0 },
+      },
+    })
     
     // Override MSW handler to return permissions from test database
     server.use(
@@ -111,7 +126,7 @@ describe('usePermissionPolling', () => {
       input: { file_path: '/test.txt', content: 'test' }
     })
 
-    const { result } = renderHook(() => usePermissionPolling())
+    const { result } = renderHook(() => usePermissionPolling(), { wrapper })
 
     // Wait for initial fetch to complete
     await act(async () => {
@@ -129,7 +144,7 @@ describe('usePermissionPolling', () => {
     
     const session = testDb.createSession({ title: 'Test Session', project_path: '/test' })
 
-    const { result } = renderHook(() => usePermissionPolling({ pollingInterval: 1000 }))
+    const { result } = renderHook(() => usePermissionPolling({ pollingInterval: 1000 }), { wrapper })
 
     // Wait for initial load
     await act(async () => {
@@ -171,7 +186,7 @@ describe('usePermissionPolling', () => {
       input: { command: 'ls' }
     })
 
-    const { result } = renderHook(() => usePermissionPolling())
+    const { result } = renderHook(() => usePermissionPolling(), { wrapper })
 
     // Wait for initial fetch
     await act(async () => {
@@ -216,7 +231,7 @@ describe('usePermissionPolling', () => {
       input: { file_path: '/test.txt', content: 'test' }
     })
 
-    const { result } = renderHook(() => usePermissionPolling())
+    const { result } = renderHook(() => usePermissionPolling(), { wrapper })
 
     // Wait for initial fetch
     await act(async () => {
@@ -275,7 +290,7 @@ describe('usePermissionPolling', () => {
       input: { file_path: '/test.txt' }
     })
 
-    const { result } = renderHook(() => usePermissionPolling())
+    const { result } = renderHook(() => usePermissionPolling(), { wrapper })
 
     // Wait for initial fetch
     await act(async () => {
@@ -295,7 +310,8 @@ describe('usePermissionPolling', () => {
     const { result, rerender } = renderHook(
       ({ enabled }) => usePermissionPolling({ enabled, pollingInterval: 1000 }), 
       { 
-        initialProps: { enabled: true }
+        initialProps: { enabled: true },
+        wrapper
       }
     )
 
@@ -330,7 +346,7 @@ describe('usePermissionPolling', () => {
   it('should show loading state during initial fetch', async () => {
     const { default: usePermissionPolling } = await import('../hooks/usePermissionPolling')
 
-    const { result } = renderHook(() => usePermissionPolling())
+    const { result } = renderHook(() => usePermissionPolling(), { wrapper })
 
     // Should start in loading state
     expect(result.current.isLoading).toBe(true)
@@ -350,7 +366,7 @@ describe('usePermissionPolling', () => {
     
     const session = testDb.createSession({ title: 'Test Session', project_path: '/test' })
 
-    const { result } = renderHook(() => usePermissionPolling())
+    const { result } = renderHook(() => usePermissionPolling(), { wrapper })
 
     // Wait for initial load
     await act(async () => {

@@ -1,5 +1,6 @@
 import { JobWorker, type JobWorkerConfig } from './job-worker'
 import { sessionRunnerHandler } from './handlers/session-runner.handler'
+import { contextSummarizationHandler } from './handlers/context-summarization.handler'
 
 export class JobSystem {
   private jobWorker: JobWorker
@@ -16,6 +17,7 @@ export class JobSystem {
     
     // Auto-register default handlers
     this.jobWorker.registerHandler('session-runner', sessionRunnerHandler)
+    this.jobWorker.registerHandler('context-summarization', contextSummarizationHandler)
   }
   
   get isRunning(): boolean {

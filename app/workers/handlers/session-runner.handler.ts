@@ -1,11 +1,11 @@
 import type { JobHandler } from '../job-worker'
-import { streamClaudeCodeResponse } from '../../services/claude-code.server'
+import { streamClaudeCliResponse, ContextLimitError } from '../../services/claude-cli.server'
 import { getSession, updateSessionClaudeStatus, getLatestClaudeSessionId, getSessionSettings } from '../../db/sessions.service'
 import { getJob } from '../../db/jobs.service'
 import { createEventFromMessage, storeEvent } from '../../db/events.service'
 import { getEventsForSession, findAssistantEventWithToolUseId } from '../../db/event-session.service'
 import { createJob } from '../../db/jobs.service'
-import { createSessionRunnerJob } from '../job-types'
+import { createSessionRunnerJob, createContextSummarizationJob } from '../job-types'
 import type { SessionRunnerJobData } from '../job-types'
 
 // Constants
@@ -82,7 +82,7 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
     
     // Execute Claude Code SDK interaction
     try {
-      await streamClaudeCodeResponse({
+      await streamClaudeCliResponse({
         prompt,
         projectPath: session.project_path,
         memvaSessionId: sessionId,
@@ -101,7 +101,7 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
         onStoredEvent: async (event) => {
           // Handle permission mode transition
           if (await handlePermissionTransition({
-            event,
+            event: event as Record<string, unknown>,
             sessionId,
             projectPath: session.project_path,
             transitionState,
@@ -114,7 +114,7 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
           
           // Handle exit plan mode transition
           await handleExitPlanTransition({
-            event,
+            event: event as Record<string, unknown>,
             sessionId,
             projectPath: session.project_path,
             abortController,
@@ -132,6 +132,59 @@ export const sessionRunnerHandler: JobHandler = async (job: unknown, callback) =
       })
       
     } catch (sdkError) {
+      // Check if it's a context limit error
+      if (sdkError instanceof ContextLimitError) {
+        console.log('[Session Runner] Context limit detected:', sdkError.message)
+        
+        // Check if we have any conversation history to summarize
+        const events = await getEventsForSession(sessionId)
+        
+        // Always try to summarize if we have ANY content!
+        // Even a single massive user message can be compressed
+        console.log(`[Session Runner] Found ${events.length} events to potentially summarize`)
+        
+        // We have history - proceed with auto-summary!
+        console.log('[Session Runner] Context limit with history, triggering auto-summary flow')
+        
+        // Store a system event to show context limit was hit
+        const contextLimitEvent = createEventFromMessage({
+          message: {
+            type: 'system',
+            subtype: 'context_limit_reached',
+            content: 'Context limit reached',
+            session_id: resumeSessionId || ''
+          },
+          memvaSessionId: sessionId,
+          projectPath: session.project_path,
+          parentUuid: initialParentUuid,
+          visible: true
+        })
+        await storeEvent(contextLimitEvent)
+        
+        // Create a summarization job
+        const summarizationJob = createContextSummarizationJob({
+          sessionId,
+          userId,
+          claudeSessionId: resumeSessionId
+        })
+        
+        console.log('[Session Runner] Creating summarization job:', summarizationJob)
+        
+        await createJob(summarizationJob)
+        
+        console.log('[Session Runner] Summarization job created successfully')
+        
+        // Mark this job as completed (context limit handled)
+        callback(null, {
+          success: true,
+          sessionId,
+          contextLimitReached: true,
+          summarizationTriggered: true
+        })
+        return
+      }
+      
+      // Handle other errors normally
       await handleJobError({
         error: sdkError as Error,
         jobId: jobData.id,

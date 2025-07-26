@@ -1,5 +1,5 @@
 import { vi } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
+import { renderHook, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
@@ -168,7 +168,9 @@ describe('Session Processing Permission Optimization', () => {
     )
 
     // Start processing (simulates form submission)
-    result.current.startProcessing()
+    act(() => {
+      result.current.startProcessing()
+    })
 
     // Wait for state to update
     await waitFor(() => {
@@ -213,7 +215,9 @@ describe('Session Processing Permission Optimization', () => {
     )
 
     // Start transition (simulates exit plan mode)
-    result.current.startTransition()
+    act(() => {
+      result.current.startTransition()
+    })
 
     // Wait for state to update
     await waitFor(() => {

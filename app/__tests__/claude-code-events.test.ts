@@ -8,72 +8,113 @@ setupDatabaseMocks(vi)
 import { action } from '../routes/api.claude-code.$sessionId'
 import type { Route } from '../routes/+types/api.claude-code.$sessionId'
 
-// Mock Claude Code SDK to return different event types
-vi.mock('@anthropic-ai/claude-code', () => ({
-  query: vi.fn().mockImplementation(({ prompt }: { prompt: string }) => {
-    return (async function* () {
-      yield { 
-        type: 'user', 
-        content: prompt,
-        session_id: 'mock-session-id'
-      }
-      yield { type: 'system', content: 'Session started', session_id: 'mock-session-id' }
-      
-      // Different assistant responses based on prompt
-      if (prompt.includes('tool')) {
-        yield {
-          type: 'assistant',
-          content: {
-            role: 'assistant',
-            content: [{
-              type: 'tool_use',
-              id: 'tool_123',
-              name: 'Read',
-              input: { file_path: '/test.ts' }
-            }]
-          },
-          session_id: 'mock-session-id'
-        }
-        yield {
-          type: 'user',
-          content: {
-            role: 'user', 
-            content: [{
-              type: 'tool_result',
-              tool_use_id: 'tool_123',
-              content: 'File content here'
-            }]
-          },
-          session_id: 'mock-session-id'
-        }
-      } else if (prompt.includes('thinking')) {
-        yield {
-          type: 'assistant',
-          content: {
-            role: 'assistant',
-            content: [{
-              type: 'thinking',
-              text: 'Let me think about this...'
-            }]
-          },
-          session_id: 'mock-session-id'
-        }
-      }
-      
-      yield {
+// Mock claude-cli.server to simulate different event types
+vi.mock('../services/claude-cli.server', () => ({
+  streamClaudeCliResponse: vi.fn().mockImplementation(async ({ 
+    prompt,
+    onMessage, 
+    onStoredEvent,
+    memvaSessionId,
+    projectPath,
+    initialParentUuid
+  }) => {
+    const { createEventFromMessage, storeEvent } = await import('../db/events.service')
+    
+    // Generate events based on prompt content
+    const messages = []
+    
+    // Always start with user message
+    messages.push({ 
+      type: 'user', 
+      content: prompt,
+      session_id: 'mock-session-id'
+    })
+    
+    messages.push({ type: 'system', content: 'Session started', session_id: 'mock-session-id' })
+    
+    // Different assistant responses based on prompt
+    if (prompt.includes('tool')) {
+      messages.push({
         type: 'assistant',
         content: {
           role: 'assistant',
           content: [{
-            type: 'text',
-            text: 'Response to: ' + prompt
+            type: 'tool_use',
+            id: 'tool_123',
+            name: 'Read',
+            input: { file_path: '/test.ts' }
           }]
         },
         session_id: 'mock-session-id'
-      }
+      })
+      messages.push({
+        type: 'user',
+        content: {
+          role: 'user', 
+          content: [{
+            type: 'tool_result',
+            tool_use_id: 'tool_123',
+            content: 'File content here'
+          }]
+        },
+        session_id: 'mock-session-id'
+      })
+    } else if (prompt.includes('thinking')) {
+      messages.push({
+        type: 'assistant',
+        content: {
+          role: 'assistant',
+          content: [{
+            type: 'thinking',
+            text: 'Let me think about this...'
+          }]
+        },
+        session_id: 'mock-session-id'
+      })
+    }
+    
+    // Always end with assistant response
+    messages.push({
+      type: 'assistant',
+      content: {
+        role: 'assistant',
+        content: [{
+          type: 'text',
+          text: 'Response to: ' + prompt
+        }]
+      },
+      session_id: 'mock-session-id'
+    })
+    
+    messages.push({ type: 'result', content: 'Complete', session_id: 'mock-session-id' })
+    
+    // Process all messages
+    let lastEventUuid = initialParentUuid || null
+    
+    for (const message of messages) {
+      // Call onMessage callback
+      onMessage(message)
       
-      yield { type: 'result', content: 'Complete', session_id: 'mock-session-id' }
-    })()
+      // Store event if memvaSessionId is provided
+      if (memvaSessionId) {
+        const event = createEventFromMessage({
+          message,
+          memvaSessionId,
+          projectPath,
+          parentUuid: lastEventUuid,
+          timestamp: new Date().toISOString()
+        })
+        
+        await storeEvent(event)
+        lastEventUuid = event.uuid
+        
+        if (onStoredEvent) {
+          onStoredEvent(event)
+        }
+      }
+    }
+    
+    return { lastSessionId: 'mock-session-id' }
   })
 }))
 

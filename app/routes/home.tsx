@@ -1,5 +1,5 @@
 import type { Route } from "./+types/home";
-import { Form, redirect, Link } from "react-router";
+import { Form, redirect, Link, useNavigate, useFetcher } from "react-router";
 import { createSession } from "../db/sessions.service";
 import { RiSettings3Line } from "react-icons/ri";
 import DirectorySelector from "../components/DirectorySelector";
@@ -32,7 +32,7 @@ export async function loader() {
 export async function action({ request }: Route.ActionArgs) {
   const formData = await request.formData();
   const title = formData.get('title') as string;
-  const prompt = formData.get('prompt') as string;
+  const prompt = formData.get('prompt') as string || title;
   const projectPath = formData.get('project_path') as string;
   
   if (!title?.trim()) {
@@ -166,6 +166,8 @@ function shortenPath(path: string, homedir?: string): string {
 
 export default function Home() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const fetcher = useFetcher();
   const { sessions, isLoading, archivedCount } = useHomepageData();
   const [sessionTitle, setSessionTitle] = useState("");
   // Don't access localStorage during initial render to prevent hydration errors
@@ -175,10 +177,10 @@ export default function Home() {
   const [isDirectoryLoaded, setIsDirectoryLoaded] = useState(false);
   const [isDirectoryModalOpen, setIsDirectoryModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Use custom hooks for textarea functionality
   const { textareaRef } = useAutoResizeTextarea(sessionTitle, { maxRows: 5 });
-  const handleKeyDown = useTextareaSubmit(sessionTitle);
   
   // Use image upload hook
   const {
@@ -265,12 +267,83 @@ export default function Home() {
     loadDirectory();
   }, []);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    // Always require a prompt for new sessions
-    if (!sessionTitle.trim()) {
-      e.preventDefault();
+  const handleProgrammaticSubmit = async () => {
+    if (!sessionTitle.trim() || isSubmitting) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      // For large prompts, use direct API call to bypass React Router overhead
+      const promptSize = new Blob([sessionTitle]).size;
+      const isLargePrompt = promptSize > 50000; // 50KB threshold
+      
+      if (isLargePrompt) {
+        // Use direct fetch API for large prompts
+        const formData = new FormData();
+        formData.set('title', sessionTitle);
+        formData.set('prompt', sessionTitle);
+        formData.set('project_path', currentDirectory);
+        
+        // Add image data
+        images.forEach((image, index) => {
+          formData.set(`image-data-${index}`, image.preview);
+          formData.set(`image-name-${index}`, image.file.name);
+        });
+        
+        const response = await fetch('/api/sessions', {
+          method: 'POST',
+          body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // Navigate immediately using window.location for instant redirect
+          window.location.href = result.redirectUrl;
+        } else {
+          console.error('Session creation error:', result.error);
+          setIsSubmitting(false);
+        }
+      } else {
+        // Normal flow for smaller prompts using React Router
+        const formData = new FormData();
+        formData.set('title', sessionTitle);
+        formData.set('prompt', sessionTitle);
+        formData.set('project_path', currentDirectory);
+        
+        // Add image data
+        images.forEach((image, index) => {
+          formData.set(`image-data-${index}`, image.preview);
+          formData.set(`image-name-${index}`, image.file.name);
+        });
+        
+        fetcher.submit(formData, { method: 'post' });
+      }
+    } catch (error) {
+      console.error('Session creation error:', error);
+      setIsSubmitting(false);
     }
   };
+  
+  // Effect to handle redirect after successful submission
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data && !fetcher.data.error) {
+      // Action returned successfully, navigate was handled by the action
+      setIsSubmitting(false);
+    } else if (fetcher.state === 'idle' && fetcher.data?.error) {
+      // Handle error
+      setIsSubmitting(false);
+      console.error('Session creation error:', fetcher.data.error);
+    }
+  }, [fetcher.state, fetcher.data]);
+  
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    handleProgrammaticSubmit();
+  };
+  
+  // Define handleKeyDown after handleProgrammaticSubmit is available
+  const handleKeyDown = useTextareaSubmit(sessionTitle, handleProgrammaticSubmit);
 
   const handleDirectorySelect = (directory: string) => {
     setCurrentDirectory(directory);
@@ -325,12 +398,12 @@ export default function Home() {
               </div>
             )}
             
-            <Form 
-            method="post" 
+            <form 
             onSubmit={handleSubmit}
             className={clsx(
               "p-4 bg-zinc-900/50 backdrop-blur-sm border rounded-xl",
-              isDragging ? "border-zinc-500" : "border-zinc-800"
+              isDragging ? "border-zinc-500" : "border-zinc-800",
+              isSubmitting && "opacity-50 pointer-events-none"
             )}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -398,31 +471,13 @@ export default function Home() {
                 autoCapitalize="off"
                 spellCheck="false"
                 autoFocus
+                disabled={isSubmitting}
                 rows={1}
-                className="flex-1 px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem] resize-none leading-normal"
+                className="flex-1 px-4 py-3 bg-zinc-800/50 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:bg-zinc-800/70 transition-all duration-200 font-mono text-[0.9375rem] resize-none leading-normal disabled:opacity-50"
                 style={{ minHeight: '48px', overflowY: 'hidden' }}
               />
             </div>
-            <input type="hidden" name="prompt" value={sessionTitle} />
-            <input type="hidden" name="project_path" value={currentDirectory} />
-            
-            {/* Hidden inputs for image data */}
-            {images.map((image, index) => (
-              <div key={image.id}>
-                <input
-                  type="hidden"
-                  name={`image-data-${index}`}
-                  value={image.preview}
-                  data-testid={`image-data-${index}`}
-                />
-                <input
-                  type="hidden"
-                  name={`image-name-${index}`}
-                  value={image.file.name}
-                />
-              </div>
-            ))}
-          </Form>
+          </form>
           </>
           )}
           </div>

@@ -7,6 +7,7 @@ interface FloatingPendingIndicatorProps {
   startTime?: number | null
   isVisible: boolean
   isTransitioning?: boolean
+  isContextLimit?: boolean
 }
 
 const actionVerbs = [
@@ -48,7 +49,7 @@ function formatElapsedTime(startTime: number): string {
   return `${minutes}m ${seconds}s`
 }
 
-export function FloatingPendingIndicator({ startTime, isVisible, isTransitioning }: FloatingPendingIndicatorProps) {
+export function FloatingPendingIndicator({ startTime, isVisible, isTransitioning, isContextLimit }: FloatingPendingIndicatorProps) {
   const [currentVerb, setCurrentVerb] = useState(() => 
     actionVerbs[Math.floor(Math.random() * actionVerbs.length)]
   )
@@ -105,15 +106,15 @@ export function FloatingPendingIndicator({ startTime, isVisible, isTransitioning
             'flex items-center gap-2',
             'px-2.5 py-1',
             'rounded-md border',
-            isTransitioning ? 'bg-amber-900/30' : 'bg-zinc-800/50',
-            isTransitioning ? 'border-amber-700/50' : 'border-zinc-700/50',
+            isContextLimit ? 'bg-amber-900/30' : isTransitioning ? 'bg-amber-900/30' : 'bg-zinc-800/50',
+            isContextLimit ? 'border-amber-700/50' : isTransitioning ? 'border-amber-700/50' : 'border-zinc-700/50',
             'backdrop-blur-sm',
             'transition-all duration-300 ease-in-out'
           )}>
             {/* Spinner */}
             <div className={clsx(
               "w-2.5 h-2.5 border-2 rounded-full animate-spin",
-              isTransitioning 
+              isContextLimit || isTransitioning 
                 ? "border-amber-600 border-t-amber-400" 
                 : "border-zinc-600 border-t-zinc-400"
             )} />
@@ -122,14 +123,18 @@ export function FloatingPendingIndicator({ startTime, isVisible, isTransitioning
             <span className={clsx(
               'text-[11px]',
               typography.weight.normal,
-              'text-zinc-400',
+              isContextLimit ? 'text-amber-400' : 'text-zinc-400',
               'tracking-wide',
               'animate-pulse',
               'inline-block',
-              isTransitioning ? 'w-60' : 'w-24', // Wider for transition text
+              isContextLimit ? 'w-48' : isTransitioning ? 'w-60' : 'w-24', // Different widths for different states
               'truncate'
             )}>
-              {isTransitioning ? 'Updating current session with new mode' : currentVerb}...
+              {isContextLimit 
+                ? 'Handling context limit...' 
+                : isTransitioning 
+                  ? 'Updating current session with new mode' 
+                  : `${currentVerb}...`}
             </span>
             
             {startTime && (

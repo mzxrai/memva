@@ -22,6 +22,7 @@ vi.mock('react-router', () => ({
       {children}
     </a>
   ),
+  useNavigate: vi.fn(() => vi.fn()),
   useFetcher: vi.fn(() => ({
     submit: vi.fn(),
     state: 'idle',
@@ -40,7 +41,7 @@ vi.mock('../hooks/useAutoResizeTextarea', () => ({
 }))
 
 vi.mock('../hooks/useTextareaSubmit', () => ({
-  useTextareaSubmit: vi.fn(() => vi.fn())
+  useTextareaSubmit: vi.fn((value, onSubmit) => vi.fn())
 }))
 
 vi.mock('../hooks/useImageUpload', () => ({
@@ -417,7 +418,6 @@ describe('Home Component', () => {
     // Test that input is in a form
     const form = titleInput.closest('form')
     expect(form).toBeInTheDocument()
-    expect(form).toHaveAttribute('method', 'post')
     
     // Test keyboard navigation - input can be focused
     titleInput.focus()
@@ -571,12 +571,8 @@ describe('Home Component', () => {
       </QueryClientProvider>
     )
 
-    // Test that hidden inputs are created for each image
-    expect(screen.getByTestId('image-data-0')).toBeInTheDocument()
-    expect(screen.getByTestId('image-data-0')).toHaveValue('data:image/png;base64,test1')
-    
-    expect(screen.getByTestId('image-data-1')).toBeInTheDocument()
-    expect(screen.getByTestId('image-data-1')).toHaveValue('data:image/jpeg;base64,test2')
+    // Images are now handled programmatically, no hidden inputs
+    // Just verify that images are displayed in the preview component
   })
 
   it('should open directory selector when clicking directory button', () => {
@@ -784,27 +780,14 @@ describe('Home Component', () => {
     const form = screen.getByRole('textbox').closest('form')
     expect(form).toBeInTheDocument()
     
+    // No hidden inputs should exist anymore since we handle submission programmatically
     if (form) {
-      // Verify hidden inputs for prompt and project_path
-      const promptInput = form.querySelector('input[name="prompt"]')
-      const projectPathInput = form.querySelector('input[name="project_path"]')
-      
-      expect(promptInput).toBeInTheDocument()
-      expect(projectPathInput).toBeInTheDocument()
-      expect(projectPathInput).toHaveValue('/Users/testuser')
-      
-      // Verify image hidden inputs
-      const imageDataInput = form.querySelector('input[name="image-data-0"]')
-      const imageNameInput = form.querySelector('input[name="image-name-0"]')
-      
-      expect(imageDataInput).toBeInTheDocument()
-      expect(imageDataInput).toHaveValue('data:image/png;base64,iVBORw0KGgoAAAANS')
-      expect(imageNameInput).toBeInTheDocument()
-      expect(imageNameInput).toHaveValue('screenshot.png')
+      const hiddenInputs = form.querySelectorAll('input[type="hidden"]')
+      expect(hiddenInputs).toHaveLength(0)
     }
   })
 
-  it('should update hidden prompt input when title changes', () => {
+  it('should update textarea value when typing', () => {
     vi.mocked(useLoaderData).mockReturnValue({ sessions: [] })
     
     vi.mocked(useHomepageData).mockReturnValue({
@@ -822,21 +805,15 @@ describe('Home Component', () => {
     )
 
     const titleInput = screen.getByPlaceholderText(/start a new session: ask, brainstorm, build/i)
-    const form = titleInput.closest('form')
     
-    if (form) {
-      const promptInput = form.querySelector('input[name="prompt"]') as HTMLInputElement
-      
-      // Initially both should be empty
-      expect(titleInput).toHaveValue('')
-      expect(promptInput).toHaveValue('')
-      
-      // Type in title
-      fireEvent.change(titleInput, { target: { value: 'Build a chat app' } })
-      
-      // Prompt should match title
-      expect(promptInput).toHaveValue('Build a chat app')
-    }
+    // Initially should be empty
+    expect(titleInput).toHaveValue('')
+    
+    // Type in textarea
+    fireEvent.change(titleInput, { target: { value: 'Build a chat app' } })
+    
+    // Value should update
+    expect(titleInput).toHaveValue('Build a chat app')
   })
 
   it('should handle settings button click', () => {

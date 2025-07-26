@@ -16,6 +16,7 @@ import { useImageUpload } from "../hooks/useImageUpload";
 import { ImagePreview } from "../components/ImagePreview";
 import SettingsModal from "../components/SettingsModal";
 import PermissionsBadge from "../components/PermissionsBadge";
+import { ContextSummarizationSheet } from "../components/ContextSummarizationSheet";
 import clsx from "clsx";
 import type { PermissionMode } from "../types/settings";
 
@@ -832,6 +833,12 @@ export default function SessionDetail() {
         onSettingsChange={(newSettings) => {
           setCurrentPermissionMode(newSettings.permissionMode)
         }}
+      />
+      
+      {/* Context Summarization Sheet */}
+      <ContextSummarizationSheet
+        isVisible={processingState.isInContextSummarization}
+        onCancel={handleStop}
       />
     </div>
   );

@@ -11,7 +11,6 @@ export function useAutoResizeTextarea(
 ) {
   const { maxRows = 5, minRows = 1 } = options;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const adjustHeight = useCallback(() => {
     const textarea = textareaRef.current;
@@ -35,23 +34,15 @@ export function useAutoResizeTextarea(
     textarea.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
   }, [maxRows, minRows]);
 
-  // Debounced height adjustment when value changes
+  // Immediate height adjustment when value changes
   useEffect(() => {
-    // Clear any existing timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    // Set a new timeout to adjust height after user stops typing
-    timeoutRef.current = setTimeout(() => {
+    // Use requestAnimationFrame for smooth updates
+    const frameId = requestAnimationFrame(() => {
       adjustHeight();
-    }, 100); // 100ms debounce
+    });
 
-    // Cleanup timeout on unmount or value change
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      cancelAnimationFrame(frameId);
     };
   }, [value, adjustHeight]);
 

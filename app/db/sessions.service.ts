@@ -24,11 +24,23 @@ export type ListSessionsOptions = {
   limit?: number
 }
 
+export type TokenStats = {
+  total_tokens: number
+  input_tokens: number
+  output_tokens: number
+  cache_read_tokens: number
+  cache_creation_tokens: number
+  context_percentage: number
+  cache_efficiency: number
+  context_used: number
+}
+
 export type SessionWithStats = Session & {
   event_count: number
   duration_minutes: number
   event_types: Record<string, number>
   last_event_at?: string
+  token_stats?: TokenStats
 }
 
 export async function createSession(input: CreateSessionInput): Promise<Session> {
@@ -37,9 +49,16 @@ export async function createSession(input: CreateSessionInput): Promise<Session>
   // Get global settings to copy to the new session
   const globalSettings = await getSettings()
   
+  // Truncate title to prevent performance issues with huge prompts
+  const MAX_TITLE_LENGTH = 100
+  let truncatedTitle = input.title || null
+  if (truncatedTitle && truncatedTitle.length > MAX_TITLE_LENGTH) {
+    truncatedTitle = truncatedTitle.substring(0, MAX_TITLE_LENGTH - 3) + '...'
+  }
+  
   const newSession: NewSession = {
     id: uuidv4(),
-    title: input.title || null,
+    title: truncatedTitle,
     created_at: now,
     updated_at: now,
     status: 'active',
@@ -64,7 +83,15 @@ export async function updateSession(id: string, input: UpdateSessionInput): Prom
     updated_at: new Date().toISOString()
   }
   
-  if (input.title !== undefined) updates.title = input.title
+  // Truncate title to prevent performance issues
+  const MAX_TITLE_LENGTH = 100
+  if (input.title !== undefined) {
+    let truncatedTitle = input.title
+    if (truncatedTitle && truncatedTitle.length > MAX_TITLE_LENGTH) {
+      truncatedTitle = truncatedTitle.substring(0, MAX_TITLE_LENGTH - 3) + '...'
+    }
+    updates.title = truncatedTitle
+  }
   if (input.status !== undefined) updates.status = input.status
   if (input.metadata !== undefined) updates.metadata = input.metadata
   
@@ -171,12 +198,16 @@ export async function getSessionWithStats(id: string): Promise<SessionWithStats 
     event_types[event.event_type] = (event_types[event.event_type] || 0) + 1
   }
   
+  // Get token stats
+  const token_stats = await getSessionTokenStats(id)
+  
   return {
     ...session,
     event_count: visibleEventCount,
     duration_minutes,
     event_types,
-    last_event_at
+    last_event_at,
+    token_stats: token_stats || undefined
   }
 }
 
@@ -361,4 +392,76 @@ export async function countArchivedSessions(): Promise<number> {
     .execute()
   
   return result.length
+}
+
+export async function getSessionTokenStats(sessionId: string): Promise<TokenStats | null> {
+  // Get the latest result event which contains the current Claude session's token usage
+  const resultEvents = await db
+    .select({
+      data: events.data,
+      timestamp: events.timestamp
+    })
+    .from(events)
+    .where(
+      and(
+        eq(events.memva_session_id, sessionId),
+        eq(events.event_type, 'result')
+      )
+    )
+    .orderBy(desc(events.timestamp))
+    .limit(1)
+    .execute()
+  
+  if (resultEvents.length === 0) {
+    return null
+  }
+  
+  const latestResult = resultEvents[0]
+  
+  if (latestResult.data && typeof latestResult.data === 'object') {
+    const data = latestResult.data as Record<string, unknown>
+    const usage = data.usage as {
+      input_tokens?: number
+      cache_read_input_tokens?: number
+      cache_creation_input_tokens?: number
+      output_tokens?: number
+    } | undefined
+    
+    if (!usage) {
+      return null
+    }
+    
+    const totalInputTokens = usage.input_tokens || 0
+    const totalCacheReadTokens = usage.cache_read_input_tokens || 0
+    const totalCacheCreationTokens = usage.cache_creation_input_tokens || 0
+    const totalOutputTokens = usage.output_tokens || 0
+    
+    // Context usage: what actually counts against Claude's limit (excluding cache creation)
+    const contextUsed = totalInputTokens + totalOutputTokens + totalCacheReadTokens
+    
+    // Total tokens for activity tracking (includes cache creation)
+    const totalTokens = contextUsed + totalCacheCreationTokens
+    
+    // Estimate percentage of context window used (200k limit)
+    const contextPercentage = Math.min(100, (contextUsed / 200000) * 100)
+    
+    // Calculate cache efficiency
+    const totalInputIncludingCache = totalInputTokens + totalCacheReadTokens
+    const cacheEfficiency = totalInputIncludingCache > 0 
+      ? (totalCacheReadTokens / totalInputIncludingCache) * 100 
+      : 0
+    
+    return {
+      total_tokens: totalTokens,
+      input_tokens: totalInputTokens,
+      output_tokens: totalOutputTokens,
+      cache_read_tokens: totalCacheReadTokens,
+      cache_creation_tokens: totalCacheCreationTokens,
+      context_percentage: Math.round(contextPercentage * 100) / 100,
+      cache_efficiency: Math.round(cacheEfficiency * 100) / 100,
+      context_used: contextUsed
+    }
+  }
+  
+  return null
 }

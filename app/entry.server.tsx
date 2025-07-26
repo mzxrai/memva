@@ -117,38 +117,48 @@ const sigtermListeners = process.listenerCount('SIGTERM');
 
 if (sigintListeners === 0) {
   process.once('SIGINT', async () => {
-    console.log('\nShutting down...');
+    console.log('\n🛑 Received SIGINT - Starting graceful shutdown...');
     
     // Expire all pending permissions before shutdown
     try {
+      console.log('📋 Expiring pending permissions...');
       await expireAllPendingPermissions();
+      console.log('✅ Permissions expired successfully');
     } catch (error) {
-      console.error('Failed to expire pending permissions:', error);
+      console.error('❌ Failed to expire pending permissions:', error);
     }
     
     if (jobSystem) {
+      console.log('🔧 Stopping job system...');
       await jobSystem.stop();
+      console.log('✅ Job system stopped');
     }
     
+    console.log('👋 Shutdown complete');
     process.exit(0);
   });
 }
 
 if (sigtermListeners === 0) {
   process.once('SIGTERM', async () => {
-    console.log('\nShutting down...');
+    console.log('\n🛑 Received SIGTERM - Starting graceful shutdown...');
     
     // Expire all pending permissions before shutdown
     try {
+      console.log('📋 Expiring pending permissions...');
       await expireAllPendingPermissions();
+      console.log('✅ Permissions expired successfully');
     } catch (error) {
-      console.error('Failed to expire pending permissions:', error);
+      console.error('❌ Failed to expire pending permissions:', error);
     }
     
     if (jobSystem) {
+      console.log('🔧 Stopping job system...');
       await jobSystem.stop();
+      console.log('✅ Job system stopped');
     }
     
+    console.log('👋 Shutdown complete');
     process.exit(0);
   });
 }

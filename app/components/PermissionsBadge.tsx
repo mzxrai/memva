@@ -53,12 +53,19 @@ export default function PermissionsBadge({ mode, isUpdating = false, isUpdated =
     return `Permissions mode: ${modeText}${disabledText}`
   }
   
+  const getTooltip = () => {
+    if (isDisabled) {
+      return 'Cannot change permissions during active processing'
+    }
+    return config.description
+  }
+  
   return (
     <div 
       role="status"
       aria-label={getAriaLabel()}
       aria-live="polite"
-      title={isDisabled ? 'Cannot change permissions during active processing' : undefined}
+      title={getTooltip()}
       className={clsx(
         'flex items-center gap-2',
         'px-2.5 py-1',

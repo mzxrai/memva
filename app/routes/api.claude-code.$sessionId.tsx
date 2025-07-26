@@ -1,6 +1,6 @@
 import type { Route } from "./+types/api.claude-code.$sessionId"
 import { getSession, getLatestClaudeSessionId } from "../db/sessions.service"
-import { streamClaudeCodeResponse } from "../services/claude-code.server"
+import { streamClaudeCliResponse } from "../services/claude-cli.server"
 
 export async function action({ request, params }: Route.ActionArgs) {
   
@@ -34,6 +34,9 @@ export async function action({ request, params }: Route.ActionArgs) {
   await updateSessionClaudeStatus(params.sessionId, 'processing')
   
   try {
+    console.debug('[API] Starting Claude Code request for session:', params.sessionId)
+    console.debug('[API] Latest Claude session ID:', latestSessionId)
+    
     // Get global settings first
     const { getSettings } = await import('../db/settings.service')
     const globalSettings = await getSettings()
@@ -46,7 +49,9 @@ export async function action({ request, params }: Route.ActionArgs) {
     const maxTurns = sessionSettings?.maxTurns ?? globalSettings?.maxTurns ?? 200
     const permissionMode = sessionSettings?.permissionMode ?? globalSettings?.permissionMode ?? 'acceptEdits'
     
-    await streamClaudeCodeResponse({
+    console.debug('[API] Calling streamClaudeCodeResponse with resumeSessionId:', latestSessionId)
+    
+    await streamClaudeCliResponse({
       prompt, 
       projectPath: session.project_path,
       memvaSessionId: params.sessionId,
@@ -63,10 +68,17 @@ export async function action({ request, params }: Route.ActionArgs) {
       await updateSessionClaudeStatus(params.sessionId, 'completed')
     }, 500)
     
+    console.debug('[API] streamClaudeCodeResponse completed successfully')
+    
     // Return a streaming response to the client
     return new Response("OK", { status: 200 })
   } catch (error) {
     console.error(`[API] Error in action:`, error)
+    console.debug('[API] Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    })
     
     // Update status to error
     await updateSessionClaudeStatus(params.sessionId, 'error')

@@ -324,6 +324,7 @@ export function useSessionProcessingState({
     processingStartTime: state.processingStartTime,
     activeJob: state.activeJob,
     isTransitioning: state.isTransitioning,
+    isInContextSummarization,
     
     // Permission state
     permissions,

@@ -1,7 +1,9 @@
 import { vi } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { setupInMemoryDb, type TestDatabase } from '../test-utils/in-memory-db'
 import { setupDatabaseMocks, setTestDatabase, clearTestDatabase } from '../test-utils/database-mocking'
+import type { ReactNode } from 'react'
 
 // CRITICAL: Setup static mocks before any imports that use database
 setupDatabaseMocks(vi)
@@ -10,10 +12,22 @@ import usePermissionPolling from '../hooks/usePermissionPolling'
 
 describe('Permission Polling Optimization', () => {
   let testDb: TestDatabase
+  let queryClient: QueryClient
+
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  )
 
   beforeEach(() => {
     testDb = setupInMemoryDb()
     setTestDatabase(testDb)
+    queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false, gcTime: 0 },
+      },
+    })
     
     // Mock fetch API
     global.fetch = vi.fn()
@@ -37,7 +51,8 @@ describe('Permission Polling Optimization', () => {
         enabled: true, 
         sessionId: 'test-session-123',
         pollingInterval: 100 
-      })
+      }),
+      { wrapper }
     )
 
     // Wait for initial fetch
@@ -66,7 +81,8 @@ describe('Permission Polling Optimization', () => {
         enabled: false, 
         sessionId: 'test-session-123',
         pollingInterval: 100 
-      })
+      }),
+      { wrapper }
     )
 
     // Wait a bit to ensure no polling happens
@@ -90,7 +106,7 @@ describe('Permission Polling Optimization', () => {
         sessionId: 'test-session-123',
         pollingInterval: 100 
       }),
-      { initialProps: { enabled: true } }
+      { initialProps: { enabled: true }, wrapper }
     )
 
     // Wait for initial fetch
@@ -124,7 +140,7 @@ describe('Permission Polling Optimization', () => {
         sessionId: 'test-session-123',
         pollingInterval: 100 
       }),
-      { initialProps: { enabled: false } }
+      { initialProps: { enabled: false }, wrapper }
     )
 
     // Verify no calls when disabled
