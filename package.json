@@ -22,6 +22,7 @@
     "build/**/*",
     "app/**/*",
     "public/**/*",
+    "mcp-permission-server/build/**/*",
     "cli.js",
     "package.json",
     "README.md",
@@ -29,7 +30,7 @@
   ],
   "scripts": {
     "prepublishOnly": "npm run build",
-    "build": "react-router build",
+    "build": "react-router build && cd mcp-permission-server && npm run build",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
@@ -41,6 +42,7 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-code": "^1.0.51",
+    "@modelcontextprotocol/sdk": "^1.0.4",
     "@react-router/node": "^7.5.3",
     "@react-router/serve": "^7.5.3",
     "@tanstack/react-query": "^5.83.0",
