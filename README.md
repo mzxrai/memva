@@ -2,6 +2,8 @@
 
 Session manager for AI coding agents.
 
+![Memva Interface](screenshot.png)
+
 ## Quick Start
 
 ```bash
