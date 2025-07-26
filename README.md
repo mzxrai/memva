@@ -2,7 +2,7 @@
 
 Session manager for AI coding agents.
 
-![Memva Interface](screenshot.png)
+![Memva Interface](https://raw.githubusercontent.com/mzxrai/memva/main/screenshot.png)
 
 ## Quick Start
 
@@ -10,7 +10,7 @@ Session manager for AI coding agents.
 npx memva@latest
 ```
 
-Starts web server on port 7823 and opens browser automatically.
+This starts the web server on port 7823 and opens Memva in your browser. You're ready to go!
 
 ## Features
 
