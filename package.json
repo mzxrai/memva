@@ -1,6 +1,6 @@
 {
   "name": "memva",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Session manager for coding agents",
   "type": "module",
   "bin": {
