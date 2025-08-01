@@ -224,7 +224,7 @@ export async function streamClaudeCliResponse({
         messageCount++
 
         // Track session ID from each message
-        if ('session_id' in message) {
+        if (message && typeof message === 'object' && 'session_id' in message) {
           const newClaudeSessionId = message.session_id
           console.debug('[Claude CLI] Message has session_id:', newClaudeSessionId)
 
@@ -245,7 +245,7 @@ export async function streamClaudeCliResponse({
 
         // ONLY check result messages with is_error=true to avoid false positives
         // (e.g. user asking Claude about handling "prompt is too long" errors!)
-        if (message.type === 'result' && message.is_error === true && 'result' in message && message.result) {
+        if (message && typeof message === 'object' && message.type === 'result' && message.is_error === true && 'result' in message && message.result) {
           const resultText = typeof message.result === 'string' ? message.result : ''
           if (resultText.toLowerCase().includes('too long') || 
               resultText.toLowerCase().includes('context') ||
